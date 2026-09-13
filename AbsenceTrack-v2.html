@@ -2282,7 +2282,7 @@ function absenceEnSeanceAnnulee(a) {
   return !!a && !!seanceAnnulee(a.dateISO, a.classe, a.heure);
 }
 // Creneaux reels d'une classe pour un jour (deduits des tableaux de service)
-function creneauxClasseJour(classe, jour) {
+function creneauxClasseJour(classe, jour, avecDefaut) {
   const par = {};
   Object.keys(tableauxService).forEach(mail => (tableauxService[mail] || []).forEach(c => {
     if (c.classe !== classe || c.jour !== jour) return;
@@ -2290,6 +2290,7 @@ function creneauxClasseJour(classe, jour) {
   }));
   const liste = Object.keys(par).map(k => par[k]).sort((a, b) => hhmmEnMinutes(a.debut) - hhmmEnMinutes(b.debut));
   if (liste.length) return liste;
+  if (avecDefaut === false) return [];      // pour compter les seances DUES : pas de repli
   const std = [];
   for (let h = 8; h < 12; h++) std.push({ debut: String(h).padStart(2, '0') + ':00', fin: String(h + 1).padStart(2, '0') + ':00', matiere: '', prof: '' });
   for (let h = 14; h < 18; h++) std.push({ debut: String(h).padStart(2, '0') + ':00', fin: String(h + 1).padStart(2, '0') + ':00', matiere: '', prof: '' });
@@ -2425,6 +2426,56 @@ function listeSeancesAnnulees() {
     fusion.push(c);
   });
   return fusion;
+}
+
+// L'etablissement est-il ferme a cette date ? (et sur ce demi-jour, si la fermeture
+// ne couvre qu'une demi-journee)
+function fermetureCouvre(dateISO, estMatin) {
+  return fermeturesEtab.some(f => {
+    const d = String(dateISO || '');
+    if (d < f.debut || d > f.fin) return false;
+    if (!f.portee || f.portee === 'journee') return true;
+    return (f.portee === 'matin') === !!estMatin;
+  });
+}
+
+// Les SEANCES DUES d'une classe sur une periode : les creneaux du tableau de service,
+// MOINS les fermetures de l'etablissement, les annulations et les absences de professeurs
+// (ces deux dernieres sont deja fusionnees par listeSeancesAnnulees).
+// C'est le denominateur juste du taux de presence : avant, l'application le deduisait des
+// signalements eux-memes, donc plus il y avait d'absences... plus le taux montait.
+function seancesDuesClasse(classe, debut, fin) {
+  const annulees = {};
+  listeSeancesAnnulees().forEach(sn => { annulees[sn.dateISO + '|' + sn.classe + '|' + sn.debut] = true; });
+  let n = 0;
+  const d = new Date(debut + 'T12:00:00');
+  const dernier = new Date(fin + 'T12:00:00');
+  while (d <= dernier) {
+    const jour = d.getDay();                       // 0 = dimanche : aucune seance
+    if (jour >= 1 && jour <= 6) {
+      const dateISO = fmtDateISO(d);
+      creneauxClasseJour(classe, jour, false).forEach(c => {
+        if (fermetureCouvre(dateISO, hhmmEnMinutes(c.debut) < 12 * 60)) return;
+        if (annulees[dateISO + '|' + classe + '|' + c.debut]) return;
+        n++;
+      });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return n;
+}
+
+// Les absences qui comptent vraiment sur une periode : les signalements dont le type
+// EFFECTIF est « absence » (un retard de plus de 30 min en est une), hors fermeture de
+// l'etablissement. `classe` est facultatif (sinon : tout l'etablissement).
+function absencesCompteesPeriode(debut, fin, classe) {
+  return absences.filter(a => {
+    const d = String(a.dateISO || '');
+    if (d < debut || d > fin) return false;
+    if (classe && a.classe !== classe) return false;
+    if (typeEffectif(a) === 'retard') return false;
+    return !fermetureCouvre(d, (a.seance || 'matin') === 'matin');
+  });
 }
 
 // Ordre : de la plus proche a la plus lointaine (les seances a venir d'abord, puis les passees recentes)
@@ -4476,18 +4527,25 @@ function afficherStatistiques() {
 
   // --- Taux de presence (classe + periode, toutes matieres) ---
   if (classeSelectionnee) {
-    const tousClasse = absences.filter(a => a.classe === classeSelectionnee.nom && String(a.dateISO || '') >= b.debut && String(a.dateISO || '') <= b.fin);
-    const seances = {};
-    tousClasse.forEach(a => { seances[a.dateISO + '|' + (a.seance || 'matin')] = 1; });
-    const nbSeances = Math.max(Object.keys(seances).length, 1);
-    const nbAbsClasse = tousClasse.filter(a => typeEffectif(a) !== 'retard').length;
-    const totalEleves = classeSelectionnee.eleves.length;
+    // memes regles que cote directeur : eleves actifs x seances DUES (tableau de service)
+    const nbSeances = seancesDuesClasse(classeSelectionnee.nom, b.debut, b.fin);
+    const nbAbsClasse = absencesCompteesPeriode(b.debut, b.fin, classeSelectionnee.nom).length;
+    const totalEleves = elevesActifs(classeSelectionnee).length;
     const places = totalEleves * nbSeances;
-    const taux = Math.max(0, Math.min(100, Math.round(((places - nbAbsClasse) / places) * 100)));
-    document.getElementById('stat-presence').textContent = taux + '%';
-    document.getElementById('progress-presence').style.width = taux + '%';
-    document.getElementById('stat-presence-detail').textContent =
-      totalEleves + ' élèves · ' + nbSeances + ' séance(s) · ' + nbAbsClasse + ' absence(s) sur la période';
+    const elT = document.getElementById('stat-presence');
+    const elB = document.getElementById('progress-presence');
+    const elD = document.getElementById('stat-presence-detail');
+    if (places === 0) {
+      // Aucun tableau de service sur la periode : un pourcentage n'aurait aucun sens.
+      elT.textContent = '—';
+      elB.style.width = '0%';
+      elD.textContent = totalEleves + ' élèves · aucune séance due sur la période';
+    } else {
+      const taux = Math.max(0, Math.min(100, Math.round(((places - nbAbsClasse) / places) * 100)));
+      elT.textContent = taux + '%';
+      elB.style.width = taux + '%';
+      elD.textContent = totalEleves + ' élèves · ' + nbSeances + ' séance(s) due(s) · ' + nbAbsClasse + ' absence(s) sur la période';
+    }
   } else {
     document.getElementById('stat-presence').textContent = '—';
     document.getElementById('progress-presence').style.width = '0%';
@@ -5052,21 +5110,32 @@ function afficherStatistiquesDir() {
   const pal = couleursAbsRd();
   const filtres = statsDirFiltre();
 
-  // --- Taux de presence de l'etablissement (eleves x seances, toutes classes, toutes matieres) ---
-  const totalEleves = classes.reduce((somme, c) => somme + c.eleves.length, 0);
-  const periodeToutes = absences.filter(a => { const d = String(a.dateISO || ''); return d >= b.debut && d <= b.fin; });
-  const seances = {};
-  periodeToutes.forEach(a => { seances[String(a.dateISO) + '|' + (a.seance || 'matin')] = 1; });
-  const nbSeances = Math.max(Object.keys(seances).length, 1);
-  const nbAbsEtab = periodeToutes.filter(a => typeEffectif(a) !== 'retard').length;
-  const places = Math.max(totalEleves * nbSeances, 1);
-  const taux = Math.max(0, Math.min(100, Math.round(((places - nbAbsEtab) / places) * 100)));
+  // --- Taux de presence de l'etablissement : eleves ACTIFS x seances DUES ---
+  // Les seances viennent du tableau de service (moins fermetures, annulations et absences
+  // de professeurs) : le taux ne depend donc plus du nombre de signalements.
+  let totalEleves = 0, nbSeances = 0, places = 0;
+  classes.forEach(c => {
+    const eff = elevesActifs(c).length;
+    const dues = seancesDuesClasse(c.nom, b.debut, b.fin);
+    totalEleves += eff;
+    nbSeances += dues;
+    places += eff * dues;
+  });
+  const nbAbsEtab = absencesCompteesPeriode(b.debut, b.fin).length;
   const elTaux = document.getElementById('dir-stat-presence');
-  if (elTaux) elTaux.textContent = taux + '%';
   const elBarre = document.getElementById('dir-progress-presence');
-  if (elBarre) elBarre.style.width = taux + '%';
   const elDetail = document.getElementById('dir-stat-presence-detail');
-  if (elDetail) elDetail.textContent = totalEleves + ' élèves · ' + nbSeances + ' séance(s) · ' + nbAbsEtab + ' absence(s) sur la période';
+  if (places === 0) {
+    // Aucun tableau de service sur la periode : un pourcentage n'aurait aucun sens.
+    if (elTaux) elTaux.textContent = '—';
+    if (elBarre) elBarre.style.width = '0%';
+    if (elDetail) elDetail.textContent = totalEleves + ' élèves · aucune séance due sur la période';
+  } else {
+    const taux = Math.max(0, Math.min(100, Math.round(((places - nbAbsEtab) / places) * 100)));
+    if (elTaux) elTaux.textContent = taux + '%';
+    if (elBarre) elBarre.style.width = taux + '%';
+    if (elDetail) elDetail.textContent = totalEleves + ' élèves · ' + nbSeances + ' séance(s) due(s) · ' + nbAbsEtab + ' absence(s) sur la période';
+  }
 
   // --- Tendance selon la periode ---
   const elTitreTendance = document.getElementById('dir-tendance-titre');

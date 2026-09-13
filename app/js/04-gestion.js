@@ -142,7 +142,7 @@ function absenceEnSeanceAnnulee(a) {
   return !!a && !!seanceAnnulee(a.dateISO, a.classe, a.heure);
 }
 // Creneaux reels d'une classe pour un jour (deduits des tableaux de service)
-function creneauxClasseJour(classe, jour) {
+function creneauxClasseJour(classe, jour, avecDefaut) {
   const par = {};
   Object.keys(tableauxService).forEach(mail => (tableauxService[mail] || []).forEach(c => {
     if (c.classe !== classe || c.jour !== jour) return;
@@ -150,6 +150,7 @@ function creneauxClasseJour(classe, jour) {
   }));
   const liste = Object.keys(par).map(k => par[k]).sort((a, b) => hhmmEnMinutes(a.debut) - hhmmEnMinutes(b.debut));
   if (liste.length) return liste;
+  if (avecDefaut === false) return [];      // pour compter les seances DUES : pas de repli
   const std = [];
   for (let h = 8; h < 12; h++) std.push({ debut: String(h).padStart(2, '0') + ':00', fin: String(h + 1).padStart(2, '0') + ':00', matiere: '', prof: '' });
   for (let h = 14; h < 18; h++) std.push({ debut: String(h).padStart(2, '0') + ':00', fin: String(h + 1).padStart(2, '0') + ':00', matiere: '', prof: '' });
@@ -285,6 +286,56 @@ function listeSeancesAnnulees() {
     fusion.push(c);
   });
   return fusion;
+}
+
+// L'etablissement est-il ferme a cette date ? (et sur ce demi-jour, si la fermeture
+// ne couvre qu'une demi-journee)
+function fermetureCouvre(dateISO, estMatin) {
+  return fermeturesEtab.some(f => {
+    const d = String(dateISO || '');
+    if (d < f.debut || d > f.fin) return false;
+    if (!f.portee || f.portee === 'journee') return true;
+    return (f.portee === 'matin') === !!estMatin;
+  });
+}
+
+// Les SEANCES DUES d'une classe sur une periode : les creneaux du tableau de service,
+// MOINS les fermetures de l'etablissement, les annulations et les absences de professeurs
+// (ces deux dernieres sont deja fusionnees par listeSeancesAnnulees).
+// C'est le denominateur juste du taux de presence : avant, l'application le deduisait des
+// signalements eux-memes, donc plus il y avait d'absences... plus le taux montait.
+function seancesDuesClasse(classe, debut, fin) {
+  const annulees = {};
+  listeSeancesAnnulees().forEach(sn => { annulees[sn.dateISO + '|' + sn.classe + '|' + sn.debut] = true; });
+  let n = 0;
+  const d = new Date(debut + 'T12:00:00');
+  const dernier = new Date(fin + 'T12:00:00');
+  while (d <= dernier) {
+    const jour = d.getDay();                       // 0 = dimanche : aucune seance
+    if (jour >= 1 && jour <= 6) {
+      const dateISO = fmtDateISO(d);
+      creneauxClasseJour(classe, jour, false).forEach(c => {
+        if (fermetureCouvre(dateISO, hhmmEnMinutes(c.debut) < 12 * 60)) return;
+        if (annulees[dateISO + '|' + classe + '|' + c.debut]) return;
+        n++;
+      });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return n;
+}
+
+// Les absences qui comptent vraiment sur une periode : les signalements dont le type
+// EFFECTIF est « absence » (un retard de plus de 30 min en est une), hors fermeture de
+// l'etablissement. `classe` est facultatif (sinon : tout l'etablissement).
+function absencesCompteesPeriode(debut, fin, classe) {
+  return absences.filter(a => {
+    const d = String(a.dateISO || '');
+    if (d < debut || d > fin) return false;
+    if (classe && a.classe !== classe) return false;
+    if (typeEffectif(a) === 'retard') return false;
+    return !fermetureCouvre(d, (a.seance || 'matin') === 'matin');
+  });
 }
 
 // Ordre : de la plus proche a la plus lointaine (les seances a venir d'abord, puis les passees recentes)

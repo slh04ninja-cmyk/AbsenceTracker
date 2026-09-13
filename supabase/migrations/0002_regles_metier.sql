@@ -40,7 +40,11 @@ as $$
 $$;
 
 comment on function type_effectif(type_signalement, integer) is
-  'R1 : un retard de plus de 30 minutes compte comme une absence (meme regle que l''application).';
+  'R1 : un retard de plus de 30 minutes compte comme une absence.'
+  ' ATTENTION au sens de retard_minutes : ce n''est PAS la duree du retard de l''eleve,'
+  ' mais le temps ecoule entre l''heure du signalement et son approbation'
+  ' (ou maintenant s''il n''est toujours pas approuve) — c''est la regle de l''application :'
+  ' un retard non approuve dans les 30 minutes devient une absence.';
 
 
 -- ---------------------------------------------------------------------------

@@ -107,18 +107,25 @@ function afficherStatistiques() {
 
   // --- Taux de presence (classe + periode, toutes matieres) ---
   if (classeSelectionnee) {
-    const tousClasse = absences.filter(a => a.classe === classeSelectionnee.nom && String(a.dateISO || '') >= b.debut && String(a.dateISO || '') <= b.fin);
-    const seances = {};
-    tousClasse.forEach(a => { seances[a.dateISO + '|' + (a.seance || 'matin')] = 1; });
-    const nbSeances = Math.max(Object.keys(seances).length, 1);
-    const nbAbsClasse = tousClasse.filter(a => typeEffectif(a) !== 'retard').length;
-    const totalEleves = classeSelectionnee.eleves.length;
+    // memes regles que cote directeur : eleves actifs x seances DUES (tableau de service)
+    const nbSeances = seancesDuesClasse(classeSelectionnee.nom, b.debut, b.fin);
+    const nbAbsClasse = absencesCompteesPeriode(b.debut, b.fin, classeSelectionnee.nom).length;
+    const totalEleves = elevesActifs(classeSelectionnee).length;
     const places = totalEleves * nbSeances;
-    const taux = Math.max(0, Math.min(100, Math.round(((places - nbAbsClasse) / places) * 100)));
-    document.getElementById('stat-presence').textContent = taux + '%';
-    document.getElementById('progress-presence').style.width = taux + '%';
-    document.getElementById('stat-presence-detail').textContent =
-      totalEleves + ' élèves · ' + nbSeances + ' séance(s) · ' + nbAbsClasse + ' absence(s) sur la période';
+    const elT = document.getElementById('stat-presence');
+    const elB = document.getElementById('progress-presence');
+    const elD = document.getElementById('stat-presence-detail');
+    if (places === 0) {
+      // Aucun tableau de service sur la periode : un pourcentage n'aurait aucun sens.
+      elT.textContent = '—';
+      elB.style.width = '0%';
+      elD.textContent = totalEleves + ' élèves · aucune séance due sur la période';
+    } else {
+      const taux = Math.max(0, Math.min(100, Math.round(((places - nbAbsClasse) / places) * 100)));
+      elT.textContent = taux + '%';
+      elB.style.width = taux + '%';
+      elD.textContent = totalEleves + ' élèves · ' + nbSeances + ' séance(s) due(s) · ' + nbAbsClasse + ' absence(s) sur la période';
+    }
   } else {
     document.getElementById('stat-presence').textContent = '—';
     document.getElementById('progress-presence').style.width = '0%';

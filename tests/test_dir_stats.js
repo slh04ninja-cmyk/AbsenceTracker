@@ -65,10 +65,14 @@ setTimeout(() => {
   win.switchDirPage('dir-stats');
   t('page stats active', doc.getElementById('page-dir-stats').classList.contains('active'));
 
-  // 3. taux de presence = (3 eleves x 2 seances - 4 absences) / 6 = 33%
-  t('taux de presence etablissement', txt('dir-stat-presence') === '33%', txt('dir-stat-presence') + ' — ' + txt('dir-stat-presence-detail'));
-  t('detail du taux', txt('dir-stat-presence-detail') === '3 élèves · 2 séance(s) · 4 absence(s) sur la période', txt('dir-stat-presence-detail'));
-  t('barre de progression', doc.getElementById('dir-progress-presence').style.width === '33%', doc.getElementById('dir-progress-presence').style.width);
+  // 3. AUCUN tableau de service dans ce jeu de donnees : le taux ne peut pas etre calcule.
+  //    (le calcul juste est teste dans tests/test_taux.js, qui fournit un tableau de service)
+  t('sans tableau de service : le taux affiche « — » et non un faux 0 %',
+    txt('dir-stat-presence') === '—', txt('dir-stat-presence'));
+  t('et le detail explique pourquoi',
+    txt('dir-stat-presence-detail') === '3 élèves · aucune séance due sur la période', txt('dir-stat-presence-detail'));
+  t('la barre reste vide', doc.getElementById('dir-progress-presence').style.width === '0%',
+    doc.getElementById('dir-progress-presence').style.width);
 
   // 4. compteurs (le record du mois precedent est exclu)
   const totaux = doc.getElementById('dir-stats-totaux').textContent;
@@ -162,7 +166,9 @@ setTimeout(() => {
   // 10. retour au mois : tout revient
   doc.getElementById('dir-stats-periode').value = 'mois';
   win.changerFiltreStatsDir();
-  t('retour au mois : 4 / 1 / 3', txt('dir-stat-presence') === '33%' && doc.getElementById('dir-stats-totaux').textContent.indexOf('ABSENCES4') >= 0);
+  t('retour au mois : 4 absences et le taux toujours non calculable',
+    txt('dir-stat-presence') === '—' && doc.getElementById('dir-stats-totaux').textContent.indexOf('ABSENCES4') >= 0,
+    txt('dir-stat-presence') + ' / ' + doc.getElementById('dir-stats-totaux').textContent.slice(0, 40));
 
   // 10bis. la meme fiche pour l'enseignant (compte de la matiere concernee : أيوب الكمرة)
   const profMath = JSON.parse(win.eval("JSON.stringify(comptes.filter(function(c){return c.email==='math-prof1@taalim.ma';})[0])"));
@@ -235,7 +241,12 @@ setTimeout(() => {
   // 11. regression : la page Stats de l'enseignant fonctionne toujours
   win.choisirClasse(1);
   win.afficherStatistiques();
-  t('stats enseignant toujours OK (taux rempli)', txt('stat-presence') !== '—', txt('stat-presence') + ' / ' + txt('stat-presence-detail'));
+  t('stats enseignant toujours OK (bloc rempli)', txt('stat-presence') !== '' && txt('stat-presence-detail') !== '',
+    txt('stat-presence') + ' / ' + txt('stat-presence-detail'));
+  // ce jeu de donnees n'a pas de tableau de service -> le taux n'est pas calculable
+  t('stats enseignant : taux « — » sans tableau de service (jamais un faux chiffre)',
+    txt('stat-presence') === '—' && txt('stat-presence-detail').indexOf('aucune séance due') >= 0,
+    txt('stat-presence') + ' / ' + txt('stat-presence-detail'));
   t('stats enseignant : compteurs remplis', doc.getElementById('stats-totaux').textContent.indexOf('ABSENCES') >= 0);
 
   if (erreurs.length) { console.log('--- erreurs jsdom ---'); erreurs.slice(0, 5).forEach(e => console.log('   ' + e)); }
