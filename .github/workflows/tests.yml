@@ -1,0 +1,25 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  suites:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Installer jsdom (versions exactes du lock)
+        run: npm ci --no-audit --no-fund
+
+      - name: Contrôles de forme + les suites de tests
+        run: python3 outils/verif.py tout
+
+      - name: Construire le livrable (contrôle que le build passe)
+        run: python3 outils/build.py

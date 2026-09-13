@@ -1,0 +1,54 @@
+{
+  "_note": "Lecture assistee (vision) de la page 1 du PDF '794295819_...pdf' — A VALIDER par un humain avant import. Les salles ne sont pas reprises comme demande.",
+  "source": "794295819_1384900470511899_7276181610879855784_n.pdf — page 1/6",
+  "etablissement": "الثانوية القصبية الإعدادية – بوعوان (Direction provinciale de Settat)",
+  "annee_scolaire": "2026-2027",
+  "classe": "TCSLHF1",
+  "professeurs": [
+    { "matiere": "الرياضيات", "matiere_fr": "Mathématiques", "nom": "أيوب الكمرة" },
+    { "matiere": "اللغة العربية", "matiere_fr": "Arabe", "nom": "المهدي الصلحي" },
+    { "matiere": "اللغة الفرنسية", "matiere_fr": "Français", "nom": "سامية الحاضي" },
+    { "matiere": "علوم الحياة والأرض", "matiere_fr": "SVT", "nom": "كمال الوردي" },
+    { "matiere": "الفلسفة", "matiere_fr": "Philosophie", "nom": "زكية المندريلي" },
+    { "matiere": "التربية البدنية", "matiere_fr": "EPS", "nom": "يسرى البوسعيدي" },
+    { "matiere": "التربية الإسلامية", "matiere_fr": "Éducation islamique", "nom": "محمد خليفي" },
+    { "matiere": "اللغة الإنجليزية", "matiere_fr": "Anglais", "nom": "هشام أجامي" },
+    { "matiere": "التاريخ والجغرافيا", "matiere_fr": "Histoire-Géographie", "nom": "ياسين القامة" }
+  ],
+  "creneaux": [
+    { "jour": 1, "jour_fr": "lundi",    "debut": "08:30", "fin": "09:30", "matiere": "الرياضيات",          "duree_h": 1 },
+    { "jour": 1, "jour_fr": "lundi",    "debut": "09:30", "fin": "10:30", "matiere": "التربية البدنية",     "duree_h": 1 },
+    { "jour": 1, "jour_fr": "lundi",    "debut": "10:30", "fin": "12:30", "matiere": "التاريخ والجغرافيا", "duree_h": 2 },
+    { "jour": 1, "jour_fr": "lundi",    "debut": "14:00", "fin": "15:00", "matiere": "اللغة الفرنسية",      "duree_h": 1 },
+    { "jour": 1, "jour_fr": "lundi",    "debut": "15:00", "fin": "16:00", "matiere": "اللغة الإنجليزية",    "duree_h": 1 },
+
+    { "jour": 2, "jour_fr": "mardi",    "debut": "08:30", "fin": "09:30", "matiere": "اللغة الفرنسية",      "duree_h": 1 },
+    { "jour": 2, "jour_fr": "mardi",    "debut": "09:30", "fin": "10:30", "matiere": "اللغة الإنجليزية",    "duree_h": 1 },
+    { "jour": 2, "jour_fr": "mardi",    "debut": "10:30", "fin": "11:30", "matiere": "اللغة العربية",       "duree_h": 1 },
+    { "jour": 2, "jour_fr": "mardi",    "debut": "11:30", "fin": "12:30", "matiere": "علوم الحياة والأرض",  "duree_h": 1 },
+    { "jour": 2, "jour_fr": "mardi",    "debut": "14:00", "fin": "15:00", "matiere": "الرياضيات",          "duree_h": 1 },
+    { "jour": 2, "jour_fr": "mardi",    "debut": "15:00", "fin": "16:00", "matiere": "التاريخ والجغرافيا", "duree_h": 1 },
+    { "jour": 2, "jour_fr": "mardi",    "debut": "16:00", "fin": "17:00", "matiere": "الفلسفة",            "duree_h": 1 },
+
+    { "jour": 3, "jour_fr": "mercredi", "debut": "08:30", "fin": "09:30", "matiere": "اللغة العربية",       "duree_h": 1 },
+    { "jour": 3, "jour_fr": "mercredi", "debut": "09:30", "fin": "10:30", "matiere": "اللغة الإنجليزية",    "duree_h": 1 },
+    { "jour": 3, "jour_fr": "mercredi", "debut": "15:00", "fin": "16:00", "matiere": "التربية الإسلامية",   "duree_h": 1 },
+    { "jour": 3, "jour_fr": "mercredi", "debut": "16:00", "fin": "17:00", "matiere": "الفلسفة",            "duree_h": 1 },
+
+    { "jour": 4, "jour_fr": "jeudi",    "debut": "08:30", "fin": "09:30", "matiere": "التربية الإسلامية",   "duree_h": 1 },
+    { "jour": 4, "jour_fr": "jeudi",    "debut": "09:30", "fin": "10:30", "matiere": "التاريخ والجغرافيا", "duree_h": 1 },
+    { "jour": 4, "jour_fr": "jeudi",    "debut": "14:00", "fin": "16:00", "matiere": "اللغة العربية",       "duree_h": 2 },
+    { "jour": 4, "jour_fr": "jeudi",    "debut": "16:00", "fin": "17:00", "matiere": "اللغة الفرنسية",      "duree_h": 1 },
+
+    { "jour": 5, "jour_fr": "vendredi", "debut": "08:30", "fin": "09:30", "matiere": "اللغة الإنجليزية",    "duree_h": 1 },
+    { "jour": 5, "jour_fr": "vendredi", "debut": "09:30", "fin": "10:30", "matiere": "التربية البدنية",     "duree_h": 1 },
+    { "jour": 5, "jour_fr": "vendredi", "debut": "10:30", "fin": "12:30", "matiere": "اللغة الفرنسية",      "duree_h": 2 }
+  ],
+  "total_heures_classe": 28,
+  "remarques": [
+    "Tableau de CLASSE (جدول حصص القسم) : on connait la matière par créneau, et le professeur via la liste des affectations de la même page.",
+    "Lecture automatique par vision : les noms arabes et les heures doivent etre relus/valides (cas ambigus signales).",
+    "Aucune seance le samedi pour cette classe.",
+    "Le PDF contient 6 pages : les autres pages contiennent d'autres classes, a extraire de la meme facon."
+  ]
+}

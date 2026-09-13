@@ -1,0 +1,487 @@
+{
+ "math-prof1": {
+  "matiere": "Maths",
+  "prof": "أيوب الكمرة",
+  "heures": 15,
+  "creneaux": [
+   {
+    "jour": 1,
+    "debut": "15:00",
+    "fin": "17:00",
+    "classe": "TCSF-1",
+    "matiere": "Maths",
+    "code": "math-prof1"
+   },
+   {
+    "jour": 2,
+    "debut": "14:00",
+    "fin": "16:00",
+    "classe": "TCSF-3",
+    "matiere": "Maths",
+    "code": "math-prof1"
+   },
+   {
+    "jour": 2,
+    "debut": "17:00",
+    "fin": "18:00",
+    "classe": "TCSF-1",
+    "matiere": "Maths",
+    "code": "math-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "14:00",
+    "fin": "16:00",
+    "classe": "TCSF-2",
+    "matiere": "Maths",
+    "code": "math-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "17:00",
+    "fin": "18:00",
+    "classe": "TCSF-3",
+    "matiere": "Maths",
+    "code": "math-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-3",
+    "matiere": "Maths",
+    "code": "math-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-2",
+    "matiere": "Maths",
+    "code": "math-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "15:00",
+    "fin": "16:00",
+    "classe": "TCSF-2",
+    "matiere": "Maths",
+    "code": "math-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "16:00",
+    "fin": "18:00",
+    "classe": "TCSF-1",
+    "matiere": "Maths",
+    "code": "math-prof1"
+   }
+  ]
+ },
+ "pc-prof1": {
+  "matiere": "PC",
+  "prof": "غزالي صالح",
+  "heures": 12,
+  "creneaux": [
+   {
+    "jour": 1,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-2",
+    "matiere": "PC",
+    "code": "pc-prof1"
+   },
+   {
+    "jour": 2,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-1",
+    "matiere": "PC",
+    "code": "pc-prof1"
+   },
+   {
+    "jour": 2,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-2",
+    "matiere": "PC",
+    "code": "pc-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "15:00",
+    "fin": "17:00",
+    "classe": "TCSF-3",
+    "matiere": "PC",
+    "code": "pc-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "14:00",
+    "fin": "16:00",
+    "classe": "TCSF-3",
+    "matiere": "PC",
+    "code": "pc-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-1",
+    "matiere": "PC",
+    "code": "pc-prof1"
+   }
+  ]
+ },
+ "svt-prof1": {
+  "matiere": "SVT",
+  "prof": "كمال الوردي",
+  "heures": 12,
+  "creneaux": [
+   {
+    "jour": 1,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-1",
+    "matiere": "SVT",
+    "code": "svt-prof1"
+   },
+   {
+    "jour": 2,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-3",
+    "matiere": "SVT",
+    "code": "svt-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-2",
+    "matiere": "SVT",
+    "code": "svt-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "14:00",
+    "fin": "16:00",
+    "classe": "TCSF-1",
+    "matiere": "SVT",
+    "code": "svt-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "16:00",
+    "fin": "18:00",
+    "classe": "TCSF-3",
+    "matiere": "SVT",
+    "code": "svt-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "09:00",
+    "fin": "11:00",
+    "classe": "TCSF-2",
+    "matiere": "SVT",
+    "code": "svt-prof1"
+   }
+  ]
+ },
+ "fr-prof1": {
+  "matiere": "Français",
+  "prof": "سامية الحاضي",
+  "heures": 12,
+  "creneaux": [
+   {
+    "jour": 1,
+    "debut": "16:00",
+    "fin": "18:00",
+    "classe": "TCSF-3",
+    "matiere": "Français",
+    "code": "fr-prof1"
+   },
+   {
+    "jour": 2,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-1",
+    "matiere": "Français",
+    "code": "fr-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-2",
+    "matiere": "Français",
+    "code": "fr-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-3",
+    "matiere": "Français",
+    "code": "fr-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "16:00",
+    "fin": "18:00",
+    "classe": "TCSF-2",
+    "matiere": "Français",
+    "code": "fr-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-1",
+    "matiere": "Français",
+    "code": "fr-prof1"
+   }
+  ]
+ },
+ "ang-prof1": {
+  "matiere": "Anglais",
+  "prof": "هشام أجامي",
+  "heures": 9,
+  "creneaux": [
+   {
+    "jour": 1,
+    "debut": "15:00",
+    "fin": "17:00",
+    "classe": "TCSF-2",
+    "matiere": "Anglais",
+    "code": "ang-prof1"
+   },
+   {
+    "jour": 2,
+    "debut": "14:00",
+    "fin": "16:00",
+    "classe": "TCSF-1",
+    "matiere": "Anglais",
+    "code": "ang-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "08:00",
+    "fin": "09:00",
+    "classe": "TCSF-3",
+    "matiere": "Anglais",
+    "code": "ang-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "08:00",
+    "fin": "09:00",
+    "classe": "TCSF-1",
+    "matiere": "Anglais",
+    "code": "ang-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "08:00",
+    "fin": "09:00",
+    "classe": "TCSF-2",
+    "matiere": "Anglais",
+    "code": "ang-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-3",
+    "matiere": "Anglais",
+    "code": "ang-prof1"
+   }
+  ]
+ },
+ "ar-prof1": {
+  "matiere": "Arabe",
+  "prof": "المهدي الصلحي",
+  "heures": 6,
+  "creneaux": [
+   {
+    "jour": 1,
+    "debut": "09:00",
+    "fin": "11:00",
+    "classe": "TCSF-3",
+    "matiere": "Arabe",
+    "code": "ar-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-1",
+    "matiere": "Arabe",
+    "code": "ar-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "16:00",
+    "fin": "18:00",
+    "classe": "TCSF-2",
+    "matiere": "Arabe",
+    "code": "ar-prof1"
+   }
+  ]
+ },
+ "eps-prof1": {
+  "matiere": "EPS",
+  "prof": "يسرى البوسعيدي",
+  "heures": 6,
+  "creneaux": [
+   {
+    "jour": 1,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-2",
+    "matiere": "EPS",
+    "code": "eps-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "16:00",
+    "fin": "18:00",
+    "classe": "TCSF-1",
+    "matiere": "EPS",
+    "code": "eps-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "16:00",
+    "fin": "18:00",
+    "classe": "TCSF-3",
+    "matiere": "EPS",
+    "code": "eps-prof1"
+   }
+  ]
+ },
+ "info-prof1": {
+  "matiere": "Informatique",
+  "prof": "سكينة الرازي",
+  "heures": 6,
+  "creneaux": [
+   {
+    "jour": 1,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-1",
+    "matiere": "Informatique",
+    "code": "info-prof1"
+   },
+   {
+    "jour": 2,
+    "debut": "16:00",
+    "fin": "18:00",
+    "classe": "TCSF-3",
+    "matiere": "Informatique",
+    "code": "info-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-2",
+    "matiere": "Informatique",
+    "code": "info-prof1"
+   }
+  ]
+ },
+ "philo-prof1": {
+  "matiere": "Philo",
+  "prof": "زكية المندريلي",
+  "heures": 6,
+  "creneaux": [
+   {
+    "jour": 2,
+    "debut": "14:00",
+    "fin": "16:00",
+    "classe": "TCSF-2",
+    "matiere": "Philo",
+    "code": "philo-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "09:00",
+    "fin": "11:00",
+    "classe": "TCSF-1",
+    "matiere": "Philo",
+    "code": "philo-prof1"
+   },
+   {
+    "jour": 5,
+    "debut": "08:00",
+    "fin": "10:00",
+    "classe": "TCSF-3",
+    "matiere": "Philo",
+    "code": "philo-prof1"
+   }
+  ]
+ },
+ "ei-prof1": {
+  "matiere": "Educ. islamique",
+  "prof": "محمد خليفي",
+  "heures": 6,
+  "creneaux": [
+   {
+    "jour": 1,
+    "debut": "14:00",
+    "fin": "16:00",
+    "classe": "TCSF-3",
+    "matiere": "Educ. islamique",
+    "code": "ei-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "14:00",
+    "fin": "16:00",
+    "classe": "TCSF-1",
+    "matiere": "Educ. islamique",
+    "code": "ei-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "14:00",
+    "fin": "16:00",
+    "classe": "TCSF-2",
+    "matiere": "Educ. islamique",
+    "code": "ei-prof1"
+   }
+  ]
+ },
+ "hg-prof1": {
+  "matiere": "Hist-Géo",
+  "prof": "ياسين القامة",
+  "heures": 6,
+  "creneaux": [
+   {
+    "jour": 2,
+    "debut": "16:00",
+    "fin": "18:00",
+    "classe": "TCSF-2",
+    "matiere": "Hist-Géo",
+    "code": "hg-prof1"
+   },
+   {
+    "jour": 3,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-1",
+    "matiere": "Hist-Géo",
+    "code": "hg-prof1"
+   },
+   {
+    "jour": 4,
+    "debut": "10:00",
+    "fin": "12:00",
+    "classe": "TCSF-3",
+    "matiere": "Hist-Géo",
+    "code": "hg-prof1"
+   }
+  ]
+ }
+}

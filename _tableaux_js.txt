@@ -1,0 +1,75 @@
+const TABLEAUX_SERVICE_DEFAUT = {
+  'math-prof1@taalim.ma': [
+    { jour: 1, debut: '15:00', fin: '17:00', classe: 'TCSF-1', matiere: 'Maths', prof: 'math-prof1' },
+    { jour: 2, debut: '14:00', fin: '16:00', classe: 'TCSF-3', matiere: 'Maths', prof: 'math-prof1' },
+    { jour: 2, debut: '17:00', fin: '18:00', classe: 'TCSF-1', matiere: 'Maths', prof: 'math-prof1' },
+    { jour: 3, debut: '14:00', fin: '16:00', classe: 'TCSF-2', matiere: 'Maths', prof: 'math-prof1' },
+    { jour: 3, debut: '17:00', fin: '18:00', classe: 'TCSF-3', matiere: 'Maths', prof: 'math-prof1' },
+    { jour: 4, debut: '08:00', fin: '10:00', classe: 'TCSF-3', matiere: 'Maths', prof: 'math-prof1' },
+    { jour: 4, debut: '10:00', fin: '12:00', classe: 'TCSF-2', matiere: 'Maths', prof: 'math-prof1' },
+    { jour: 5, debut: '15:00', fin: '16:00', classe: 'TCSF-2', matiere: 'Maths', prof: 'math-prof1' },
+    { jour: 5, debut: '16:00', fin: '18:00', classe: 'TCSF-1', matiere: 'Maths', prof: 'math-prof1' },
+  ],
+  'pc-prof1@taalim.ma': [
+    { jour: 1, debut: '10:00', fin: '12:00', classe: 'TCSF-2', matiere: 'PC', prof: 'pc-prof1' },
+    { jour: 2, debut: '08:00', fin: '10:00', classe: 'TCSF-1', matiere: 'PC', prof: 'pc-prof1' },
+    { jour: 2, debut: '10:00', fin: '12:00', classe: 'TCSF-2', matiere: 'PC', prof: 'pc-prof1' },
+    { jour: 3, debut: '15:00', fin: '17:00', classe: 'TCSF-3', matiere: 'PC', prof: 'pc-prof1' },
+    { jour: 4, debut: '14:00', fin: '16:00', classe: 'TCSF-3', matiere: 'PC', prof: 'pc-prof1' },
+    { jour: 5, debut: '10:00', fin: '12:00', classe: 'TCSF-1', matiere: 'PC', prof: 'pc-prof1' },
+  ],
+  'svt-prof1@taalim.ma': [
+    { jour: 1, debut: '08:00', fin: '10:00', classe: 'TCSF-1', matiere: 'SVT', prof: 'svt-prof1' },
+    { jour: 2, debut: '08:00', fin: '10:00', classe: 'TCSF-3', matiere: 'SVT', prof: 'svt-prof1' },
+    { jour: 3, debut: '10:00', fin: '12:00', classe: 'TCSF-2', matiere: 'SVT', prof: 'svt-prof1' },
+    { jour: 4, debut: '14:00', fin: '16:00', classe: 'TCSF-1', matiere: 'SVT', prof: 'svt-prof1' },
+    { jour: 4, debut: '16:00', fin: '18:00', classe: 'TCSF-3', matiere: 'SVT', prof: 'svt-prof1' },
+    { jour: 5, debut: '09:00', fin: '11:00', classe: 'TCSF-2', matiere: 'SVT', prof: 'svt-prof1' },
+  ],
+  'fr-prof1@taalim.ma': [
+    { jour: 1, debut: '16:00', fin: '18:00', classe: 'TCSF-3', matiere: 'Français', prof: 'fr-prof1' },
+    { jour: 2, debut: '10:00', fin: '12:00', classe: 'TCSF-1', matiere: 'Français', prof: 'fr-prof1' },
+    { jour: 3, debut: '08:00', fin: '10:00', classe: 'TCSF-2', matiere: 'Français', prof: 'fr-prof1' },
+    { jour: 3, debut: '10:00', fin: '12:00', classe: 'TCSF-3', matiere: 'Français', prof: 'fr-prof1' },
+    { jour: 4, debut: '16:00', fin: '18:00', classe: 'TCSF-2', matiere: 'Français', prof: 'fr-prof1' },
+    { jour: 5, debut: '08:00', fin: '10:00', classe: 'TCSF-1', matiere: 'Français', prof: 'fr-prof1' },
+  ],
+  'ang-prof1@taalim.ma': [
+    { jour: 1, debut: '15:00', fin: '17:00', classe: 'TCSF-2', matiere: 'Anglais', prof: 'ang-prof1' },
+    { jour: 2, debut: '14:00', fin: '16:00', classe: 'TCSF-1', matiere: 'Anglais', prof: 'ang-prof1' },
+    { jour: 3, debut: '08:00', fin: '09:00', classe: 'TCSF-3', matiere: 'Anglais', prof: 'ang-prof1' },
+    { jour: 4, debut: '08:00', fin: '09:00', classe: 'TCSF-1', matiere: 'Anglais', prof: 'ang-prof1' },
+    { jour: 5, debut: '08:00', fin: '09:00', classe: 'TCSF-2', matiere: 'Anglais', prof: 'ang-prof1' },
+    { jour: 5, debut: '10:00', fin: '12:00', classe: 'TCSF-3', matiere: 'Anglais', prof: 'ang-prof1' },
+  ],
+  'ar-prof1@taalim.ma': [
+    { jour: 1, debut: '09:00', fin: '11:00', classe: 'TCSF-3', matiere: 'Arabe', prof: 'ar-prof1' },
+    { jour: 3, debut: '08:00', fin: '10:00', classe: 'TCSF-1', matiere: 'Arabe', prof: 'ar-prof1' },
+    { jour: 5, debut: '16:00', fin: '18:00', classe: 'TCSF-2', matiere: 'Arabe', prof: 'ar-prof1' },
+  ],
+  'eps-prof1@taalim.ma': [
+    { jour: 1, debut: '08:00', fin: '10:00', classe: 'TCSF-2', matiere: 'EPS', prof: 'eps-prof1' },
+    { jour: 4, debut: '16:00', fin: '18:00', classe: 'TCSF-1', matiere: 'EPS', prof: 'eps-prof1' },
+    { jour: 5, debut: '16:00', fin: '18:00', classe: 'TCSF-3', matiere: 'EPS', prof: 'eps-prof1' },
+  ],
+  'info-prof1@taalim.ma': [
+    { jour: 1, debut: '10:00', fin: '12:00', classe: 'TCSF-1', matiere: 'Informatique', prof: 'info-prof1' },
+    { jour: 2, debut: '16:00', fin: '18:00', classe: 'TCSF-3', matiere: 'Informatique', prof: 'info-prof1' },
+    { jour: 4, debut: '08:00', fin: '10:00', classe: 'TCSF-2', matiere: 'Informatique', prof: 'info-prof1' },
+  ],
+  'philo-prof1@taalim.ma': [
+    { jour: 2, debut: '14:00', fin: '16:00', classe: 'TCSF-2', matiere: 'Philo', prof: 'philo-prof1' },
+    { jour: 4, debut: '09:00', fin: '11:00', classe: 'TCSF-1', matiere: 'Philo', prof: 'philo-prof1' },
+    { jour: 5, debut: '08:00', fin: '10:00', classe: 'TCSF-3', matiere: 'Philo', prof: 'philo-prof1' },
+  ],
+  'ei-prof1@taalim.ma': [
+    { jour: 1, debut: '14:00', fin: '16:00', classe: 'TCSF-3', matiere: 'Educ. islamique', prof: 'ei-prof1' },
+    { jour: 3, debut: '14:00', fin: '16:00', classe: 'TCSF-1', matiere: 'Educ. islamique', prof: 'ei-prof1' },
+    { jour: 4, debut: '14:00', fin: '16:00', classe: 'TCSF-2', matiere: 'Educ. islamique', prof: 'ei-prof1' },
+  ],
+  'hg-prof1@taalim.ma': [
+    { jour: 2, debut: '16:00', fin: '18:00', classe: 'TCSF-2', matiere: 'Hist-Géo', prof: 'hg-prof1' },
+    { jour: 3, debut: '10:00', fin: '12:00', classe: 'TCSF-1', matiere: 'Hist-Géo', prof: 'hg-prof1' },
+    { jour: 4, debut: '10:00', fin: '12:00', classe: 'TCSF-3', matiere: 'Hist-Géo', prof: 'hg-prof1' },
+  ]
+};

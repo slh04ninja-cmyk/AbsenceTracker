@@ -1,0 +1,17 @@
+{
+  "name": "absencetracker",
+  "version": "3.86.0",
+  "private": true,
+  "description": "AbsenceTrack — gestion des absences et annulations (MASSAR) pour un établissement marocain",
+  "scripts": {
+    "test": "python3 outils/verif.py tout",
+    "test:rapide": "python3 outils/verif.py rapide",
+    "build": "python3 outils/build.py"
+  },
+  "devDependencies": {
+    "jsdom": "30.0.1"
+  },
+  "engines": {
+    "node": ">=22.22.2"
+  }
+}

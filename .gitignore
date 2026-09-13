@@ -1,0 +1,31 @@
+# ---- dépendances de test (réinstallées par npm ci en CI) ----
+node_modules/
+
+# ---- sauvegardes et artefacts de travail locaux ----
+_avant_*.html
+_pour_comparer_*.html
+*backup.html
+_check_*.js
+_verif_bloc.js
+_fa.css
+*.log
+dist/
+
+# ---- dossiers de travail (gros fichiers, hors dépôt) ----
+_pdf/
+pgdata*/
+pgsock/
+
+# ---- secrets : ne JAMAIS committer ----
+.env
+*.env
+.streamlit/secrets.toml
+supabase/.env
+
+# ---- reliques de variantes de thème et aperçus (hors dépôt) ----
+AbsenceTrack-lot*.html
+apercu-1.png
+apercu_identifiants.pdf
+
+# ---- sorties de vérification jetables ----
+_check*.js
