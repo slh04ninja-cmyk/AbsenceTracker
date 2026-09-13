@@ -18,6 +18,9 @@ jobs:
       - name: Installer jsdom (versions exactes du lock)
         run: npm ci --no-audit --no-fund
 
+      - name: Le livrable correspond-il aux sources app/ ?
+        run: python3 outils/build.py --verifier
+
       - name: Contrôles de forme + les suites de tests
         run: python3 outils/verif.py tout
 

@@ -6,29 +6,37 @@ HTML 983, CSS 550 — **285 fonctions**, **44 accès directs `localStorage`**, 2
 
 ## Principe : monolithe modulaire + livrable « un seul fichier »
 
+> ⚠️ `AbsenceTrack-v2.html` est un **fichier produit** (assemblé depuis `app/`) : ne jamais
+> l'éditer à la main. On modifie `app/`, on lance `python3 outils/build.py` ; la CI refuse
+> un push où les deux ont divergé (`build.py --verifier`).
+
 Le **source** devient modulaire ; la **livraison** reste un fichier unique (ton canal actuel :
 fichier → téléphone, puis APK Capacitor). Le build réassemble tout.
 
 ```
 AbsenceTrack/
-├─ app/
-│   ├─ index.html            coquille : structure des pages (0 CSS, 0 JS)
-│   ├─ styles/               8 fichiers : base, composants, cartes, formulaires, rôles, sombre,
-│   │                        animations, impression
-│   └─ js/                   13 fichiers, ordre de chargement fixé par build.py
-│       00-noyau.js  constantes, état global, palettes, année scolaire
-│       01-utils.js  dates, libellés, cleNomEleve, calculs Ab/Rd
-│       02-depot.js  🔑 TOUTES les données (la couche qui manque aujourd'hui)
-│       10-ui.js     toasts, modales, confirmation, menus, cascade, thème
-│       20-auth.js   comptes, connexion, rôles, mots de passe
-│       30-appel.js  enseignant : appel, signalements Ab/Rd
-│       31-approbation.js  surveillant/directeur : approbations, justifications
-│       32-stats.js  statistiques (partagées dir/surveillant)
-│       33-historique.js   historique, fiche élève, export xlsx
-│       40-imports.js      MASSAR, FET, tableaux de service, dédoublonnage
-│       41-rh.js           personnel, identifiants, PDF
-│       42-gestion.js      fermetures, annulations, établissement
-│       50-init.js         démarrage
+├─ app/                     ← FAIT (phase 2, étape 1) : la source de vérité
+│   ├─ index.html            la coquille : structure des pages (sans CSS ni JS)
+│   ├─ styles/               8 feuilles : 00-base, 01-cartes-compactes-direction, 02-theme-sombre, 03-bloc-motif-de-justification, 04-cartes-eleves-unifiees-dashboard, 05-lots-par-role-clair-enseignant, 06-menus-deroulants-select, 07-listes-deroulantes-personnalisees
+│   └─ js/                   18 modules, dans l ordre de chargement :
+│       00-noyau
+│       01-chargement
+│       02-tableaux-service
+│       03-comptes
+│       04-gestion
+│       05-formulaires
+│       06-rh
+│       07-socle
+│       08-enseignant
+│       09-stats
+│       10-surveillant
+│       11-directeur
+│       12-imports
+│       13-fiches
+│       14-theme-lots
+│       15-donnees-test
+│       16-init
+│       17-listes-deroulantes
 ├─ bureau/                   poste d'administration Python/Streamlit (VPS ou Streamlit Cloud)
 │   ├─ app.py  pages/ (Import · Identifiants · Rapports · Suivi)
 │   └─ .streamlit/secrets.toml   IGNORÉ (service_role ici uniquement)
@@ -61,7 +69,7 @@ Pour que l'app **et** le bureau Streamlit ne divergent jamais, les règles viven
 | Phase | Contenu | Effort |
 |---|---|---|
 | **1. GitHub** | dépôt + `.gitignore` + CI (`tests.yml`) + baseline taggée | ~1 h |
-| **2. Découpage** | CSS → 8 fichiers (preuve « reconstruction identique »), puis JS → 13 fichiers | 1 session |
+| **2. Découpage** ✅ | Fait : `app/` = 18 modules JS + 8 feuilles CSS, assemblés par `build.py` — **preuve : le fichier reconstruit est identique au bit près** (511 285 o) | fait |
 | **3. Porte des données** | `02-depot.js` (les 44 accès → 1 interface) + règles métier en SQL | 1 session |
 | **4. Supabase** | projet, migrations, comptes réels, `DepotSupabase` derrière la même interface, bascule par drapeau `local`/`serveur` | 1-2 sessions |
 | **5. Bureau Streamlit** | Import, Identifiants PDF (RTL arabe), Rapports — sur VPS (Termux ne peut pas : pas de roues `pyarrow`/`pandas` pour Android) | quelques jours |

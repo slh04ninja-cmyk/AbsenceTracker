@@ -1,0 +1,14 @@
+/* fichier: app/styles/04-cartes-eleves-unifiees-dashboard.css */
+/* ===== CARTES ELEVES UNIFIEES (Dashboard / Historique, theme clair) ===== */
+    .carte-eleve { background: linear-gradient(135deg, #eff6ff 0%, #ffffff 55%, #f8fafc 100%); border: 1px solid #bfdbfe; border-radius: 14px; box-shadow: 0 4px 14px rgba(30,58,138,0.08); padding: 10px 14px; margin: 0 0 6px; height: 60px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; overflow: hidden; }
+    .carte-eleve:hover { box-shadow: 0 6px 18px rgba(30,58,138,0.14); }
+    .carte-eleve:active { transform: scale(0.99); }
+    .carte-eleve .absence-card-ligne { flex: 1; min-width: 0; }
+    .carte-eleve-total { font-size: 12.5px; font-weight: 800; color: #dc2626; background: rgba(239,68,68,0.12); border-radius: 999px; padding: 4px 10px; white-space: nowrap; min-width: 34px; text-align: center; }
+    body.theme-sombre .carte-eleve-total { color: #fca5a5; background: rgba(239,68,68,0.22); }
+    body.theme-sombre .carte-eleve { background: #1e293b !important; border-color: #334155 !important; box-shadow: none; }
+    /* Cartes d'eleves plus compactes (directeur + surveillant uniquement) */
+    body.role-directeur .carte-eleve,
+    body.role-surveillant .carte-eleve,
+    body.role-enseignant .carte-eleve { height: 44px; padding: 4px 14px; }
+    

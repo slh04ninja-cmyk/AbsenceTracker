@@ -1,49 +1,82 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""outils/build.py — construit le livrable « un seul fichier ».
+"""outils/build.py — assemble le livrable « un seul fichier » à partir de app/.
 
-Aujourd'hui (source unique) : recopie AbsenceTrack-v2.html -> dist/AbsenceTrack-<version>.html
-et imprime version, taille et empreinte sha256 (traçabilité du livrable).
+**La source de vérité, c'est app/** :
+    app/index.html          la coquille (structure des pages, sans CSS ni JS)
+    app/styles/*.css        8 feuilles, chargées dans l'ordre de la coquille
+    app/js/*.js             18 modules, chargés dans l'ordre de la coquille
 
-Après le découpage (phase 2) : assemblera src/index.html + src/styles/*.css + src/js/*.js
-dans un seul fichier, dans l'ordre fixé ici — c'est ce fichier assemblé qu'on envoie au
-téléphone et que la Release publie.
+Le résultat est écrit dans ``AbsenceTrack-v2.html`` **à la racine** : c'est le fichier que
+lisent les 37 suites de tests et celui qu'on copie sur le téléphone. Ne jamais l'éditer à la
+main — il est produit ici (la CI le vérifie à chaque push).
 
-  python3 outils/build.py            # construit dans dist/
-  python3 outils/build.py --verifier # vérifie que le fichier reconstruit est identique
-                                     # (au label de version près) : garde-fou du découpage
+  python3 outils/build.py             assemble le livrable + une copie dans dist/
+  python3 outils/build.py --verifier  n'écrit rien : compare le livrable sur disque à app/
+                                      (échoue si les deux ont divergé) — utilisé par la CI
 """
 import hashlib, io, os, re, shutil, sys
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+APP = os.path.join(RACINE, 'app')
+LIVRABLE = os.path.join(RACINE, 'AbsenceTrack-v2.html')
 DIST = os.path.join(RACINE, 'dist')
-SOURCE = os.path.join(RACINE, 'AbsenceTrack-v2.html')
+
+# premiere ligne de chaque fichier source : un repere, retire à l'assemblage
+REPERE_CSS = re.compile(r'^/\* fichier: [^\n]*\*/\n')
+REPERE_JS = re.compile(r'^// fichier: [^\n]*\n')
 
 
-def version_de(texte):
-    m = re.search(r'AbsenceTrack (v[\d.]+)', texte)
-    return m.group(1) if m else 'v0.0'
+def sans_repere(chemin, motif):
+    return motif.sub('', io.open(chemin, encoding='utf-8').read(), count=1)
+
+
+def remplacer_bloc(texte, dossier, ouvrante, fermante, motif_repere):
+    """remplace la suite contigue de references locales (styles/... ou js/...) par son contenu"""
+    if dossier == 'styles':
+        motif_tag = r'<link rel="stylesheet" href="styles/[^"]+">'
+    else:
+        motif_tag = r'<script src="js/[^"]+"></script>'
+    trouve = re.search(motif_tag + r'(?:\s*' + motif_tag + r')*', texte)
+    if not trouve:
+        raise SystemExit('!! references locales introuvables dans app/index.html (%s)' % dossier)
+    fichiers = re.findall(dossier + r'/([^"]+)', trouve.group(0))
+    contenu = ''.join(sans_repere(os.path.join(APP, dossier, f), motif_repere) for f in fichiers)
+    return texte[:trouve.start()] + ouvrante + contenu + fermante + texte[trouve.end():], fichiers
+
+
+def assembler():
+    texte = io.open(os.path.join(APP, 'index.html'), encoding='utf-8').read()
+    texte, feuilles = remplacer_bloc(texte, 'styles', '<style>', '</style>', REPERE_CSS)
+    texte, modules = remplacer_bloc(texte, 'js', '<script>', '</script>', REPERE_JS)
+    return texte, feuilles, modules
 
 
 def main():
     verifier = '--verifier' in sys.argv
-    if not os.path.exists(SOURCE):
-        print('source absente : %s' % SOURCE)
-        return 1
-    texte = io.open(SOURCE, encoding='utf-8').read()
-    ver = version_de(texte)
-    os.makedirs(DIST, exist_ok=True)
-    cible = os.path.join(DIST, 'AbsenceTrack-%s.html' % ver)
-    shutil.copyfile(SOURCE, cible)
-    octets = io.open(cible, 'rb').read()
-    print('livrable : %s' % os.path.relpath(cible, RACINE))
-    print('version  : %s' % ver)
-    print('taille   : %.0f Ko' % (len(octets) / 1024))
-    print('sha256   : %s' % hashlib.sha256(octets).hexdigest()[:16])
+    sortie, feuilles, modules = assembler()
+    version = re.search(r'AbsenceTrack (v[\d.]+)', sortie)
+    version = version.group(1) if version else 'v0'
+    actuel = io.open(LIVRABLE, encoding='utf-8').read() if os.path.exists(LIVRABLE) else None
+    identique = (actuel == sortie)
+    print('sources    : %d feuilles CSS + %d modules JS' % (len(feuilles), len(modules)))
+    print('version    : %s' % version)
+    print('livrable   : %.0f Ko assemblés' % (len(sortie) / 1024))
     if verifier:
-        identique = cible and io.open(cible, encoding='utf-8').read() == texte
-        print('identité : %s' % ('OK (reconstruction fidèle)' if identique else 'DIFFÉRENTE'))
+        print('identité   : %s' % ('OK — le livrable correspond exactement à app/'
+                                   if identique else
+                                   'DIFFÉRENT — app/ et le livrable ont divergé (reconstruire)'))
         return 0 if identique else 1
+    if identique:
+        print('écriture   : rien à faire, le livrable est déjà à jour')
+    else:
+        io.open(LIVRABLE, 'w', encoding='utf-8').write(sortie)
+        print('écriture   : %s' % os.path.relpath(LIVRABLE, RACINE))
+    os.makedirs(DIST, exist_ok=True)
+    cible = os.path.join(DIST, 'AbsenceTrack-%s.html' % version)
+    shutil.copyfile(LIVRABLE, cible)
+    empreinte = hashlib.sha256(io.open(cible, 'rb').read()).hexdigest()[:16]
+    print('copie      : %s   sha256 %s' % (os.path.relpath(cible, RACINE), empreinte))
     return 0
 
 

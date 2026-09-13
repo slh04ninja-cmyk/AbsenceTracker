@@ -1,0 +1,51 @@
+/* fichier: app/styles/02-theme-sombre.css */
+/* ============ THEME SOMBRE ============ */
+    body.theme-sombre { background: #0f172a; }
+    body.theme-sombre .page-container { background: #0f172a; }
+    body.theme-sombre .appbar { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+    body.theme-sombre .stat-card,
+    body.theme-sombre .card-material,
+    body.theme-sombre .absence-card,
+    body.theme-sombre .list-item,
+    body.theme-sombre .bg-white,
+    body.theme-sombre .modal-content,
+    body.theme-sombre #reglages-affichage button { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0; }
+    body.theme-sombre #page-login .bg-white.rounded-full { background: #ffffff !important; }
+    body.theme-sombre .bg-opacity-20 { background: rgba(255,255,255,0.2) !important; }
+    body.theme-sombre .bottom-nav { background: #1e293b !important; border-top-color: #334155; }
+    body.theme-sombre .bottom-nav .nav-item { color: #94a3b8; }
+    body.theme-sombre .bottom-nav .nav-item.active { color: #93c5fd; }
+    body.theme-sombre select, body.theme-sombre input { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+    body.theme-sombre .text-gray-800, body.theme-sombre .text-gray-700, body.theme-sombre .text-gray-600 { color: #e2e8f0 !important; }
+    body.theme-sombre .text-gray-500, body.theme-sombre .text-gray-400 { color: #94a3b8 !important; }
+    body.theme-sombre .bg-gray-50, body.theme-sombre .bg-gray-100 { background: #273549 !important; }
+    body.theme-sombre .border-gray-100, body.theme-sombre .border-gray-200 { border-color: #334155 !important; }
+    body.theme-sombre .table { background: #1e293b; }
+    body.theme-sombre .table th { background: #273549 !important; color: #e2e8f0; }
+    body.theme-sombre .table td { color: #cbd5e1; }
+    body.theme-sombre .filter-chip { background: #1e293b; color: #cbd5e1; border-color: #334155; }
+    body.theme-sombre .absence-card-classe { background: transparent !important; color: #94a3b8; }
+    body.theme-sombre .progress-bar { background: #334155; }
+    body.theme-sombre { color: #e2e8f0; }
+    body.theme-sombre .stat-label { color: #94a3b8; }
+    body.theme-sombre .text-blue-900 { color: #93c5fd !important; }
+    body.theme-sombre .text-red-600, body.theme-sombre .text-red-700 { color: #fca5a5 !important; }
+    body.theme-sombre .text-green-600, body.theme-sombre .text-green-700, body.theme-sombre .text-green-800 { color: #6ee7b7 !important; }
+    body.theme-sombre .text-orange-600, body.theme-sombre .text-orange-700 { color: #fdba74 !important; }
+    body.theme-sombre .text-gray-900 { color: #f1f5f9 !important; }
+    body.theme-sombre .absence-card-name { color: #e2e8f0; }
+    body.theme-sombre .bg-blue-100 { background: #334155 !important; color: #bfdbfe !important; }
+    body.theme-sombre .bg-red-50 { background: rgba(239,68,68,0.12) !important; }
+    body.theme-sombre .bg-green-50 { background: rgba(16,185,129,0.12) !important; }
+    body.theme-sombre .bg-blue-50 { background: rgba(59,130,246,0.12) !important; }
+    body.theme-sombre .bg-orange-50 { background: rgba(245,158,11,0.12) !important; }
+    body.theme-sombre .border-red-200, body.theme-sombre .border-green-100, body.theme-sombre .border-green-200, body.theme-sombre .border-blue-200 { border-color: #334155 !important; }
+    body.theme-sombre .btn-secondary { background: #1e293b; color: #93c5fd; border-color: #334155; }
+    body.theme-sombre .bar-label { color: #94a3b8; }
+    body.theme-sombre .empty-icon { color: #64748b; }
+    .btn-fermer { background: #ea580c; color: #fff; border: none; border-radius: calc(var(--radius) / 2); padding: 14px 24px; font-weight: 700; box-shadow: 0 6px 18px rgba(234,88,12,0.35); }
+    .btn-fermer:hover { background: #c2410c; }
+    body.theme-sombre .btn-fermer { background: #ea580c !important; color: #fff !important; border-color: #ea580c !important; }
+    #modal-absence-detail .btn-fermer, #modal-absence-detail #btn-justifier-absence,
+    #modal-fiche-eleve .btn-fermer, #modal-fiche-eleve .btn-primary { font-size: 17px; font-weight: 800; padding: 15px 20px; }
+    

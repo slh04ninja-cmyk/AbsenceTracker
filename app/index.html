@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AbsenceTrack - Gestion des absences</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="styles/00-base.css">
+  <link rel="stylesheet" href="styles/01-cartes-compactes-direction.css">
+  <link rel="stylesheet" href="styles/02-theme-sombre.css">
+  <link rel="stylesheet" href="styles/03-bloc-motif-de-justification.css">
+  <link rel="stylesheet" href="styles/04-cartes-eleves-unifiees-dashboard.css">
+  <link rel="stylesheet" href="styles/05-lots-par-role-clair-enseignant.css">
+  <link rel="stylesheet" href="styles/06-menus-deroulants-select.css">
+  <link rel="stylesheet" href="styles/07-listes-deroulantes-personnalisees.css">
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- PAGE LOGIN                                   -->
+<!-- ============================================ -->
+<div id="page-login" class="page-container active">
+  <label class="switch sw-theme icone-theme-bascule" title="Mode sombre" style="position: fixed; top: 16px; right: 16px; z-index: 60;"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+  <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 px-4">
+    <div class="w-full max-w-sm fade-in">
+      <div class="text-center mb-10">
+        <div class="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center shadow-2xl mb-6">
+          <i class="fas fa-clipboard-list text-4xl text-blue-900"></i>
+        </div>
+        <h1 class="text-4xl font-bold text-white mb-2">AbsenceTrack</h1>
+        <p class="text-blue-200 text-sm">Gestion intelligente des absences</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-2xl p-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-6 text-center">Connexion</h2>
+
+        <div id="login-error" class="hidden bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 mb-4 text-center">
+          <i class="fas fa-exclamation-circle mr-1"></i>
+          <span id="login-error-text"></span>
+        </div>
+
+        <div class="form-group">
+          <label><i class="fas fa-envelope mr-1 text-blue-900"></i> Utilisateur</label>
+          <input type="email" id="login-email" placeholder="exemple@taalim.ma" autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label><i class="fas fa-lock mr-1 text-blue-900"></i> Mot de passe</label>
+          <div class="relative">
+            <input type="password" id="login-password" placeholder="••••••" class="pr-12" autocomplete="current-password">
+            <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <i id="eye-icon" class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button onclick="connexion()" class="btn-primary btn-ripple w-full text-lg flex items-center justify-center gap-2 mt-4">
+          <i class="fas fa-sign-in-alt"></i> Se connecter
+        </button>
+
+        <p class="text-center text-xs text-gray-400 mt-6">
+          <i class="fas fa-shield-alt mr-1"></i> Connexion sécurisée
+        </p>
+
+        <div class="mt-5 pt-4 border-t border-gray-200">
+          <p class="text-center text-xs text-gray-500 leading-relaxed">Comptes test — mot de passe 12345 :<br>
+          Profs : math-prof1 · pc-prof1 · svt-prof1 · fr-prof1 · ang-prof1 · ar-prof1 @taalim.ma<br>
+          eps-prof1 · info-prof1 · philo-prof1 · ei-prof1 · hg-prof1 @taalim.ma<br>
+          Surveillants : s1 · s2 @taalim.ma · Directeur : d @taalim.ma</p>
+        </div>
+      </div>
+
+      <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
+
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.86 — Prototype</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE ENSEIGNANT — Prise d'absence            -->
+<!-- ============================================ -->
+<div id="page-enseignant" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4">
+      <div class="stat-card mb-4">
+        <select id="select-classe" onchange="changerClasse()" class="w-full px-4 py-3 border-2 border-blue-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+          <option value="">-- Choisir une classe --</option>
+        </select>
+      </div>
+      <div id="ens-repos" class="hidden">
+        <div class="stat-card mb-4" style="text-align: center;">
+          <i class="fas fa-mug-hot" style="font-size: 30px; color: #94a3b8;"></i>
+          <p class="font-bold text-gray-800 mt-2">En repos — aucune séance en cours</p>
+          <p class="text-sm text-gray-500 mt-1" id="ens-repos-prochain"></p>
+        </div>
+      </div>
+      <div id="ens-annulee" class="hidden">
+        <div class="stat-card mb-4" style="text-align: center;">
+          <i class="fas fa-ban" style="font-size: 30px; color: #ef4444;"></i>
+          <p class="font-bold text-gray-800 mt-2">Séance annulée</p>
+          <p class="text-sm text-gray-500 mt-1" id="ens-annulee-detail"></p>
+        </div>
+      </div>
+      <div id="zone-prise-absence" class="hidden">
+        <div class="stat-card" style="padding: 10px 14px; margin-bottom: 8px;">
+          <p class="text-xs text-gray-600" id="derniere-modif">Dernière modification : —</p>
+        </div>
+      <div id="liste-eleves-enseignant" class="card-material"></div>
+      <div id="btn-enregistrer-absences" class="p-4">
+        <button onclick="afficherConfirmationAbsences()" class="btn-primary btn-ripple w-full text-lg flex items-center justify-center gap-2">
+          <i class="fas fa-check-circle"></i> Enregistrer les absences
+        </button>
+      </div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="switchEnsPage('enseignant', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Accueil</span></div>
+    <div class="nav-item" onclick="switchEnsPage('historique-ens', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchEnsPage('stats-ens', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-user-circle"></i></div><span>Profil</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE HISTORIQUE ENSEIGNANT                   -->
+<!-- ============================================ -->
+<div id="page-historique-ens" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4">
+      <h2 class="text-center font-bold text-gray-800 mb-4" style="font-size: 18px;">Historique des absences</h2>
+      <div class="stat-card mb-4">
+        <label class="block text-sm font-bold text-blue-900 mb-2">Rechercher un élève</label>
+        <input type="text" id="recherche-eleve-ens" oninput="rechercherEleves('recherche-eleve-ens', 'resultats-recherche-ens')" placeholder="Nom ou code MASSAR..." class="w-full px-4 py-3 border-2 border-blue-900 rounded-lg font-medium">
+        <div id="resultats-recherche-ens" class="mt-3 space-y-2"></div>
+      </div>
+      <div id="historique-ens-list"></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="switchEnsPage('enseignant', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Accueil</span></div>
+    <div class="nav-item active" onclick="switchEnsPage('historique-ens', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchEnsPage('stats-ens', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-user-circle"></i></div><span>Profil</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE STATISTIQUES ENSEIGNANT                 -->
+<!-- ============================================ -->
+<div id="page-stats-ens" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4">
+      <div class="stat-card mb-4">
+        <select id="select-classe-stats" onchange="changerClasseStats()" class="w-full px-4 py-3 border-2 border-blue-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+          <option value="">-- Choisir une classe --</option>
+        </select>
+      </div>
+      <div class="stat-card mb-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-blue-900 mb-1">Période</label>
+            <select id="stats-periode" onchange="changerFiltreStats()" class="w-full px-3 py-2 border-2 border-blue-900 rounded-lg font-medium">
+              <option value="jour">Aujourd'hui</option>
+              <option value="semaine">Cette semaine</option>
+              <option value="mois" selected>Ce mois</option>
+              <option value="trimestre">Ce trimestre</option>
+              <option value="s1">Semestre 1</option>
+              <option value="s2">Semestre 2</option>
+              <option value="annee">Année scolaire</option>
+              <option value="perso">Personnalisée</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-blue-900 mb-1">Type</label>
+            <select id="stats-type" onchange="changerFiltreStats()" class="w-full px-3 py-2 border-2 border-blue-900 rounded-lg font-medium">
+              <option value="tous">Ab + Rd</option>
+              <option value="absence">Absences (Ab)</option>
+              <option value="retard">Retards (Rd)</option>
+            </select>
+          </div>
+        </div>
+        <div id="stats-dates" class="grid grid-cols-2 gap-3 mt-3" style="display: none;">
+          <div>
+            <label class="block text-xs font-bold text-blue-900 mb-1">Du</label>
+            <input type="date" id="stats-debut" onchange="changerFiltreStats()" class="w-full px-3 py-2 border-2 border-blue-900 rounded-lg font-medium">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-blue-900 mb-1">Au</label>
+            <input type="date" id="stats-fin" onchange="changerFiltreStats()" class="w-full px-3 py-2 border-2 border-blue-900 rounded-lg font-medium">
+          </div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Taux de présence</div>
+        <div class="stat-value" id="stat-presence">—</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-presence" style="width: 0%"></div></div>
+        <p class="text-xs text-gray-500 mt-2" id="stat-presence-detail"></p>
+      </div>
+      <div class="stat-card">
+        <div class="grid grid-cols-3 gap-2" id="stats-totaux"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label mb-4">Répartition Ab / Rd</div>
+        <div id="chart-repartition" class="flex items-center gap-4"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label mb-4">Par classe</div>
+        <div class="chart-bar" id="chart-absences"></div>
+        <div class="h-8"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label mb-4">Élèves les plus signalés</div>
+        <div id="top-absents" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="switchEnsPage('enseignant', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Accueil</span></div>
+    <div class="nav-item" onclick="switchEnsPage('historique-ens', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item active" onclick="switchEnsPage('stats-ens', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-user-circle"></i></div><span>Profil</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE SURVEILLANT — Dashboard                 -->
+<!-- ============================================ -->
+<div id="page-surveillant" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4">
+      <div class="stat-card-absences">
+        <div class="absences-grid">
+          <div class="absence-item">
+            <div class="absence-label">NOUVEAU</div>
+            <div class="absence-value" id="surv-nouveaux">0</div>
+            <div class="absence-subtext">heure actuelle</div>
+          </div>
+          <div class="absence-divider"></div>
+          <div class="absence-item">
+            <div class="absence-label">NON JUSTIFIÉE</div>
+            <div class="absence-value" id="surv-total-unjustified">0</div>
+            <div class="absence-subtext">aujourd'hui</div>
+          </div>
+          <div class="absence-divider"></div>
+          <div class="absence-item">
+            <div class="absence-label">TOTAL</div>
+            <div class="absence-value" id="surv-total-absents">0</div>
+            <div class="absence-subtext">du jour</div>
+          </div>
+        </div>
+      </div>
+      <!-- Seances annulees (comme sur le Dashboard du directeur) -->
+      <div class="stat-card mb-4 carte-settings" id="seances-annulees-card-surv">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-calendar-times text-blue-900 mr-2"></i>Séances annulées</h3>
+        <div id="annul-liste-surv" class="js-seances-annulees"></div>
+      </div>
+      <div id="surv-absences-list"></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="switchSurvPage('surveillant', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Dashboard</span></div>
+    <div class="nav-item" onclick="switchSurvPage('surv-classes', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchSurvPage('surv-stats', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-user-circle"></i></div><span>Profil</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE CLASSES (SURVEILLANT)                   -->
+<!-- ============================================ -->
+<div id="page-surv-classes" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4">
+      <h2 class="text-center font-bold text-gray-800 mb-4" style="font-size: 18px;">Historique des absences</h2>
+      <div class="stat-card mb-4">
+        <label class="block text-sm font-bold text-blue-900 mb-2">Rechercher un élève</label>
+        <input type="text" id="recherche-eleve" oninput="rechercherEleves('recherche-eleve', 'resultats-recherche')" placeholder="Nom ou code MASSAR..." class="w-full px-4 py-3 border-2 border-blue-900 rounded-lg font-medium">
+        <div id="resultats-recherche" class="mt-3 space-y-2"></div>
+      </div>
+      <div id="surv-classes-list"></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="switchSurvPage('surveillant', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Dashboard</span></div>
+    <div class="nav-item active" onclick="switchSurvPage('surv-classes', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchSurvPage('surv-stats', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-user-circle"></i></div><span>Profil</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE RAPPORTS (SURVEILLANT)                  -->
+<!-- ============================================ -->
+<div id="page-surv-stats" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <!-- Le contenu est celui de la page Stats du directeur : le bloc commun y est
+         déplacé à l'ouverture (voir placerStatsCommun). -->
+    <div class="p-4" id="surv-stats-conteneur"></div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="switchSurvPage('surveillant', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Dashboard</span></div>
+    <div class="nav-item" onclick="switchSurvPage('surv-classes', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item active" onclick="switchSurvPage('surv-stats', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-user-circle"></i></div><span>Profil</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE DIRECTEUR — Dashboard                   -->
+<!-- ============================================ -->
+<div id="page-directeur" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4">
+      <div class="stat-card-absences">
+        <div class="absences-grid">
+          <div class="absence-item">
+            <div class="absence-label">Nouveau</div>
+            <div class="absence-value" id="dir-nouveaux">0</div>
+            <div class="absence-subtext">heure actuelle</div>
+          </div>
+          <div class="absence-divider"></div>
+          <div class="absence-item">
+            <div class="absence-label">Non justifiée</div>
+            <div class="absence-value" id="dir-nonjustifiees">0</div>
+            <div class="absence-subtext">aujourd'hui</div>
+          </div>
+          <div class="absence-divider"></div>
+          <div class="absence-item">
+            <div class="absence-label">Total</div>
+            <div class="absence-value" id="dir-total">0</div>
+            <div class="absence-subtext">du jour</div>
+          </div>
+        </div>
+      </div>
+      <!-- Seances annulees (de la plus proche a la plus lointaine) -->
+      <div class="stat-card mb-4 carte-settings" id="seances-annulees-card">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-calendar-times text-blue-900 mr-2"></i>Séances annulées</h3>
+        <div id="annul-liste" class="js-seances-annulees"></div>
+      </div>
+      <div id="dir-absences-list"></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="switchDirPage('directeur', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Dashboard</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-historique', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-stats', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-gestion', this)"><div class="nav-icon"><i class="fas fa-cogs"></i></div><span>Gestion</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-users"></i></div><span>RH</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE GESTION CLASSES & ÉLÈVES (DIRECTEUR)    -->
+<!-- ============================================ -->
+<div id="page-dir-gestion" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4">
+      <!-- Etablissement & annee scolaire (popup) -->
+      <div class="stat-card mb-4 carte-settings" id="etab-card">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-school text-blue-900 mr-2"></i>Établissement & année scolaire</h3>
+        <p class="aide">Code de l'établissement, académie, direction provinciale, année et semestres : à saisir une seule fois.</p>
+        <button type="button" class="btn-primary w-full btn-ripple" onclick="ouvrirFormulaire('etablissement')"><i class="fas fa-pen"></i> Informations de l'établissement</button>
+      </div>
+
+      <!-- Fermeture de l'etablissement -->
+      <div class="stat-card mb-4 carte-settings" id="fermeture-card">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-calendar-times text-blue-900 mr-2"></i>Fermeture de l'établissement</h3>
+        <p class="aide">Vacances, examens, fêtes religieuses ou nationales, réunion… : aucune séance n'est assurée sur la période et les absences prises pendant ces séances ne comptent pas dans les statistiques.</p>
+        <button type="button" class="btn-primary w-full btn-ripple" onclick="ouvrirFormulaire('fermeture')"><i class="fas fa-plus"></i> Ajouter une fermeture</button>
+        <div class="stat-label" style="margin: 10px 0 4px;">Fermetures enregistrées</div>
+        <div id="ferm-liste" class="js-fermetures"></div>
+      </div>
+
+      <!-- Annulation de seances -->
+      <div class="stat-card mb-4 carte-settings" id="annulations-card">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-ban text-blue-900 mr-2"></i>Annulation de séances</h3>
+        <p class="aide">Annuler une séance précise (examen, réunion, séance non assurée) : elle ne compte pas dans les statistiques. Les séances annulées apparaissent aussi sur les Dashboards (directeur et surveillant).</p>
+        <button type="button" class="btn-primary w-full btn-ripple" onclick="ouvrirFormulaire('annulation')"><i class="fas fa-plus"></i> Ajouter une annulation</button>
+        <div class="stat-label" style="margin: 10px 0 4px;">Annulations enregistrées</div>
+        <div id="annulations-liste" class="js-annulations"></div>
+      </div>
+
+      <!-- Importation des fichiers -->
+      <div class="stat-card mb-4 carte-settings" id="import-card">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-file-import text-blue-900 mr-2"></i>Importation des fichiers</h3>
+
+        <p class="text-sm font-bold text-gray-700 sep-titre">Importer les listes MASSAR</p>
+<p class="text-sm text-gray-500 mb-3">Uploadez un ou plusieurs fichiers Excel MASSAR (export_notesCC) : tous les fichiers et toutes leurs feuilles (classes) sont importés en une seule fois. Colonnes : C = code MASSAR, D = nom arabe, E = nom français.</p>
+        <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all" onclick="document.getElementById('file-massar').click()">
+          <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+          <p class="text-gray-600 font-medium">Cliquez ou glissez un ou plusieurs fichiers ici</p>
+          <p class="text-xs text-gray-400 mt-1">.xlsx uniquement</p>
+        </div>
+        <input type="file" id="file-massar" accept=".xlsx,.xls" class="hidden" multiple onchange="importerMassar(this)">
+        <div id="import-preview" class="hidden mt-4">
+          <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <i class="fas fa-check-circle text-green-600"></i>
+              <span class="font-bold text-green-800" id="preview-classe-nom"></span>
+            </div>
+            <p class="text-sm text-green-700" id="preview-eleves-count"></p>
+            <div id="preview-eleves-list" class="mt-3 max-h-40 overflow-y-auto text-sm text-gray-600"></div>
+            <button onclick="confirmerImport()" class="btn-primary w-full mt-3"><i class="fas fa-download"></i> Importer les classes détectées</button>
+          </div>
+        </div>
+        <div id="import-error" class="hidden mt-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 text-center"></div>
+        <p class="text-sm font-bold text-gray-700 sep-titre">Importer les tableaux de services</p>
+<p class="text-sm font-bold text-gray-700 mb-1">Tableaux de service des professeurs</p>
+        <p class="text-xs text-gray-500 mb-2">Un fichier par professeur (ou un fichier à plusieurs feuilles) : la grille des jours et des créneaux, puis la liste « matière / professeur ». Un professeur dont la matière correspond à un compte est relié automatiquement ; plus de 20 h de service est signalé.</p>
+        <div id="drop-zone-service" class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all" onclick="document.getElementById('file-service').click()">
+          <i class="fas fa-cloud-upload-alt text-2xl text-gray-400 mb-1"></i>
+          <p class="text-gray-600 text-sm font-medium">Cliquez ou déposez les tableaux de service (.xlsx)</p>
+        </div>
+        <input type="file" id="file-service" accept=".xlsx,.xls,.fet" class="hidden" multiple onchange="importerTableauxService(this)">
+        <div id="service-preview" class="hidden mt-3"></div>
+        <p class="text-sm font-bold text-gray-700 sep-titre">Importer les tableaux d'élèves</p>
+<p class="text-sm font-bold text-gray-700 mb-1">Tableaux des élèves</p>
+        <p class="text-xs text-gray-500 mb-2">Fichiers des élèves par classe (une feuille par classe, ou une colonne « classe ») avec le code MASSAR et le nom. Un élève dont le code MASSAR est déjà présent n'est pas dupliqué.</p>
+        <div id="drop-zone-eleves" class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all" onclick="document.getElementById('file-eleves').click()">
+          <i class="fas fa-cloud-upload-alt text-2xl text-gray-400 mb-1"></i>
+          <p class="text-gray-600 text-sm font-medium">Cliquez ou déposez les tableaux des élèves (.xlsx)</p>
+        </div>
+        <input type="file" id="file-eleves" accept=".xlsx,.xls,.fet" class="hidden" multiple onchange="importerTableauxEleves(this)">
+        <div id="eleves-preview" class="hidden mt-3"></div>
+
+        <div id="tableaux-error" class="hidden mt-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 text-center"></div>
+
+        <p class="text-sm font-bold text-gray-700 sep-titre">Doublons d&rsquo;élèves</p>
+        <p class="text-xs text-gray-500 mb-2">Un élève dont le code MASSAR est déjà présent n&rsquo;est jamais dupliqué à l&rsquo;import. Si un ancien import a créé des doublons, cet outil les retrouve et les fusionne en gardant l&rsquo;historique.</p>
+        <button onclick="verifierDoublonsEleves()" class="btn-secondary w-full"><i class="fas fa-clone"></i> Rechercher les doublons d&rsquo;élèves</button>
+      </div>
+
+      <!-- Liste des classes -->
+      <div class="stat-card">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-list text-blue-900 mr-2"></i>Classes existantes</h3>
+        <p class="text-sm text-gray-500 mb-3">Cliquez sur une classe pour voir la liste de ses élèves.</p>
+        <div id="dir-classes-list" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="switchDirPage('directeur', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Dashboard</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-historique', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-stats', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+    <div class="nav-item active" onclick="switchDirPage('dir-gestion', this)"><div class="nav-icon"><i class="fas fa-cogs"></i></div><span>Gestion</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-users"></i></div><span>RH</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE HISTORIQUE (DIRECTEUR)                 -->
+<!-- ============================================ -->
+<div id="page-dir-historique" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4">
+      <h2 class="text-center font-bold text-gray-800 mb-4" style="font-size: 18px;">Historique des absences</h2>
+      <div class="stat-card mb-4">
+        <label class="block text-sm font-bold text-blue-900 mb-2">Rechercher un élève</label>
+        <input type="text" id="dir-recherche-eleve" oninput="rechercherEleves('dir-recherche-eleve', 'dir-resultats-recherche')" placeholder="Nom ou code MASSAR..." class="w-full px-4 py-3 border-2 border-blue-900 rounded-lg font-medium">
+        <div id="dir-resultats-recherche" class="mt-3 space-y-2"></div>
+      </div>
+      <div id="dir-historique-list"></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="switchDirPage('directeur', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Dashboard</span></div>
+    <div class="nav-item active" onclick="switchDirPage('dir-historique', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-stats', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-gestion', this)"><div class="nav-icon"><i class="fas fa-cogs"></i></div><span>Gestion</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-users"></i></div><span>RH</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PAGE STATISTIQUES (DIRECTEUR)                -->
+<!-- ============================================ -->
+<div id="page-dir-stats" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4" id="dir-stats-conteneur">
+    <!-- BLOC COMMUN avec la page Stats du surveillant : il est déplacé ici ou là
+         selon l'écran affiché (un seul jeu d'identifiants, un seul rendu). -->
+    <div id="stats-commun">
+      <h2 class="text-center font-bold text-gray-800 mb-4" style="font-size: 18px;">Statistiques de l'établissement</h2>
+      <div class="stat-card mb-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-blue-900 mb-1">Période</label>
+            <select id="dir-stats-periode" onchange="changerFiltreStatsDir()" class="w-full px-3 py-2 border-2 border-blue-900 rounded-lg font-medium">
+              <option value="jour">Aujourd'hui</option>
+              <option value="semaine">Cette semaine</option>
+              <option value="mois" selected>Ce mois</option>
+              <option value="trimestre">Ce trimestre</option>
+              <option value="s1">Semestre 1</option>
+              <option value="s2">Semestre 2</option>
+              <option value="annee">Année scolaire</option>
+              <option value="perso">Personnalisée</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-blue-900 mb-1">Type</label>
+            <select id="dir-stats-type" onchange="changerFiltreStatsDir()" class="w-full px-3 py-2 border-2 border-blue-900 rounded-lg font-medium">
+              <option value="tous">Ab + Rd</option>
+              <option value="absence">Absences (Ab)</option>
+              <option value="retard">Retards (Rd)</option>
+            </select>
+          </div>
+        </div>
+        <div id="dir-stats-dates" class="grid grid-cols-2 gap-3 mt-3" style="display: none;">
+          <div>
+            <label class="block text-xs font-bold text-blue-900 mb-1">Du</label>
+            <input type="date" id="dir-stats-debut" onchange="changerFiltreStatsDir()" class="w-full px-3 py-2 border-2 border-blue-900 rounded-lg font-medium">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-blue-900 mb-1">Au</label>
+            <input type="date" id="dir-stats-fin" onchange="changerFiltreStatsDir()" class="w-full px-3 py-2 border-2 border-blue-900 rounded-lg font-medium">
+          </div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="grid grid-cols-3 gap-2" id="dir-stats-totaux"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Taux de présence</div>
+        <div class="stat-value" id="dir-stat-presence">—</div>
+        <div class="progress-bar"><div class="progress-fill" id="dir-progress-presence" style="width: 0%"></div></div>
+        <p class="text-xs text-gray-500 mt-2" id="dir-stat-presence-detail"></p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label mb-4" id="dir-tendance-titre">Tendance</div>
+        <div class="chart-bar" id="dir-chart-tendance" style="height: 100px;"></div>
+        <div class="h-8"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label mb-4">Par classe</div>
+        <div id="dir-chart-absences" class="space-y-3"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label mb-4">Élèves les plus signalés</div>
+        <div id="dir-top-absents" class="space-y-2"></div>
+      </div>
+    </div>
+    <!-- fin du bloc commun -->
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="switchDirPage('directeur', this)"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Dashboard</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-historique', this)"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item active" onclick="switchDirPage('dir-stats', this)"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-gestion', this)"><div class="nav-icon"><i class="fas fa-cogs"></i></div><span>Gestion</span></div>
+  
+    <div class="nav-item" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-users"></i></div><span>RH</span></div>
+  </div>
+</div>
+
+<!-- PAGE PROFILE (commune à tous les rôles)      -->
+<!-- ============================================ -->
+<div id="page-profil" class="page-container">
+  <div class="appbar">
+    <label class="switch sw-theme icone-theme-bascule" title="Mode sombre"><input type="checkbox" tabindex="-1" onchange="basculerTheme()"><span class="track"><span class="thumb"><i class="fas fa-sun ic ic-clair"></i><i class="fas fa-moon ic ic-sombre"></i></span></span></label>
+    <div class="appbar-title">Gestion d'absence</div>
+    <button onclick="deconnexion()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition justify-self-end">
+      <i class="fas fa-sign-out-alt text-xl"></i>
+    </button>
+  </div>
+  <div class="page-content page-with-nav page-with-appbar">
+    <div class="p-4">
+      <div class="stat-card mb-3 carte-settings" style="padding: 10px 14px;">
+        <div class="flex items-center gap-3">
+          <div class="avatar" style="width: 40px; height: 40px; font-size: 18px;"><i class="fas fa-user"></i></div>
+          <div style="flex: 1; min-width: 0;">
+            <p class="font-bold text-gray-800" id="profil-nom" style="font-size: 15px;">—</p>
+            <p class="text-xs text-gray-500" id="profil-role">—</p>
+          </div>
+          <button type="button" id="btn-profil-dir" class="btn-mini-profil" style="display: none;" onclick="ouvrirProfilDir()"><i class="fas fa-user-cog"></i> Profil</button>
+        </div>
+      </div>
+
+      <div class="stat-card mb-4" id="profil-service-card" style="display: none;">
+        <h3 class="font-bold text-gray-800 mb-4"><i class="fas fa-calendar-alt text-blue-900 mr-2"></i>Mon tableau de service <span id="profil-service-entete"></span></h3>
+        <div id="profil-service-creneaux" class="space-y-2"></div>
+      </div>
+
+      <div id="profil-mdp-page">
+        <div class="stat-card carte-settings">
+          <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-key text-blue-900 mr-2"></i>Changer le mot de passe</h3>
+          <div id="profil-error" class="hidden bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2 mb-2 text-center"></div>
+          <div id="profil-success" class="hidden bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg p-2 mb-2 text-center"></div>
+          <div class="form-group">
+            <label>Ancien mot de passe</label>
+            <input type="password" id="profil-ancien" placeholder="••••••" autocomplete="current-password">
+          </div>
+          <div class="form-group">
+            <label>Nouveau mot de passe</label>
+            <input type="password" id="profil-nouveau" placeholder="Minimum 6 caractères" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label>Réécrire le nouveau mot de passe</label>
+            <input type="password" id="profil-confirmer" placeholder="Confirmez le mot de passe" autocomplete="new-password">
+          </div>
+          <button onclick="changerMotDePasse()" class="btn-primary w-full btn-ripple">
+            <i class="fas fa-save"></i> Enregistrer
+          </button>
+          <ul class="text-xs text-gray-600 space-y-1 mt-3">
+            <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Minimum 6 caractères</li>
+            <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Au moins une lettre (a-z, A-Z)</li>
+            <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Au moins un chiffre (0-9)</li>
+            <li><i class="fas fa-times-circle text-gray-400 mr-2"></i>Pas de caractères spéciaux</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Rubriques RH (directeur) -->
+      <div id="profil-rh" style="display: none;">
+      <!-- Surveillants -->
+      <div class="stat-card mb-4 carte-settings" id="surv-card">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-user-shield text-blue-900 mr-2"></i>Surveillants</h3>
+        <div class="mode-segments" id="seg-surveillants">
+          <button type="button" id="seg-surv-liste" class="mode-btn actif" onclick="basculerSegments('seg-surveillants', 'seg-surv-liste')"><i class="fas fa-list"></i> Liste</button>
+          <button type="button" id="seg-surv-absence" class="mode-btn" onclick="basculerSegments('seg-surveillants', 'seg-surv-absence')"><i class="fas fa-user-clock"></i> Absence</button>
+        </div>
+        <div id="vue-surv-liste" class="seg-vue">
+          <p class="aide">Ajouter un surveillant, corriger son nom, définir son mot de passe. Ses identifiants de connexion sont générés avec ceux des enseignants.</p>
+          <button type="button" class="btn-primary w-full btn-ripple mb-3" onclick="ouvrirAjoutSurveillant()"><i class="fas fa-user-plus"></i> Ajouter un surveillant</button>
+          <div id="dir-surveillants-list" class="js-personnel"></div>
+        </div>
+        <div id="vue-surv-absence" class="seg-vue" style="display: none;">
+          <p class="aide">Absence d'un surveillant : la période est enregistrée et listée ci-dessous.</p>
+          <button type="button" class="btn-primary w-full btn-ripple" onclick="ouvrirFormulaire('absenceSurv')"><i class="fas fa-user-clock"></i> Déclarer une absence</button>
+          <div class="stat-label" style="margin: 10px 0 4px;">Absences enregistrées</div>
+          <div id="abs-surv-liste" class="js-absences-personnel"></div>
+        </div>
+      </div>
+
+      <!-- Enseignants -->
+      <div class="stat-card mb-4 carte-settings" id="ens-card">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-chalkboard-teacher text-blue-900 mr-2"></i>Enseignants</h3>
+        <div class="mode-segments" id="seg-enseignants">
+          <button type="button" id="seg-ens-liste" class="mode-btn actif" onclick="basculerSegments('seg-enseignants', 'seg-ens-liste')"><i class="fas fa-list"></i> Liste</button>
+          <button type="button" id="seg-ens-absence" class="mode-btn" onclick="basculerSegments('seg-enseignants', 'seg-ens-absence')"><i class="fas fa-user-clock"></i> Absence</button>
+        </div>
+        <div id="vue-ens-liste" class="seg-vue">
+          <p class="aide">Corriger le nom d'un enseignant, définir ou générer son mot de passe : la modification s'applique partout, y compris dans l'historique des signalements.</p>
+          <div id="dir-profs-list" class="js-personnel"></div>
+        </div>
+        <div id="vue-ens-absence" class="seg-vue" style="display: none;">
+          <p class="aide">Absence d'un enseignant : toutes ses séances de la période sont annulées (jours et heures déduits de son tableau de service) et ne comptent pas dans les statistiques.</p>
+          <button type="button" class="btn-primary w-full btn-ripple" onclick="ouvrirFormulaire('absenceEns')"><i class="fas fa-user-clock"></i> Déclarer une absence</button>
+          <div class="stat-label" style="margin: 10px 0 4px;">Absences enregistrées</div>
+          <div id="indispo-liste" class="js-absences-personnel"></div>
+        </div>
+      </div>
+
+      <!-- Identifiants : emails + mots de passe des surveillants et des enseignants -->
+      <div class="stat-card mb-4 carte-settings" id="identifiants-card">
+        <h3 class="font-bold text-gray-800 mb-3"><i class="fas fa-key text-blue-900 mr-2"></i>Identifiants du personnel</h3>
+        <p class="aide">Un email et un mot de passe sont engendrés pour chaque personne, puis la liste est téléchargée en PDF (surveillants puis enseignants) pour la remettre à chacun.</p>
+        <button type="button" class="btn-primary w-full btn-ripple" onclick="demanderIdentifiants()"><i class="fas fa-file-pdf"></i> Télécharger les identifiants</button>
+      </div>
+
+      </div>
+    </div>
+  </div>
+  <div id="profil-nav-ens" class="bottom-nav" style="display: none;">
+    <div class="nav-item" onclick="switchEnsPage('enseignant')"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Accueil</span></div>
+    <div class="nav-item" onclick="switchEnsPage('historique-ens')"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchEnsPage('stats-ens')"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+    <div class="nav-item active" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-user-circle"></i></div><span>Profil</span></div>
+  </div>
+  <div id="profil-nav-surv" class="bottom-nav" style="display: none;">
+    <div class="nav-item" onclick="switchSurvPage('surveillant')"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Dashboard</span></div>
+    <div class="nav-item" onclick="switchSurvPage('surv-classes')"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchSurvPage('surv-stats')"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+    <div class="nav-item active" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-user-circle"></i></div><span>Profil</span></div>
+  </div>
+  <div id="profil-nav-dir" class="bottom-nav" style="display: none;">
+    <div class="nav-item" onclick="switchDirPage('directeur')"><div class="nav-icon"><i class="fas fa-home"></i></div><span>Dashboard</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-historique')"><div class="nav-icon"><i class="fas fa-history"></i></div><span>Historique</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-stats')"><div class="nav-icon"><i class="fas fa-chart-bar"></i></div><span>Stats</span></div>
+    <div class="nav-item" onclick="switchDirPage('dir-gestion')"><div class="nav-icon"><i class="fas fa-cogs"></i></div><span>Gestion</span></div>
+    <div class="nav-item active" onclick="switchProfil(this)"><div class="nav-icon"><i class="fas fa-users"></i></div><span>RH</span></div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL CONFIRMATION                           -->
+<!-- ============================================ -->
+<div id="modal-confirmation" class="hidden fixed inset-0 modal-overlay z-50 flex items-end" style="z-index: 400;">
+  <div class="modal-content w-full bg-white p-6 rounded-t-3xl">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">Confirmation</h2>
+    <p id="message-confirmation" class="text-gray-600 mb-6">Voulez-vous vraiment continuer ?</p>
+    <div class="flex gap-3">
+      <button onclick="annulerConfirmation()" class="btn-secondary flex-1">Annuler</button>
+      <button onclick="validerConfirmation()" class="btn-success flex-1">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL DÉTAILS CLASSE (DIRECTEUR)             -->
+<!-- ============================================ -->
+<div id="modal-classe-detail" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" style="z-index: 200;">
+  <div class="w-full max-w-md bg-white rounded-3xl scale-in shadow-2xl" style="max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="flex justify-between items-center px-5 pt-4 pb-2" style="flex-shrink: 0;">
+      <h2 class="text-lg font-bold text-gray-800" id="detail-classe-titre"></h2>
+      <button onclick="fermerDetailClasse()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <div class="px-4 pb-3" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;">
+      <div id="detail-classe-eleves"></div>
+    </div>
+    <div class="px-4 pb-5 pt-2" style="flex-shrink: 0;">
+      <button onclick="demanderSuppressionClasse()" class="btn-danger w-full"><i class="fas fa-trash"></i> Supprimer cette classe</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DÉTAILS ABSENCE (SURVEILLANT)             -->
+<div id="modal-absence-detail" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" style="z-index: 200;">
+  <div class="w-full max-w-md bg-white rounded-3xl scale-in shadow-2xl" style="max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="flex items-center px-5 pt-4 pb-2" style="flex-shrink: 0;">
+      <span style="width: 28px; flex-shrink: 0;"></span>
+      <h2 class="text-lg font-bold text-gray-800 flex-1 text-center" id="detail-titre" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Élève</h2>
+      <button onclick="fermerDetailAbsence()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none" style="width: 28px; flex-shrink: 0; text-align: right;">&times;</button>
+    </div>
+    <div style="flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-height: 0;">
+      <div class="px-4 pb-3">
+        <div class="detail-carte rounded-2xl p-4 space-y-0" id="absence-detail-content">
+          <div class="flex justify-between py-2 border-b border-gray-200"><span class="text-xs font-bold text-gray-500">Numéro</span><span class="text-sm font-semibold text-gray-800" id="detail-numero">-</span></div>
+          <div class="flex justify-between py-2 border-b border-gray-200"><span class="text-xs font-bold text-gray-500">Classe</span><span class="text-sm font-semibold text-gray-800" id="detail-classe">-</span></div>
+          <div class="flex justify-between py-2 border-b border-gray-200"><span class="text-xs font-bold text-gray-500">Date</span><span class="text-sm font-semibold text-gray-800" id="detail-date">-</span></div>
+          <div class="flex justify-between py-2 border-b border-gray-200"><span class="text-xs font-bold text-gray-500">Professeur</span><span class="text-sm font-semibold text-gray-800" id="detail-prof">-</span></div>
+          <div class="flex justify-between py-2 border-b border-gray-200"><span class="text-xs font-bold text-gray-500">Matière</span><span class="text-sm font-semibold text-gray-800" id="detail-matiere">-</span></div>
+          <div class="flex justify-between py-2 border-b border-gray-200"><span class="text-xs font-bold text-gray-500">Type</span><span class="text-sm font-semibold text-gray-800" id="detail-type">-</span></div>
+          <div class="flex justify-between py-2 border-b border-gray-200" id="row-duree"><span class="text-xs font-bold text-gray-500">Durée</span><span class="text-sm font-semibold text-gray-800" id="detail-duree">-</span></div>
+          <div class="flex justify-between py-2 border-b border-gray-200"><span class="text-xs font-bold text-gray-500">Historique</span><span class="text-sm font-semibold text-gray-800" id="detail-historique">-</span></div>
+          <div class="flex justify-between py-2 border-b border-gray-200" id="row-motif"><span class="text-xs font-bold text-gray-500">Motif</span><span class="text-sm font-semibold text-gray-800" id="detail-motif">-</span></div>
+          <div class="flex justify-between py-2 border-b border-gray-200" id="row-justifie-par"><span class="text-xs font-bold text-gray-500">Justifié par</span><span class="text-sm font-semibold text-gray-800" id="detail-justifie-par">-</span></div>
+          <div class="flex justify-between py-2" id="row-justifie-le"><span class="text-xs font-bold text-gray-500">Justifié le</span><span class="text-sm font-semibold text-gray-800" id="detail-justifie-le">-</span></div>
+        </div>
+      </div>
+      <div id="bloc-motif" class="px-4 pb-3">
+        <div class="motif-carte">
+          <div class="motif-entete">
+            <div>
+              <p class="motif-titre">Motif de justification</p>
+              <p class="motif-sous-titre">Choisissez le motif puis validez</p>
+            </div>
+          </div>
+          <input type="hidden" id="select-motif" value="Maladie">
+          <div class="motif-chips" id="chips-motif">
+            <button type="button" class="motif-chip actif" onclick="choisirMotif('Maladie', this)">Maladie</button>
+            <button type="button" class="motif-chip" onclick="choisirMotif('Raison familiale', this)">Raison familiale</button>
+            <button type="button" class="motif-chip" onclick="choisirMotif('Raison personnelle', this)">Raison personnelle</button>
+            <button type="button" class="motif-chip" onclick="choisirMotif('Transport', this)">Transport</button>
+            <button type="button" class="motif-chip" onclick="choisirMotif('Sanction', this)">Sanction</button>
+            <button type="button" class="motif-chip" onclick="choisirMotif('Autre', this)">Autre</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3 px-4 pt-2 pb-5" style="flex-shrink: 0;">
+      <button onclick="fermerDetailAbsence()" class="btn-fermer flex-1">Fermer</button>
+      <button id="btn-justifier-absence" class="btn-success flex-1" style="display: none;">Justifier</button>
+    </div>
+  </div>
+</div>
+
+<!-- FICHE ELEVE -->
+<div id="modal-fiche-eleve" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" style="z-index: 200;">
+  <div class="w-full max-w-md bg-white rounded-3xl scale-in shadow-2xl" style="max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="flex items-center px-5 pt-4 pb-2 fiche-anim cascade-1" style="flex-shrink: 0;">
+      <span style="width: 32px; flex-shrink: 0;"></span>
+      <h2 class="text-lg font-bold text-gray-800 text-center" id="fiche-titre" style="flex: 1;">Fiche élève</h2>
+      <button onclick="fermerFicheEleve()" class="text-gray-400 hover:text-gray-600 leading-none" style="width: 32px; flex-shrink: 0; font-size: 24px;">&times;</button>
+    </div>
+    <div class="px-4 pb-3 fiche-anim cascade-2" style="flex-shrink: 0;">
+      <div class="detail-carte rounded-2xl p-4 space-y-0" id="fiche-infos"></div>
+    </div>
+    <div class="px-4 pb-3 fiche-anim cascade-3" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;">
+      <div class="detail-carte rounded-2xl p-4" id="fiche-historique" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;"></div>
+    </div>
+    <div class="flex gap-3 px-4 pt-2 pb-5 fiche-anim cascade-4" style="flex-shrink: 0;">
+      <button onclick="fermerFicheEleve()" class="btn-fermer flex-1">Fermer</button>
+      <button onclick="exporterFicheEleve()" class="btn-primary flex-1"><i class="fas fa-file-excel"></i> Exporter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FORMULAIRE (unifiee : fermeture, annulation, absences, etablissement) -->
+<div id="modal-form" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4" style="z-index: 320;">
+  <div class="w-full max-w-md bg-white rounded-3xl scale-in shadow-2xl carte-settings" style="max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="flex items-center px-5 pt-4 pb-2" style="flex-shrink: 0;">
+      <span style="width: 28px; flex-shrink: 0;"></span>
+      <h2 class="text-lg font-bold text-gray-800 flex-1 text-center" id="form-titre">Formulaire</h2>
+      <button onclick="fermerFormulaire()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none" style="width: 28px; flex-shrink: 0; text-align: right;">&times;</button>
+    </div>
+    <div style="flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0;">
+      <div class="px-4 pb-4" id="form-corps"></div>
+    </div>
+    <div class="flex gap-3 px-4 pt-2 pb-5" style="flex-shrink: 0;">
+      <button onclick="fermerFormulaire()" class="btn-fermer flex-1">Fermer</button>
+      <button onclick="validerFormulaire()" class="btn-primary flex-1"><i class="fas fa-save"></i> Valider</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MON PROFIL (DIRECTEUR)                     -->
+<div id="modal-profil-dir" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4" style="z-index: 300;">
+  <div class="w-full max-w-md bg-white rounded-3xl scale-in shadow-2xl" style="max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="flex items-center px-5 pt-4 pb-2" style="flex-shrink: 0;">
+      <span style="width: 28px; flex-shrink: 0;"></span>
+      <h2 class="text-lg font-bold text-gray-800 flex-1 text-center">Mon profil</h2>
+      <button onclick="fermerProfilDir()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none" style="width: 28px; flex-shrink: 0; text-align: right;">&times;</button>
+    </div>
+    <div style="flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0;">
+      <div class="px-4 pb-4 carte-settings">
+        <p class="aide" id="mdpdir-email"></p>
+        <div class="form-group">
+          <label>Nom complet</label>
+          <input type="text" id="mdpdir-nom" placeholder="Nom et prénom">
+        </div>
+        <hr class="my-3 border-gray-200">
+        <p class="text-sm font-bold text-gray-700 sep-titre">Changer le mot de passe</p>
+        <div id="mdpdir-error" class="hidden bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2 mb-2 text-center"></div>
+        <div id="mdpdir-success" class="hidden bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg p-2 mb-2 text-center"></div>
+        <div class="form-group">
+          <label>Ancien mot de passe</label>
+          <input type="password" id="mdpdir-ancien" placeholder="••••••" autocomplete="current-password">
+        </div>
+        <div class="form-group">
+          <label>Nouveau mot de passe</label>
+          <input type="password" id="mdpdir-nouveau" placeholder="Minimum 6 caractères" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label>Réécrire le nouveau mot de passe</label>
+          <input type="password" id="mdpdir-confirmer" placeholder="Confirmez le mot de passe" autocomplete="new-password">
+        </div>
+        <ul class="text-xs text-gray-600 space-y-1 mt-1">
+          <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Minimum 6 caractères</li>
+          <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Au moins une lettre (a-z, A-Z)</li>
+          <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Au moins un chiffre (0-9)</li>
+          <li><i class="fas fa-times-circle text-gray-400 mr-2"></i>Pas de caractères spéciaux</li>
+        </ul>
+      </div>
+    </div>
+    <div class="flex gap-3 px-4 pt-2 pb-5" style="flex-shrink: 0;">
+      <button onclick="fermerProfilDir()" class="btn-fermer flex-1">Fermer</button>
+      <button onclick="enregistrerProfilDir()" class="btn-primary flex-1"><i class="fas fa-save"></i> Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RENOMMER UN PROFESSEUR                    -->
+<div id="modal-renommer" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4" style="z-index: 300;">
+  <div class="w-full max-w-md bg-white rounded-3xl scale-in shadow-2xl carte-settings">
+    <div class="flex items-center px-5 pt-4 pb-2">
+      <span style="width: 28px; flex-shrink: 0;"></span>
+      <h2 class="text-lg font-bold text-gray-800 flex-1 text-center" id="renommer-titre">Nom de l'enseignant</h2>
+      <button onclick="fermerRenommageProf()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none" style="width: 28px; flex-shrink: 0; text-align: right;">&times;</button>
+    </div>
+    <div class="px-4 pb-5">
+      <p class="text-xs text-gray-500 mb-2 text-center" id="renommer-info"></p>
+      <p class="text-xs text-gray-500 mb-2 text-center" id="renommer-email"></p>
+      <div id="renommer-success" class="hidden bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg p-2 mb-2 text-center" style="word-break: break-all;"></div>
+      <div class="form-group">
+        <label>Nom complet</label>
+        <input type="text" id="renommer-nom" placeholder="Nom et prénom">
+      </div>
+      <div class="form-group">
+        <label>Mot de passe de connexion</label>
+        <input type="text" id="renommer-mdp" placeholder="8 caractères (lettres + chiffres)" style="width: 100%;">
+      </div>
+      <!-- Bouton UNIQUE du mot de passe : « Générer » à la création, « Réinitialiser » à
+           la modification. Même place, même taille ; seul le libellé change. -->
+      <button type="button" id="btn-mdp-action" class="w-full mb-3 btn-outline-primaire" onclick="actionMotDePasse()">
+        <i class="fas fa-rotate-right"></i> Réinitialiser
+      </button>
+      <div id="renommer-reset" class="hidden mb-3" style="border: 2px solid #16a34a; border-radius: 12px; padding: 10px; background: #f0fdf4;">
+        <p class="text-xs font-bold" style="color: #166534;">Nouveau mot de passe — à remettre à cette personne</p>
+        <div class="flex items-center gap-2 mt-2">
+          <input type="text" id="reset-mdp" readonly style="flex: 1; min-width: 0; font-size: 20px; font-weight: 800; text-align: center; letter-spacing: 2px; font-family: monospace; padding: 8px; border: 1px solid #16a34a; border-radius: 8px; background: #ffffff;">
+          <button type="button" class="btn-mini-profil" style="border-color: #16a34a; color: #16a34a;" onclick="copierTexte('reset-mdp')"><i class="fas fa-copy"></i> Copier</button>
+        </div>
+        <p class="text-xs mt-2" style="color: #166534;">Connexion : <span id="reset-email"></span></p>
+        <p class="text-xs mt-1" id="reset-date" style="color: #64748b;"></p>
+        <button type="button" class="btn-primary w-full btn-ripple mt-2" onclick="ficheIdentifiantPersonne()"><i class="fas fa-file-pdf"></i> Télécharger sa fiche</button>
+      </div>
+      <ul class="text-xs text-gray-600 space-y-1 mb-3">
+        <li><i class="fas fa-check-circle text-green-500 mr-2"></i>8 caractères, lettres et chiffres (sans caractères spéciaux)</li>
+      </ul>
+      <button type="button" id="renommer-supprimer" class="hidden w-full btn-outline-danger mb-2" onclick="supprimerProfilCourant()"><i class="fas fa-trash"></i> Supprimer ce surveillant</button>
+      <div class="flex gap-3">
+        <button onclick="fermerRenommageProf()" class="btn-fermer flex-1">Fermer</button>
+        <button onclick="confirmerRenommageProf()" class="btn-primary flex-1"><i class="fas fa-save"></i> Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+
+<!-- ============================================ -->
+<!-- JAVASCRIPT                                   -->
+<!-- ============================================ -->
+<script src="js/00-noyau.js"></script>
+  <script src="js/01-chargement.js"></script>
+  <script src="js/02-tableaux-service.js"></script>
+  <script src="js/03-comptes.js"></script>
+  <script src="js/04-gestion.js"></script>
+  <script src="js/05-formulaires.js"></script>
+  <script src="js/06-rh.js"></script>
+  <script src="js/07-socle.js"></script>
+  <script src="js/08-enseignant.js"></script>
+  <script src="js/09-stats.js"></script>
+  <script src="js/10-surveillant.js"></script>
+  <script src="js/11-directeur.js"></script>
+  <script src="js/12-imports.js"></script>
+  <script src="js/13-fiches.js"></script>
+  <script src="js/14-theme-lots.js"></script>
+  <script src="js/15-donnees-test.js"></script>
+  <script src="js/16-init.js"></script>
+  <script src="js/17-listes-deroulantes.js"></script>
+</body>
+</html>

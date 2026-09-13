@@ -1,0 +1,76 @@
+/* fichier: app/styles/05-lots-par-role-clair-enseignant.css */
+/* ===== LOTS PAR ROLE (clair) : enseignant = lot 6, surveillant = lot 5 ===== */
+    /* Theme clair UNIQUE (identique pour les 3 roles) : bleu nuit + corail + teal + fonds doux */
+    body.role-enseignant, body.role-surveillant, body.role-directeur {
+      --lot-fond: #F4F6FA;          /* fond de page */
+      --lot-primaire: #26395A;      /* bleu nuit : barres, boutons, textes forts */
+      --lot-fonce: #6E7E93;         /* fin du degrade */
+      --lot-accent: #E15F67;        /* corail : bouton Fermer, carte des compteurs */
+      --lot-clair: #EDF1F7;         /* fond des listes de cartes */
+      --lot-bordure: #D7E0EA;       /* bordures visibles */
+      --lot-neutre: #6E7E93;        /* libelles et textes secondaires */
+      --lot-secondaire: #0C829F;    /* teal : pastilles et touches */
+    }
+    /* Fond de page du lot (theme clair) */
+    body.role-enseignant:not(.theme-sombre), body.role-surveillant:not(.theme-sombre), body.role-directeur:not(.theme-sombre) { background: var(--lot-fond); }
+    /* Textes secondaires (labels, aides, sous-titres des listes) avec le gris du lot */
+    body.role-enseignant:not(.theme-sombre) .stat-label, body.role-surveillant:not(.theme-sombre) .stat-label,
+    body.role-directeur:not(.theme-sombre) .stat-label, body.role-enseignant:not(.theme-sombre) .aide,
+    body.role-surveillant:not(.theme-sombre) .aide, body.role-directeur:not(.theme-sombre) .aide,
+    body.role-enseignant:not(.theme-sombre) .carte-ligne-sous, body.role-surveillant:not(.theme-sombre) .carte-ligne-sous,
+    body.role-directeur:not(.theme-sombre) .carte-ligne-sous { color: var(--lot-neutre); }
+    /* Fonds des listes de cartes avec la couleur claire du lot */
+    body.role-enseignant:not(.theme-sombre) .js-seances-annulees, body.role-surveillant:not(.theme-sombre) .js-seances-annulees,
+    body.role-directeur:not(.theme-sombre) .js-seances-annulees, body.role-enseignant:not(.theme-sombre) .js-absences-personnel,
+    body.role-surveillant:not(.theme-sombre) .js-absences-personnel, body.role-directeur:not(.theme-sombre) .js-absences-personnel,
+    body.role-enseignant:not(.theme-sombre) .js-fermetures, body.role-surveillant:not(.theme-sombre) .js-fermetures,
+    body.role-directeur:not(.theme-sombre) .js-fermetures, body.role-enseignant:not(.theme-sombre) .js-annulations,
+    body.role-surveillant:not(.theme-sombre) .js-annulations, body.role-directeur:not(.theme-sombre) .js-annulations,
+    body.role-enseignant:not(.theme-sombre) .js-personnel, body.role-surveillant:not(.theme-sombre) .js-personnel,
+    body.role-directeur:not(.theme-sombre) .js-personnel {
+      background: var(--lot-clair); border-color: var(--lot-bordure);
+    }
+    /* Les cartes a l'interieur des listes sont blanches : elles ressortent sur le fond teinte */
+    body.role-enseignant:not(.theme-sombre) .js-seances-annulees > div, body.role-surveillant:not(.theme-sombre) .js-seances-annulees > div,
+    body.role-directeur:not(.theme-sombre) .js-seances-annulees > div, body.role-enseignant:not(.theme-sombre) .js-absences-personnel > div,
+    body.role-surveillant:not(.theme-sombre) .js-absences-personnel > div, body.role-directeur:not(.theme-sombre) .js-absences-personnel > div,
+    body.role-enseignant:not(.theme-sombre) .js-fermetures > div, body.role-surveillant:not(.theme-sombre) .js-fermetures > div,
+    body.role-directeur:not(.theme-sombre) .js-fermetures > div, body.role-enseignant:not(.theme-sombre) .js-annulations > div,
+    body.role-surveillant:not(.theme-sombre) .js-annulations > div, body.role-directeur:not(.theme-sombre) .js-annulations > div,
+    body.role-enseignant:not(.theme-sombre) .js-personnel > div, body.role-surveillant:not(.theme-sombre) .js-personnel > div,
+    body.role-directeur:not(.theme-sombre) .js-personnel > div {
+      background: #FFFFFF; border: 1px solid var(--lot-bordure);
+    }
+    /* Pastilles : teal du theme */
+    body.role-enseignant:not(.theme-sombre) .tag-avenir, body.role-surveillant:not(.theme-sombre) .tag-avenir,
+    body.role-directeur:not(.theme-sombre) .tag-avenir { color: var(--lot-secondaire); background: rgba(12, 130, 159, 0.12); }
+    /* Cartes eleves de l'historique : degrade doux du theme */
+    body.role-enseignant:not(.theme-sombre) .carte-eleve, body.role-surveillant:not(.theme-sombre) .carte-eleve,
+    body.role-directeur:not(.theme-sombre) .carte-eleve {
+      background: linear-gradient(135deg, var(--lot-clair) 0%, #FFFFFF 60%); border-color: var(--lot-bordure);
+    }
+    body:not(.theme-sombre).role-enseignant .appbar, body:not(.theme-sombre).role-surveillant .appbar, body:not(.theme-sombre).role-directeur .appbar { background: linear-gradient(135deg, var(--lot-primaire) 0%, var(--lot-fonce) 100%); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+    body:not(.theme-sombre).role-enseignant .btn-primary, body:not(.theme-sombre).role-surveillant .btn-primary, body:not(.theme-sombre).role-directeur .btn-primary { background: linear-gradient(135deg, var(--lot-primaire) 0%, var(--lot-fonce) 100%); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+    body:not(.theme-sombre).role-enseignant .btn-success, body:not(.theme-sombre).role-surveillant .btn-success, body:not(.theme-sombre).role-directeur .btn-success { background: var(--lot-primaire); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    body:not(.theme-sombre).role-enseignant .btn-fermer, body:not(.theme-sombre).role-surveillant .btn-fermer, body:not(.theme-sombre).role-directeur .btn-fermer { background: var(--lot-accent); box-shadow: 0 6px 18px rgba(0,0,0,0.15); }
+    body:not(.theme-sombre).role-enseignant .btn-fermer:hover, body:not(.theme-sombre).role-surveillant .btn-fermer:hover, body:not(.theme-sombre).role-directeur .btn-fermer:hover { filter: brightness(0.93); }
+    body:not(.theme-sombre).role-enseignant .filter-chip.active, body:not(.theme-sombre).role-surveillant .filter-chip.active, body:not(.theme-sombre).role-directeur .filter-chip.active { background: linear-gradient(135deg, var(--lot-primaire) 0%, var(--lot-fonce) 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+    body:not(.theme-sombre).role-enseignant .motif-chip.actif, body:not(.theme-sombre).role-surveillant .motif-chip.actif, body:not(.theme-sombre).role-directeur .motif-chip.actif { background: linear-gradient(135deg, var(--lot-primaire) 0%, var(--lot-fonce) 100%); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+    body:not(.theme-sombre).role-enseignant .nav-item.active, body:not(.theme-sombre).role-surveillant .nav-item.active, body:not(.theme-sombre).role-directeur .nav-item.active { color: var(--lot-primaire); }
+    body:not(.theme-sombre).role-enseignant .nav-item.active::before, body:not(.theme-sombre).role-surveillant .nav-item.active::before, body:not(.theme-sombre).role-directeur .nav-item.active::before { background: var(--lot-primaire); }
+    body:not(.theme-sombre).role-enseignant .checkbox-material, body:not(.theme-sombre).role-surveillant .checkbox-material, body:not(.theme-sombre).role-directeur .checkbox-material { accent-color: var(--lot-primaire); }
+    body:not(.theme-sombre).role-enseignant .progress-fill, body:not(.theme-sombre).role-surveillant .progress-fill, body:not(.theme-sombre).role-directeur .progress-fill { background: var(--lot-primaire); }
+    body:not(.theme-sombre).role-enseignant .chart-bar .bar, body:not(.theme-sombre).role-surveillant .chart-bar .bar, body:not(.theme-sombre).role-directeur .chart-bar .bar { background: linear-gradient(180deg, var(--lot-primaire) 0%, var(--lot-fonce) 100%); }
+    body:not(.theme-sombre).role-enseignant .bar-value, body:not(.theme-sombre).role-surveillant .bar-value, body:not(.theme-sombre).role-directeur .bar-value { color: var(--lot-primaire); }
+    body:not(.theme-sombre).role-enseignant .stat-value, body:not(.theme-sombre).role-surveillant .stat-value, body:not(.theme-sombre).role-directeur .stat-value { color: var(--lot-primaire); }
+    body:not(.theme-sombre).role-enseignant .stat-card-absences, body:not(.theme-sombre).role-surveillant .stat-card-absences, body:not(.theme-sombre).role-directeur .stat-card-absences { background: linear-gradient(135deg, var(--lot-accent) 0%, var(--lot-fonce) 100%); box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+    body:not(.theme-sombre).role-enseignant .text-blue-900, body:not(.theme-sombre).role-surveillant .text-blue-900, body:not(.theme-sombre).role-directeur .text-blue-900 { color: var(--lot-primaire); }
+    body:not(.theme-sombre).role-enseignant .text-blue-600, body:not(.theme-sombre).role-surveillant .text-blue-600, body:not(.theme-sombre).role-directeur .text-blue-600 { color: var(--lot-primaire); }
+    body:not(.theme-sombre).role-enseignant .text-gray-800, body:not(.theme-sombre).role-surveillant .text-gray-800,
+    body:not(.theme-sombre).role-enseignant .text-gray-700, body:not(.theme-sombre).role-surveillant .text-gray-700, body:not(.theme-sombre).role-directeur .text-gray-800, body:not(.theme-sombre).role-directeur .text-gray-700 { color: var(--lot-fonce); }
+    body:not(.theme-sombre).role-enseignant .text-gray-500, body:not(.theme-sombre).role-surveillant .text-gray-500,
+    body:not(.theme-sombre).role-enseignant .text-gray-400, body:not(.theme-sombre).role-surveillant .text-gray-400, body:not(.theme-sombre).role-directeur .text-gray-500, body:not(.theme-sombre).role-directeur .text-gray-400 { color: var(--lot-rd); }
+    body:not(.theme-sombre).role-enseignant input:focus, body:not(.theme-sombre).role-enseignant select:focus,
+    body:not(.theme-sombre).role-surveillant input:focus, body:not(.theme-sombre).role-surveillant select:focus, body:not(.theme-sombre).role-directeur input:focus, body:not(.theme-sombre).role-directeur select:focus { border-color: var(--lot-primaire); }
+
+    

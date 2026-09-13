@@ -1,0 +1,64 @@
+/* fichier: app/styles/06-menus-deroulants-select.css */
+/* ========== MENUS DEROULANTS (select) ========== */
+    select {
+      -webkit-appearance: none;
+      appearance: none;
+      background-color: #ffffff;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='%231e3a8a' d='M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 13px 13px;
+      padding-right: 46px !important;
+      min-height: 46px;
+      font-weight: 600 !important;
+      line-height: 1.2;
+      color: #1e3a8a;
+      border: 2px solid #1e3a8a;
+      border-radius: 12px !important;
+      cursor: pointer;
+      text-overflow: ellipsis;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+      transition: box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    select:hover { box-shadow: 0 5px 14px rgba(15, 23, 42, 0.12); }
+    select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.30); }
+    select:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    select option { font-weight: 500; color: #1e293b; background: #ffffff; }
+    select option:disabled { color: #94a3b8; }
+    select::-ms-expand { display: none; }
+
+    /* --- couleurs par role (theme clair) --- */
+    body:not(.theme-sombre).role-enseignant select {
+      color: var(--lot-fonce);
+      border-color: var(--lot-primaire);
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='%236994CC' d='M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z'/%3E%3C/svg%3E");
+    }
+    body:not(.theme-sombre).role-enseignant select:focus {
+      border-color: var(--lot-primaire);
+      box-shadow: 0 0 0 3px rgba(105, 148, 204, 0.32);
+    }
+    body:not(.theme-sombre).role-surveillant select, body:not(.theme-sombre).role-directeur select {
+      color: var(--lot-fonce);
+      border-color: var(--lot-primaire);
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='%23566C9D' d='M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z'/%3E%3C/svg%3E");
+    }
+    body:not(.theme-sombre).role-surveillant select:focus, body:not(.theme-sombre).role-directeur select:focus {
+      border-color: var(--lot-primaire);
+      box-shadow: 0 0 0 3px rgba(86, 108, 157, 0.32);
+    }
+    /* --- theme sombre --- */
+    body.theme-sombre select {
+      background-color: #0f172a !important;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='%2393c5fd' d='M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z'/%3E%3C/svg%3E") !important;
+      color: #e2e8f0 !important;
+      border-color: #334155 !important;
+      box-shadow: none;
+    }
+    body.theme-sombre select:hover { border-color: #475569 !important; }
+    body.theme-sombre select:focus {
+      border-color: #93c5fd !important;
+      box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.22);
+    }
+    body.theme-sombre select option { background: #1e293b; color: #e2e8f0; }
+
+    

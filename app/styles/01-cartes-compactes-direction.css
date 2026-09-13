@@ -1,0 +1,6 @@
+/* fichier: app/styles/01-cartes-compactes-direction.css */
+/* ============ CARTES COMPACTES (direction) ============ */
+    .stat-mini { padding: 12px 14px; margin-bottom: 0; }
+    .stat-mini .stat-label { font-size: 11px; }
+    .stat-mini .stat-value { font-size: 24px; margin: 4px 0 0; }
+    
