@@ -70,14 +70,22 @@ def controles_forme():
 def lancer(item):
     nom, chemin = item
     t0 = time.time()
+    details = ''
     try:
         r = subprocess.run(['node', chemin], capture_output=True, text=True,
                            cwd=RACINE, timeout=300)
-        lignes = (r.stdout or '').strip().split('\n')
+        sortie = (r.stdout or '').strip()
+        lignes = sortie.split('\n')
         ok = 'TOUT OK' in (lignes[-1] if lignes else '')
+        if not ok:
+            # on garde de quoi diagnostiquer directement depuis le journal de la CI
+            details = '\n'.join(l for l in lignes if l.startswith('ECHEC'))[:800] or sortie[-500:]
+            if r.stderr.strip():
+                details += '\n' + r.stderr.strip()[:300]
     except subprocess.TimeoutExpired:
         ok = False
-    return nom, ok, time.time() - t0
+        details = 'délai dépassé (300 s)'
+    return nom, ok, time.time() - t0, details
 
 
 def main():
@@ -97,8 +105,11 @@ def main():
     with ThreadPoolExecutor(max_workers=3) as ex:
         res = list(ex.map(lancer, a_lancer))
     duree = time.time() - t0
-    ko = [n for n, ok, _ in res if not ok]
-    for n, _, d in sorted(res, key=lambda x: -x[2])[:3]:
+    ko = [n for n, ok, _, _ in res if not ok]
+    for n, ok, _, details in res:
+        if not ok:
+            print('\n== ÉCHEC : %s ==\n%s' % (n, details))
+    for n, _, d, _ in sorted(res, key=lambda x: -x[2])[:3]:
         print('  plus lente : %-28s %.1f s' % (n, d))
     print('suites : %d lancées en %.0f s (3 en parallèle) — échecs : %s'
           % (len(a_lancer), duree, ', '.join(ko) if ko else 'AUCUN'))

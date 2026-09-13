@@ -1,0 +1,11 @@
+CI : test_seed deterministe + verif.py qui detaille les echecs
+
+test_seed.js : le generateur de donnees de demo tire au hasard (Math.random, 7 fois). La meme
+suite produisait donc des donnees differentes a chaque execution, et echouait de facon aleatoire
+et non reproductible ("2 non justifies hier", ">= 20 anciens" selon le tirage) - c'est ce qui
+faisait rougir la CI alors que tout passait ici. Math.random est remplace par une suite
+deterministe (graine 42) : le jeu de demo est desormais toujours identique.
+Verifie par 3 executions consecutives, resultat identique.
+
+outils/verif.py : en cas d'echec, affiche les lignes ECHEC de la suite fautive et son stderr,
+au lieu du seul nom de la suite. Un echec en CI devient diagnosticable depuis le journal.

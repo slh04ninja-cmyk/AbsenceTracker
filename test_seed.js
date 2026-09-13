@@ -16,6 +16,14 @@ const dom = new JSDOM(html, {
       constructor(...a) { super(...(a.length ? a : [FIXE])); }
       static now() { return FIXE; }
     };
+    // Math.random DETERMINISTE : le generateur de donnees de demo tire au hasard. Sans graine,
+    // la meme suite produisait des donnees differentes d'une machine a l'autre (echec aleatoire
+    // en CI, jamais reproductible). Avec une graine, le jeu de demo est toujours identique.
+    let graine = 42;
+    win.Math.random = function () {
+      graine = (graine * 1103515245 + 12345) % 2147483648;
+      return graine / 2147483648;
+    };
     win.localStorage.setItem('absenceTrackVersion', 'v2.1');   // != DEMO_VERSION -> nouveau jeu de demo
     win.localStorage.setItem('absences', '[]');
   }
