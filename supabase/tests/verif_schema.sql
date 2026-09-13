@@ -9,6 +9,9 @@
 -- Attendus au moment du §2 : 7 fiches (5 avec compte, 2 sans), 3 élèves,
 -- 2 séances, 4 puis 5 signalements.
 
+-- ATTENDUS-ECHEC: 1b, 1d, 1g, 1i, 1j, 1l, 1n, 1o, 1r, 2e, 2h, 2l, 2n, 2p, 2q
+-- (les cas qui DOIVENT etre refuses par la base ; le reste doit passer)
+
 grant usage on schema auth to authenticated, anon;
 grant execute on function auth.uid() to authenticated, anon;
 

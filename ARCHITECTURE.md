@@ -74,7 +74,8 @@ Pour que l'app **et** le bureau Streamlit ne divergent jamais, les règles viven
 | **1. GitHub** | dépôt + `.gitignore` + CI (`tests.yml`) + baseline taggée | ~1 h |
 | **2. Découpage** ✅ | Fait : `app/` = 18 modules JS + 8 feuilles CSS, assemblés par `build.py` — **preuve : le fichier reconstruit est identique au bit près** (511 285 o) | fait |
 | **3. Porte des données** ✅ | Fait : porte `Depot` dans `01-chargement.js` (43 accès → 1 interface), contrôlée par `verif.py` | fait |
-| **3bis. Règles métier en SQL** | vues + contraintes dans `supabase/migrations/` (prérequis du bureau Streamlit) | 1 session |
+| **3bis. Règles métier en SQL** ✅ | Fait : `supabase/migrations/0002_regles_metier.sql` (type effectif 30 min, séances annulées 2 sources, séances dues, taux de présence, totaux) — testé sur un vrai PostgreSQL : **23 cas règles + 39 cas RLS, 0 inattendu**, joué par la CI `sql.yml` | fait |
+| **3ter. Aligner le taux de l'app** | L'app déduit son dénominateur des signalements eux-mêmes (taux gonflé) ; la base a la bonne formule. À valider avec l'utilisateur — **c'est un changement de chiffres affichés** | petite, à décider |
 | **4. Supabase** | projet, migrations, comptes réels, `DepotSupabase` derrière la même interface, bascule par drapeau `local`/`serveur` | 1-2 sessions |
 | **5. Bureau Streamlit** | Import, Identifiants PDF (RTL arabe), Rapports — sur VPS (Termux ne peut pas : pas de roues `pyarrow`/`pandas` pour Android) | quelques jours |
 | **6. APK Capacitor** | l'app pointe sur le serveur | 1 session |
@@ -86,5 +87,10 @@ Pour que l'app **et** le bureau Streamlit ne divergent jamais, les règles viven
 - **Origine `localStorage`** : ouvrir l'app par une URL (GitHub Pages…) change l'origine et repart
   d'une base vide. Supabase règle le sujet.
 - **Secrets** : `anon` dans l'app, `service_role` **uniquement** côté serveur (bureau/VPS).
+- **Le taux de présence de l'app est faux** (repéré en écrivant les règles SQL) : son
+  dénominateur est le nombre de couples (date, séance) **trouvés parmi les signalements**, donc
+  plus il y a d'absences, plus le taux remonte. La base, elle, utilise les **séances dues**
+  (`seances_dues()`) : c'est la seule formule défendable. Aligner l'app = changer des chiffres
+  affichés → à faire avec l'accord de l'utilisateur.
 - **Nommage des classes** : jamais un préfixe réservé (`fa-*` = Font Awesome, utilitaires
   Tailwind). Toujours un préfixe maison : `cascade-`, `fiche-`, `ton-`, `sd-`.

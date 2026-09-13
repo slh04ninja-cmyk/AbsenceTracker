@@ -1,79 +1,59 @@
-# AbsenceTrack — base de données (Supabase / PostgreSQL)
+# Migrations — le schéma et les règles, rejouables
 
-Ce dossier contient **uniquement le côté serveur**. Le prototype HTML n'est pas
-touché : il continue de fonctionner comme avant tant que rien n'est branché.
+Les migrations s'appliquent **dans l'ordre du nom** et décrivent l'état voulu de la base.
+Aucune n'est modifiée après coup : un changement se fait dans une **nouvelle** migration.
 
-| Fichier | Rôle |
+| Fichier | Contenu |
 |---|---|
-| `schema.sql` | Le schéma complet : tables, règles métier, cloisonnement par rôle. **Rien n'est exécuté tant que tu ne le valides pas.** |
-| `verif_schema.sql` | Le banc d'essai : **39 cas** (doit-passer / doit-échouer). |
-| `_verifier.sh` | Lance un PostgreSQL local, applique `schema.sql` en mode strict, joue les vérifications et rend le verdict. |
-| `_rapport.py` | Transforme la sortie brute en tableau lisible. |
-| `_maj_schema_v2.py` | Le correctif appliqué au schéma après la précision sur le parcours réel (fiche ⇄ compte). |
+| `0001_schema.sql` | 9 tables, les types, le cloisonnement par rôle (21 politiques RLS) |
+| `0002_regles_metier.sql` | les règles métier en SQL : type effectif (30 min), séances annulées (2 sources), séances dues, taux de présence, totaux |
 
-## Rien n'est pré-rempli — c'est voulu
+## Ce que la base garantit (et ce qu'elle ne garantit pas)
 
-Les classes et les professeurs du prototype sont des **données de test** et ne
-seront **pas reprises**. Le vrai parcours, après installation :
+**Garanti par la base** — impossible à contourner depuis un client :
 
-1. **Le directeur crée son compte** (Supabase Auth) → sa fiche + son établissement
-2. Il ouvre **Gestion → Importation des fichiers** et importe :
-   - **les listes MASSAR** (xlsx) → crée les **classes** et les **élèves**
-   - **les tableaux de services** (xlsx ou **FET**) → crée les **fiches des enseignants** + leurs **séances**
-   - **les tableaux d'élèves** (xlsx ou FET) → complète les classes
-3. Il crée ensuite les **comptes de connexion** de ses enseignants (email + mot de
-   passe) : la fiche existante est **reliée** à son compte.
+- un seul signalement par élève, par jour et par demi-journée (contrainte d'unicité) ;
+- un retard a forcément sa durée, une absence n'en a pas ;
+- un signalement justifié a forcément son décideur et sa date ;
+- un enseignant ne peut pas se promouvoir directeur (verrou de colonne + RLS) ;
+- un compte ne voit que ce que son rôle autorise (RLS, y compris à travers les vues) ;
+- les règles de calcul (retard > 30 min = absence, séances dues, taux de présence…) sont
+  **écrites une seule fois** : l'app mobile et le bureau d'administration lisent les mêmes.
 
-C'est pour ça que la base sépare **la fiche** (la personne, créée par l'import)
-du **compte** (les identifiants) : un enseignant peut avoir ses séances avant
-d'avoir son mot de passe. Le lien `auth_user_id` est posé par la fonction
-serveur, jamais depuis l'application.
+**Volontairement PAS en base** :
 
-## Comment appliquer (quand le schéma sera validé)
+- « un seul Ab/Rd **non justifié** par élève » — c'est une règle de **travail** de l'application
+  (elle pousse à traiter les dossiers). L'inscrire ici empêcherait d'importer un historique
+  (le bureau saisira des mois d'absences d'un coup). Le banc d'essai vérifie explicitement que
+  la base **accepte** plusieurs non justifiés, pour que personne ne l'y remette par erreur.
 
-1. Créer le projet sur **supabase.com** (région Europe — la plus proche)
-2. **SQL Editor** → coller tout `schema.sql` → *Run*
-3. **Authentication → Users** → créer le compte du directeur
-4. Décommenter la section `9. AMORÇAGE` de `schema.sql`, mettre l'UUID du compte
-   directeur → *Run*
-5. **Settings → API** → noter l'URL du projet et la clé **anon** (clé publique).
-   La clé **service_role** ne doit JAMAIS entrer dans l'application.
-
-## Rejouer les vérifications sur le téléphone
+## Appliquer sur Supabase
 
 ```bash
-bash supabase/_verifier.sh
+# avec la CLI Supabase
+supabase db push                     # applique migrations/ dans l'ordre
+
+# ou à la main, dans l'éditeur SQL du tableau de bord : coller 0001 puis 0002
 ```
 
-Le script démarre le PostgreSQL local (socket `~/pgsock`, port 5439), crée une
-base neuve, applique le schéma **en mode strict** (la moindre erreur arrête tout)
-puis déroule les 39 cas et affiche le verdict.
+Les vues sont créées en `security_invoker = true` : sans cela une vue s'exécuterait avec les
+droits de son propriétaire et **contournerait la RLS**.
 
-## Ce que la base garantit (vérifié, pas supposé)
+## Vérifier localement (recommandé avant tout envoi)
 
-**Règles métier**
-- un élève ne peut avoir **qu'un seul signalement par jour et par demi-journée** — la règle exacte déjà appliquée par l'application ;
-- un **retard** doit porter sa durée en minutes ;
-- un signalement **justifié** doit porter **qui** a décidé et **quand** ;
-- pas deux fois **le même créneau** pour un enseignant ; horaires cohérents ;
-- pas deux fois **le même code élève** dans une classe (autorisé d'une classe à l'autre) ;
-- une fermeture ne peut pas finir avant de commencer ;
-- un surveillant ne peut pas recevoir de matière ;
-- **une fiche d'enseignant peut exister sans compte** et porter ses séances (import avant les comptes) ;
-- **plusieurs fiches sans email** coexistent (les profs importés) ;
-- à l'inverse, **on ne relie pas un compte sans email** (lien incohérent refusé).
+```bash
+bash supabase/_verifier.sh          # Termux : démarre le PostgreSQL local au besoin
+```
 
-**Cloisonnement par rôle**
-- un **enseignant** ne voit **que ses propres signalements** — jamais ceux de son collègue ;
-- un **surveillant** voit tout l'établissement, saisit et approuve ;
-- seul le **directeur** gère classes, élèves, séances, fermetures, absences du personnel, annulations, et crée les **fiches** ;
-- une personne **sans connexion** ne voit **rien** ;
-- **un enseignant ne peut pas s'attribuer le rôle « directeur »** (verrou de colonne) ;
-- un directeur peut corriger **son** nom, mais **pas celui d'un autre directeur**.
+Le harnais crée **une base neuve par banc d'essai**, applique toutes les migrations en mode
+strict, puis joue :
 
-## Reste à faire
+- `tests/verif_schema.sql` — 39 cas : contraintes + cloisonnement par rôle (15 refus voulus)
+- `tests/verif_regles.sql` — 23 cas : les règles métier et les calculs (1 refus voulu)
 
-- [ ] Fonction serveur (Edge Function) : créer / réinitialiser le **compte** d'un
-      enseignant et **relier** sa fiche — c'est la seule clé `service_role`, côté serveur
-- [ ] Branchage de l'application : couche d'accès aux données + vraie connexion
-- [ ] Écrire les données importées **sur le serveur** (aujourd'hui l'import écrit en local)
+Chaque banc d'essai annonce ses cas par `\echo --- Na. libellé` et la liste des refus attendus
+dans un en-tête `-- ATTENDUS-ECHEC: …` ; `_rapport.py` en tire un verdict (et sort en erreur si
+un cas se comporte autrement que prévu).
+
+⚠️ Piège déjà rencontré : deux bancs d'essai sur la **même** base se contaminent (données et
+droits) — d'où la base neuve par banc.

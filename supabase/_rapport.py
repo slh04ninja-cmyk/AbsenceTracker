@@ -2,11 +2,20 @@
 """_rapport.py — lit la sortie brute de verif_schema.sql et rend un verdict clair.
 Usage : python supabase/_rapport.py <fichier_de_sortie>   (ou sans argument : lit l'entree standard)
 """
-import io, re, sys
+import io, os, re, sys
 
-# les cas qui DOIVENT être refusés par la base (le reste doit passer)
+# Les cas qui DOIVENT être refusés par la base (le reste doit passer).
+# La liste est lue dans le fichier de test : une ligne « -- ATTENDUS-ECHEC: 1a, 2b ».
+# Valeur par défaut : celle du banc d'essai du schéma (RLS).
 ATTENDUS_ECHEC = {'1b', '1d', '1g', '1i', '1j', '1l', '1n', '1o', '1r',
                   '2e', '2h', '2l', '2n', '2p', '2q'}
+if len(sys.argv) > 2 and os.path.exists(sys.argv[2]):
+    for ligne in io.open(sys.argv[2], encoding='utf-8'):
+        m = re.match(r'--\s*ATTENDUS-ECHEC:\s*(.+)', ligne)
+        if m:
+            attendus = [x.strip() for x in m.group(1).split(',') if x.strip()]
+            if attendus:
+                ATTENDUS_ECHEC = set(attendus)
 
 chemin = sys.argv[1] if len(sys.argv) > 1 else None
 texte = io.open(chemin, encoding='utf-8').read() if chemin else sys.stdin.read()

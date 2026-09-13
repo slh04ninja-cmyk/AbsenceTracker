@@ -35,7 +35,7 @@ outils/build.py              assemble app/ -> livrable (+ --verifier pour la CI)
 outils/pdf/                  générateur des PDF (identifiants, fiche) + tables arabes
 outils/generateurs/          régénère les fixtures de tests/ à partir des fichiers xlsx
 outils/verifications/        contrôles ciblés (arabe, modèle de données, emplois du temps, seed)
-supabase/                    schéma serveur : schema.sql (9 tables, 21 règles RLS) + banc d'essai
+supabase/                    serveur : migrations/ (schéma 9 tables + règles métier) et tests/ (2 bancs d'essai)
 fonts/                       police arabe (Noto Naskh) pour les PDF RTL
 historique/                  archive : les 143 scripts de patch d'avant Git (voir son README)
 .github/workflows/           tests.yml (les 37 suites), release.yml (livrable joint à la Release)
@@ -71,7 +71,8 @@ python3 outils/build.py --verifier  # contrôle : le livrable correspond-il à a
 
 ## Intégration continue
 
-- `.github/workflows/tests.yml` — les 37 suites à chaque push / pull request
+- `.github/workflows/tests.yml` — les 38 suites + vérification `build.py --verifier`
+- `.github/workflows/sql.yml` — les migrations sur un vrai PostgreSQL + les 2 bancs d'essai (23 cas règles, 39 cas cloisonnement)
 - `.github/workflows/release.yml` — sur un tag `v*`, le fichier unique est joint à la Release
 
 ## Sécurité

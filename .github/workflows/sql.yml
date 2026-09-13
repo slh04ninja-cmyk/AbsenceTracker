@@ -1,0 +1,39 @@
+name: sql
+
+# Les règles métier et le cloisonnement par rôle sont vérifiés sur un vrai
+# PostgreSQL, à chaque push : un changement de schéma ou de règle qui casse un
+# cas est refusé. Les migrations sont rejouées de zéro (base neuve par banc).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  regles-et-securite:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      AT_DB_HOST: localhost
+      AT_DB_PORT: '5432'
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Client PostgreSQL
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Migrations + bancs d'essai (règles métier et cloisonnement)
+        run: bash supabase/_verifier.sh
