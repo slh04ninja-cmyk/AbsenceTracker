@@ -9,7 +9,7 @@ function init() {
   majEtiquetteAnnee();
   majOptionsSemestres();
   genererDonneesTestHistorique();
-  const saved = localStorage.getItem('utilisateur');
+  const saved = Depot.lire('utilisateur', null);
   if (saved) {
     try {
       const compte = JSON.parse(saved);

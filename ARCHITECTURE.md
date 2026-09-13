@@ -49,8 +49,11 @@ AbsenceTrack/
 ## Les 5 règles
 
 1. **Un fichier = un domaine**, ≤ 400 lignes, un seul titre `// =====`.
-2. 🔑 **Aucun `localStorage` en dehors de `02-depot.js`** : les 44 accès deviennent une seule
-   porte. C'est ce qui rend Supabase possible sans toucher au métier.
+2. 🔑 **Aucun `localStorage` en dehors de la porte `Depot`** ✅ *(fait — phase 3, étape 1)* :
+   `Depot.lire/lireJSON/ecrire/ecrireJSON/effacer` vit dans `app/js/01-chargement.js` et les
+   **43 accès** qui étaient éparpillés dans 12 modules passent par elle. `verif.py` refuse tout
+   `localStorage` ailleurs. C'est ce qui rend Supabase possible sans toucher au métier : le jour
+   où les données vivent sur le serveur, seule cette porte change.
 3. **Sens unique** : `UI → domaines → dépôt → stockage`. Le métier n'appelle plus `afficherX()`
    directement : il émet un événement (`absences.changees`) que l'UI écoute.
 4. **Une seule façon de faire de l'UI** (déjà la règle du projet) : 1 modale, 1 carte, 1 toast,
@@ -70,7 +73,8 @@ Pour que l'app **et** le bureau Streamlit ne divergent jamais, les règles viven
 |---|---|---|
 | **1. GitHub** | dépôt + `.gitignore` + CI (`tests.yml`) + baseline taggée | ~1 h |
 | **2. Découpage** ✅ | Fait : `app/` = 18 modules JS + 8 feuilles CSS, assemblés par `build.py` — **preuve : le fichier reconstruit est identique au bit près** (511 285 o) | fait |
-| **3. Porte des données** | `02-depot.js` (les 44 accès → 1 interface) + règles métier en SQL | 1 session |
+| **3. Porte des données** ✅ | Fait : porte `Depot` dans `01-chargement.js` (43 accès → 1 interface), contrôlée par `verif.py` | fait |
+| **3bis. Règles métier en SQL** | vues + contraintes dans `supabase/migrations/` (prérequis du bureau Streamlit) | 1 session |
 | **4. Supabase** | projet, migrations, comptes réels, `DepotSupabase` derrière la même interface, bascule par drapeau `local`/`serveur` | 1-2 sessions |
 | **5. Bureau Streamlit** | Import, Identifiants PDF (RTL arabe), Rapports — sur VPS (Termux ne peut pas : pas de roues `pyarrow`/`pandas` pour Android) | quelques jours |
 | **6. APK Capacitor** | l'app pointe sur le serveur | 1 session |

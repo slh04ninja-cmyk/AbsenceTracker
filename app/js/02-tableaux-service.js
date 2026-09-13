@@ -83,13 +83,13 @@ const TABLEAUX_SERVICE_DEFAUT = {
 // Tableaux de service : persistants (import xlsx) avec les donnees de demo comme defaut
 function chargerTableauxService() {
   try {
-    const sauve = JSON.parse(localStorage.getItem('tableauxService_v2') || 'null');
+    const sauve = Depot.lireJSON('tableauxService_v2', null);
     if (sauve && typeof sauve === 'object' && !Array.isArray(sauve)) return sauve;
   } catch (e) {}
   return JSON.parse(JSON.stringify(TABLEAUX_SERVICE_DEFAUT));
 }
 function sauvegarderTableauxService() {
-  localStorage.setItem('tableauxService_v2', JSON.stringify(tableauxService));
+  Depot.ecrireJSON('tableauxService_v2', tableauxService);
 }
 
 const NOMS_JOURS = { 1: 'lundi', 2: 'mardi', 3: 'mercredi', 4: 'jeudi', 5: 'vendredi', 6: 'samedi', 7: 'dimanche' };

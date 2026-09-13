@@ -114,7 +114,7 @@ function supprimerClasseCourante() {
     const cl = classes.find(c => c.id === classeDetailCourante);
     if (cl) {
       absences = absences.filter(a => a.classe !== cl.nom);
-      localStorage.setItem('absences', JSON.stringify(absences));
+      Depot.ecrireJSON('absences', absences);
     }
     classes = classes.filter(c => c.id !== classeDetailCourante);
     sauvegarderClasses();

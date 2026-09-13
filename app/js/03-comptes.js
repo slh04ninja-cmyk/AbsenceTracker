@@ -77,7 +77,7 @@ function changerAcademie() {
 function chargerParametres(cle, defaut) {
   const base = JSON.parse(JSON.stringify(defaut));
   try {
-    const brut = localStorage.getItem(cle);
+    const brut = Depot.lire(cle, null);
     if (!brut) return base;
     const obj = JSON.parse(brut);
     return Object.assign(base, (obj && typeof obj === 'object') ? obj : {});
@@ -94,8 +94,8 @@ anneeScolaire.semestres.forEach((sem, i) => {
   sem.nom = (n === '1' || n === '2') ? n : String(i + 1);
 });
 function sauvegarderParametres() {
-  localStorage.setItem('etablissement', JSON.stringify(etablissement));
-  localStorage.setItem('anneeScolaire', JSON.stringify(anneeScolaire));
+  Depot.ecrireJSON('etablissement', etablissement);
+  Depot.ecrireJSON('anneeScolaire', anneeScolaire);
 }
 // Semestre auquel appartient une date (ou null hors semestres)
 function semestreDeDate(dateISO) {

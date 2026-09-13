@@ -1,7 +1,7 @@
 // fichier: app/js/15-donnees-test.js
 // ========== DONNEES DE TEST (historique aleatoire, une seule fois) ==========
 function genererDonneesTestHistorique() {
-  if (localStorage.getItem('testHistoGenere_v6')) return;
+  if (Depot.lire('testHistoGenere_v6', null)) return;
   const motifs = ['Maladie', 'Raison familiale', 'Raison personnelle', 'Transport', 'Autre'];
   const durees = ['15 min', '30 min', '1 h'];
 
@@ -108,7 +108,7 @@ function genererDonneesTestHistorique() {
   placerNonJustifies(2, fmtDateISO(hier), hier.getDay(), false, ['absence', 'retard']);
   placerNonJustifies(4, fmtDateISO(aujourdHui), aujourdHui.getDay(), true, ['absence', 'retard', 'retard', 'absence']);
 
-  localStorage.setItem('absences', JSON.stringify(absences));
-  localStorage.setItem('testHistoGenere_v6', '1');
+  Depot.ecrireJSON('absences', absences);
+  Depot.ecrire('testHistoGenere_v6', '1');
 }
 

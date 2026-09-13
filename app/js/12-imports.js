@@ -748,7 +748,7 @@ function confirmerImport() {
     });
   });
   sauvegarderClasses();
-  if (rattaches) localStorage.setItem('absences', JSON.stringify(absences));
+  if (rattaches) Depot.ecrireJSON('absences', absences);
   const total = importData.classes.reduce((s, c) => s + c.eleves.length, 0);
   importData = null;
   document.getElementById('import-preview').classList.add('hidden');
@@ -859,7 +859,7 @@ function fusionnerDoublonsEleves(groupes) {
     if (!garde.nom) garde.nom = garde.nomFr || garde.nomArabe || '';
   });
   sauvegarderClasses();
-  localStorage.setItem('absences', JSON.stringify(absences));
+  Depot.ecrireJSON('absences', absences);
   afficherGestionDir();
   mettreAJourDashboardDir();
   remplirListeClasses();

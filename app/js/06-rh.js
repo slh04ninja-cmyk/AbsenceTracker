@@ -26,12 +26,12 @@ let dernierReset = null;      // {cle, nom, email, mdp, role} — pour la fiche 
 
 function chargerDatesMdp() {
   try {
-    const brut = localStorage.getItem('datesMdp');
+    const brut = Depot.lire('datesMdp', null);
     const obj = brut ? JSON.parse(brut) : {};
     return (obj && typeof obj === 'object') ? obj : {};
   } catch (e) { return {}; }
 }
-function sauvegarderDatesMdp(d) { localStorage.setItem('datesMdp', JSON.stringify(d)); }
+function sauvegarderDatesMdp(d) { Depot.ecrireJSON('datesMdp', d); }
 
 function reinitialiserMotDePasse() {
   const cle = profARenommer;
@@ -125,7 +125,7 @@ let creationProfil = false;       // true quand la fenetre sert a AJOUTER un sur
 
 function chargerSurveillantsRH() {
   try {
-    const brut = localStorage.getItem('surveillantsRH');
+    const brut = Depot.lire('surveillantsRH', null);
     const obj = brut ? JSON.parse(brut) : null;
     return Array.isArray(obj) ? obj : null;
   } catch (e) { return null; }
@@ -140,7 +140,7 @@ function listeSurveillantsRH() {
 
 function sauvegarderSurveillantsRH(liste) {
   surveillantsRH = liste;
-  localStorage.setItem('surveillantsRH', JSON.stringify(liste));
+  Depot.ecrireJSON('surveillantsRH', liste);
   appliquerListeSurveillants();
 }
 
@@ -781,7 +781,7 @@ function confirmerRenommageProf() {
   absences.forEach(a => {
     if ((codeProf && a.profCode === codeProf) || (ancien && a.enseignant === ancien)) { a.enseignant = nouveau; maj++; }
   });
-  if (maj > 0) localStorage.setItem('absences', JSON.stringify(absences));
+  if (maj > 0) Depot.ecrireJSON('absences', absences);
   // un surveillant ne vient pas d'un import : son nom doit etre conserve dans sa liste
   if (prof && prof.role === 'surveillant') majSurveillantRH(prof.code || prof.email, { nom: nouveau });
   afficherListeProfs();

@@ -187,11 +187,11 @@ function basculerMarque(id, type, coche) {
     elevesCoches.delete(id);
     decochesManuellement.add(id);
     absences = absences.filter(a => !(a.eleveId === id && a.dateISO === jour && (a.seance || 'matin') === seance && a.classe === classeSelectionnee.nom));
-    localStorage.setItem('absences', JSON.stringify(absences));
+    Depot.ecrireJSON('absences', absences);
   } else {
     // Un seul type à la fois : on remplace mon enregistrement du jour (même séance)
     absences = absences.filter(a => !(a.eleveId === id && a.dateISO === jour && (a.seance || 'matin') === seance && a.classe === classeSelectionnee.nom && a.enseignant === utilisateurConnecte.nom));
-    localStorage.setItem('absences', JSON.stringify(absences));
+    Depot.ecrireJSON('absences', absences);
     decochesManuellement.delete(id);
     elevesCoches.set(id, type);
   }
@@ -279,7 +279,7 @@ function confirmerAbsences() {
     });
   });
 
-  localStorage.setItem('absences', JSON.stringify(absences));
+  Depot.ecrireJSON('absences', absences);
   document.getElementById('modal-confirmation').classList.add('hidden');
   afficherToast('Signalement(s) enregistré(s) !', 'success');
   elevesCoches.clear();

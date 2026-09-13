@@ -2,13 +2,13 @@
 // ========== NOMS DES PROFESSEURS (corrigeables par le directeur) ==========
 function chargerNomsProfs() {
   try {
-    const brut = localStorage.getItem('nomsProfs');
+    const brut = Depot.lire('nomsProfs', null);
     const obj = brut ? JSON.parse(brut) : {};
     return (obj && typeof obj === 'object') ? obj : {};
   } catch (e) { return {}; }
 }
 let nomsProfs = chargerNomsProfs();
-function sauvegarderNomsProfs() { localStorage.setItem('nomsProfs', JSON.stringify(nomsProfs)); }
+function sauvegarderNomsProfs() { Depot.ecrireJSON('nomsProfs', nomsProfs); }
 function appliquerNomsProfs() {
   comptes.forEach(c => {
     const cle = c.code || c.email;
@@ -18,13 +18,13 @@ function appliquerNomsProfs() {
 // Mots de passe modifies ou generes : persistes par email (avant, le changement etait perdu au rechargement)
 function chargerMotsDePasse() {
   try {
-    const brut = localStorage.getItem('motsDePasse');
+    const brut = Depot.lire('motsDePasse', null);
     const obj = brut ? JSON.parse(brut) : {};
     return (obj && typeof obj === 'object') ? obj : {};
   } catch (e) { return {}; }
 }
 let motsDePasse = chargerMotsDePasse();
-function sauvegarderMotsDePasse() { localStorage.setItem('motsDePasse', JSON.stringify(motsDePasse)); }
+function sauvegarderMotsDePasse() { Depot.ecrireJSON('motsDePasse', motsDePasse); }
 function appliquerMotsDePasse() {
   comptes.forEach(c => { if (motsDePasse[c.email]) c.password = motsDePasse[c.email]; });
 }
@@ -50,7 +50,7 @@ function genererMotDePasseProf() {
 // ========== FERMETURES DE L'ETABLISSEMENT & INDISPONIBILITES DES PROFS ==========
 function chargerListe(cle) {
   try {
-    const brut = localStorage.getItem(cle);
+    const brut = Depot.lire(cle, null);
     const liste = brut ? JSON.parse(brut) : [];
     return Array.isArray(liste) ? liste : [];
   } catch (e) { return []; }
@@ -58,8 +58,8 @@ function chargerListe(cle) {
 // Fermeture : { id, dateISO, libelle, type, debut, fin, portee, par, le, profCode }
 let fermeturesEtab = chargerListe('fermeturesEtab');
 let indispoProfs = chargerListe('indispoProfs');
-function sauvegarderFermetures() { localStorage.setItem('fermeturesEtab', JSON.stringify(fermeturesEtab)); }
-function sauvegarderIndispo() { localStorage.setItem('indispoProfs', JSON.stringify(indispoProfs)); }
+function sauvegarderFermetures() { Depot.ecrireJSON('fermeturesEtab', fermeturesEtab); }
+function sauvegarderIndispo() { Depot.ecrireJSON('indispoProfs', indispoProfs); }
 function bornesAnneeScolaire() {
   const s1 = anneeScolaire.semestres[0] || {};
   const s2 = anneeScolaire.semestres[1] || {};
@@ -101,13 +101,13 @@ function creneauDeHeure(classe, jour, heure) {
 // ========== ANNULATION DE SEANCE (directeur + surveillant) ==========
 function chargerSeancesAnnulees() {
   try {
-    const brut = localStorage.getItem('seancesAnnulees');
+    const brut = Depot.lire('seancesAnnulees', null);
     const liste = brut ? JSON.parse(brut) : [];
     return Array.isArray(liste) ? liste : [];
   } catch (e) { return []; }
 }
 let seancesAnnulees = chargerSeancesAnnulees();
-function sauvegarderSeancesAnnulees() { localStorage.setItem('seancesAnnulees', JSON.stringify(seancesAnnulees)); }
+function sauvegarderSeancesAnnulees() { Depot.ecrireJSON('seancesAnnulees', seancesAnnulees); }
 function estRoleVieScolaire() {
   return !!utilisateurConnecte && (utilisateurConnecte.role === 'directeur' || utilisateurConnecte.role === 'surveillant');
 }

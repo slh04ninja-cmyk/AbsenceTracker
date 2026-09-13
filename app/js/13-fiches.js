@@ -238,12 +238,12 @@ function changerMotDePasse(prefixe) {
     errDiv.classList.remove('hidden');
     return;
   }
-  // Mettre à jour dans comptes + persister (localStorage 'motsDePasse')
+  // Mettre à jour dans comptes + persister (via Depot)
   const idx = comptes.findIndex(c => c.email === utilisateurConnecte.email);
   if (idx >= 0) {
     comptes[idx].password = nouveau;
     utilisateurConnecte.password = nouveau;
-    localStorage.setItem('utilisateur', JSON.stringify(utilisateurConnecte));
+    Depot.ecrireJSON('utilisateur', utilisateurConnecte);
   }
   motsDePasse[utilisateurConnecte.email] = nouveau;
   sauvegarderMotsDePasse();
@@ -283,11 +283,11 @@ function enregistrerProfilDir() {
     sauvegarderNomsProfs();
     comptes.forEach(c => { if (c.email === utilisateurConnecte.email) c.nom = nom; });
     utilisateurConnecte.nom = nom;
-    localStorage.setItem('utilisateur', JSON.stringify(utilisateurConnecte));
+    Depot.ecrireJSON('utilisateur', utilisateurConnecte);
     if (ancien && ancien !== nom) {
       let maj = 0;
       absences.forEach(a => { if (a.enseignant === ancien) { a.enseignant = nom; maj++; } });
-      if (maj > 0) localStorage.setItem('absences', JSON.stringify(absences));
+      if (maj > 0) Depot.ecrireJSON('absences', absences);
     }
     const elNom = document.getElementById('profil-nom');
     if (elNom) elNom.textContent = nom;

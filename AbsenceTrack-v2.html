@@ -1548,6 +1548,34 @@ nomsClassesDemo.forEach((nomClasse, idx) => {
   classesDemo.push({ id: idx + 1, nom: nomClasse, eleves: eleves });
 });
 
+// ========== DEPOT — LA SEULE PORTE VERS LE STOCKAGE ==========
+// Toutes les lectures et ecritures de donnees passent par ici : aucun `localStorage` ailleurs
+// dans l'application (verifie par les tests). C'est CETTE porte qu'on remplacera par Supabase,
+// sans toucher au reste du code : les modules continueront d'appeler Depot.lire/ecrire.
+const Depot = {
+  // valeur brute (chaine) ou `defaut` si absente / impossible a lire
+  lire(cle, defaut) {
+    try {
+      const v = localStorage.getItem(cle);
+      return v === null ? (defaut === undefined ? null : defaut) : v;
+    } catch (e) { return defaut === undefined ? null : defaut; }
+  },
+  // objet ou tableau ; `defaut` si absent ou illisible (jamais d'exception)
+  lireJSON(cle, defaut) {
+    try {
+      const v = localStorage.getItem(cle);
+      if (v === null) return defaut;
+      const obj = JSON.parse(v);
+      return obj === null ? defaut : obj;
+    } catch (e) { return defaut; }
+  },
+  ecrire(cle, valeur) {
+    try { localStorage.setItem(cle, valeur); return true; }
+    catch (e) { console.warn('Depot : ecriture impossible pour ' + cle, e); return false; }
+  },
+  ecrireJSON(cle, valeur) { return Depot.ecrire(cle, JSON.stringify(valeur)); },
+  effacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} }
+};
 // ========== CHARGEMENT DES CLASSES (persistees en localStorage) ==========
 let classes = [];
 let nextClasseId = 1;
@@ -1556,8 +1584,8 @@ let nextEleveId = 1;
 const DEMO_VERSION = 'v3.0';
 
 function chargerClasses() {
-  const sauve = localStorage.getItem('classes');
-  const version = localStorage.getItem('absenceTrackVersion');
+  const sauve = Depot.lire('classes', null);
+  const version = Depot.lire('absenceTrackVersion', null);
   if (sauve && version === DEMO_VERSION) {
     try {
       const liste = JSON.parse(sauve);
@@ -1569,7 +1597,7 @@ function chargerClasses() {
     } catch (e) {}
   }
   // Nouveau jeu de donnees de test : on repart de zero
-  localStorage.removeItem('absences');
+  Depot.effacer('absences');
   const init = JSON.parse(JSON.stringify(classesDemo));
   nextClasseId = init.reduce((m, c) => Math.max(m, c.id), 0) + 1;
   nextEleveId = init.reduce((m, c) => Math.max(m, c.eleves.reduce((mm, e) => Math.max(mm, e.id), 0)), 0) + 1;
@@ -1578,8 +1606,8 @@ function chargerClasses() {
 }
 
 function sauvegarderClasses(liste) {
-  localStorage.setItem('classes', JSON.stringify(liste || classes));
-  localStorage.setItem('absenceTrackVersion', DEMO_VERSION);
+  Depot.ecrireJSON('classes', liste || classes);
+  Depot.ecrire('absenceTrackVersion', DEMO_VERSION);
 }
 
 classes = chargerClasses();
@@ -1668,13 +1696,13 @@ const TABLEAUX_SERVICE_DEFAUT = {
 // Tableaux de service : persistants (import xlsx) avec les donnees de demo comme defaut
 function chargerTableauxService() {
   try {
-    const sauve = JSON.parse(localStorage.getItem('tableauxService_v2') || 'null');
+    const sauve = Depot.lireJSON('tableauxService_v2', null);
     if (sauve && typeof sauve === 'object' && !Array.isArray(sauve)) return sauve;
   } catch (e) {}
   return JSON.parse(JSON.stringify(TABLEAUX_SERVICE_DEFAUT));
 }
 function sauvegarderTableauxService() {
-  localStorage.setItem('tableauxService_v2', JSON.stringify(tableauxService));
+  Depot.ecrireJSON('tableauxService_v2', tableauxService);
 }
 
 const NOMS_JOURS = { 1: 'lundi', 2: 'mardi', 3: 'mercredi', 4: 'jeudi', 5: 'vendredi', 6: 'samedi', 7: 'dimanche' };
@@ -2021,7 +2049,7 @@ function changerAcademie() {
 function chargerParametres(cle, defaut) {
   const base = JSON.parse(JSON.stringify(defaut));
   try {
-    const brut = localStorage.getItem(cle);
+    const brut = Depot.lire(cle, null);
     if (!brut) return base;
     const obj = JSON.parse(brut);
     return Object.assign(base, (obj && typeof obj === 'object') ? obj : {});
@@ -2038,8 +2066,8 @@ anneeScolaire.semestres.forEach((sem, i) => {
   sem.nom = (n === '1' || n === '2') ? n : String(i + 1);
 });
 function sauvegarderParametres() {
-  localStorage.setItem('etablissement', JSON.stringify(etablissement));
-  localStorage.setItem('anneeScolaire', JSON.stringify(anneeScolaire));
+  Depot.ecrireJSON('etablissement', etablissement);
+  Depot.ecrireJSON('anneeScolaire', anneeScolaire);
 }
 // Semestre auquel appartient une date (ou null hors semestres)
 function semestreDeDate(dateISO) {
@@ -2114,13 +2142,13 @@ function enregistrerParametres() {
 // ========== NOMS DES PROFESSEURS (corrigeables par le directeur) ==========
 function chargerNomsProfs() {
   try {
-    const brut = localStorage.getItem('nomsProfs');
+    const brut = Depot.lire('nomsProfs', null);
     const obj = brut ? JSON.parse(brut) : {};
     return (obj && typeof obj === 'object') ? obj : {};
   } catch (e) { return {}; }
 }
 let nomsProfs = chargerNomsProfs();
-function sauvegarderNomsProfs() { localStorage.setItem('nomsProfs', JSON.stringify(nomsProfs)); }
+function sauvegarderNomsProfs() { Depot.ecrireJSON('nomsProfs', nomsProfs); }
 function appliquerNomsProfs() {
   comptes.forEach(c => {
     const cle = c.code || c.email;
@@ -2130,13 +2158,13 @@ function appliquerNomsProfs() {
 // Mots de passe modifies ou generes : persistes par email (avant, le changement etait perdu au rechargement)
 function chargerMotsDePasse() {
   try {
-    const brut = localStorage.getItem('motsDePasse');
+    const brut = Depot.lire('motsDePasse', null);
     const obj = brut ? JSON.parse(brut) : {};
     return (obj && typeof obj === 'object') ? obj : {};
   } catch (e) { return {}; }
 }
 let motsDePasse = chargerMotsDePasse();
-function sauvegarderMotsDePasse() { localStorage.setItem('motsDePasse', JSON.stringify(motsDePasse)); }
+function sauvegarderMotsDePasse() { Depot.ecrireJSON('motsDePasse', motsDePasse); }
 function appliquerMotsDePasse() {
   comptes.forEach(c => { if (motsDePasse[c.email]) c.password = motsDePasse[c.email]; });
 }
@@ -2162,7 +2190,7 @@ function genererMotDePasseProf() {
 // ========== FERMETURES DE L'ETABLISSEMENT & INDISPONIBILITES DES PROFS ==========
 function chargerListe(cle) {
   try {
-    const brut = localStorage.getItem(cle);
+    const brut = Depot.lire(cle, null);
     const liste = brut ? JSON.parse(brut) : [];
     return Array.isArray(liste) ? liste : [];
   } catch (e) { return []; }
@@ -2170,8 +2198,8 @@ function chargerListe(cle) {
 // Fermeture : { id, dateISO, libelle, type, debut, fin, portee, par, le, profCode }
 let fermeturesEtab = chargerListe('fermeturesEtab');
 let indispoProfs = chargerListe('indispoProfs');
-function sauvegarderFermetures() { localStorage.setItem('fermeturesEtab', JSON.stringify(fermeturesEtab)); }
-function sauvegarderIndispo() { localStorage.setItem('indispoProfs', JSON.stringify(indispoProfs)); }
+function sauvegarderFermetures() { Depot.ecrireJSON('fermeturesEtab', fermeturesEtab); }
+function sauvegarderIndispo() { Depot.ecrireJSON('indispoProfs', indispoProfs); }
 function bornesAnneeScolaire() {
   const s1 = anneeScolaire.semestres[0] || {};
   const s2 = anneeScolaire.semestres[1] || {};
@@ -2213,13 +2241,13 @@ function creneauDeHeure(classe, jour, heure) {
 // ========== ANNULATION DE SEANCE (directeur + surveillant) ==========
 function chargerSeancesAnnulees() {
   try {
-    const brut = localStorage.getItem('seancesAnnulees');
+    const brut = Depot.lire('seancesAnnulees', null);
     const liste = brut ? JSON.parse(brut) : [];
     return Array.isArray(liste) ? liste : [];
   } catch (e) { return []; }
 }
 let seancesAnnulees = chargerSeancesAnnulees();
-function sauvegarderSeancesAnnulees() { localStorage.setItem('seancesAnnulees', JSON.stringify(seancesAnnulees)); }
+function sauvegarderSeancesAnnulees() { Depot.ecrireJSON('seancesAnnulees', seancesAnnulees); }
 function estRoleVieScolaire() {
   return !!utilisateurConnecte && (utilisateurConnecte.role === 'directeur' || utilisateurConnecte.role === 'surveillant');
 }
@@ -2864,12 +2892,12 @@ let dernierReset = null;      // {cle, nom, email, mdp, role} — pour la fiche 
 
 function chargerDatesMdp() {
   try {
-    const brut = localStorage.getItem('datesMdp');
+    const brut = Depot.lire('datesMdp', null);
     const obj = brut ? JSON.parse(brut) : {};
     return (obj && typeof obj === 'object') ? obj : {};
   } catch (e) { return {}; }
 }
-function sauvegarderDatesMdp(d) { localStorage.setItem('datesMdp', JSON.stringify(d)); }
+function sauvegarderDatesMdp(d) { Depot.ecrireJSON('datesMdp', d); }
 
 function reinitialiserMotDePasse() {
   const cle = profARenommer;
@@ -2963,7 +2991,7 @@ let creationProfil = false;       // true quand la fenetre sert a AJOUTER un sur
 
 function chargerSurveillantsRH() {
   try {
-    const brut = localStorage.getItem('surveillantsRH');
+    const brut = Depot.lire('surveillantsRH', null);
     const obj = brut ? JSON.parse(brut) : null;
     return Array.isArray(obj) ? obj : null;
   } catch (e) { return null; }
@@ -2978,7 +3006,7 @@ function listeSurveillantsRH() {
 
 function sauvegarderSurveillantsRH(liste) {
   surveillantsRH = liste;
-  localStorage.setItem('surveillantsRH', JSON.stringify(liste));
+  Depot.ecrireJSON('surveillantsRH', liste);
   appliquerListeSurveillants();
 }
 
@@ -3619,7 +3647,7 @@ function confirmerRenommageProf() {
   absences.forEach(a => {
     if ((codeProf && a.profCode === codeProf) || (ancien && a.enseignant === ancien)) { a.enseignant = nouveau; maj++; }
   });
-  if (maj > 0) localStorage.setItem('absences', JSON.stringify(absences));
+  if (maj > 0) Depot.ecrireJSON('absences', absences);
   // un surveillant ne vient pas d'un import : son nom doit etre conserve dans sa liste
   if (prof && prof.role === 'surveillant') majSurveillantRH(prof.code || prof.email, { nom: nouveau });
   afficherListeProfs();
@@ -3639,7 +3667,7 @@ function confirmerRenommageProf() {
 }
 
 // ========== VARIABLES GLOBALES ==========
-let absences = JSON.parse(localStorage.getItem('absences')) || [];
+let absences = Depot.lireJSON('absences', []) || [];
 let utilisateurConnecte = null;
 let elevesCoches = new Map(); // id eleve -> type (absence / retard)
 let classeSelectionnee = null;
@@ -3809,7 +3837,7 @@ function seanceCourante() {
 
 // ========== THEME SOMBRE ==========
 function appliquerTheme() {
-  const sombre = localStorage.getItem('prefTheme') === 'sombre';
+  const sombre = Depot.lire('prefTheme', null) === 'sombre';
   document.body.classList.toggle('theme-sombre', sombre);
   // l'interrupteur suit l'etat reel (et change de libelle pour l'accessibilite)
   document.querySelectorAll('.sw-theme').forEach(function (sw) {
@@ -3823,7 +3851,7 @@ function appliquerTheme() {
 }
 
 function basculerTheme() {
-  localStorage.setItem('prefTheme', localStorage.getItem('prefTheme') === 'sombre' ? 'clair' : 'sombre');
+  Depot.ecrire('prefTheme', Depot.lire('prefTheme', null) === 'sombre' ? 'clair' : 'sombre');
   appliquerTheme();
   // Les lignes eleves utilisent des couleurs en style inline : on les redessine
   if (typeof classeSelectionnee !== 'undefined' && classeSelectionnee) afficherListeEleves();
@@ -3872,7 +3900,7 @@ function connexion() {
   }
 
   utilisateurConnecte = compte;
-  localStorage.setItem('utilisateur', JSON.stringify(compte));
+  Depot.ecrireJSON('utilisateur', compte);
   appliquerRoleTheme();
 
   if (compte.role === 'enseignant') {
@@ -3900,7 +3928,7 @@ function deconnexion() {
   classeSelectionnee = null;
   choisirClasse('');
   afficherInfosProf();
-  localStorage.removeItem('utilisateur');
+  Depot.effacer('utilisateur');
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').classList.add('hidden');
@@ -4197,11 +4225,11 @@ function basculerMarque(id, type, coche) {
     elevesCoches.delete(id);
     decochesManuellement.add(id);
     absences = absences.filter(a => !(a.eleveId === id && a.dateISO === jour && (a.seance || 'matin') === seance && a.classe === classeSelectionnee.nom));
-    localStorage.setItem('absences', JSON.stringify(absences));
+    Depot.ecrireJSON('absences', absences);
   } else {
     // Un seul type à la fois : on remplace mon enregistrement du jour (même séance)
     absences = absences.filter(a => !(a.eleveId === id && a.dateISO === jour && (a.seance || 'matin') === seance && a.classe === classeSelectionnee.nom && a.enseignant === utilisateurConnecte.nom));
-    localStorage.setItem('absences', JSON.stringify(absences));
+    Depot.ecrireJSON('absences', absences);
     decochesManuellement.delete(id);
     elevesCoches.set(id, type);
   }
@@ -4289,7 +4317,7 @@ function confirmerAbsences() {
     });
   });
 
-  localStorage.setItem('absences', JSON.stringify(absences));
+  Depot.ecrireJSON('absences', absences);
   document.getElementById('modal-confirmation').classList.add('hidden');
   afficherToast('Signalement(s) enregistré(s) !', 'success');
   elevesCoches.clear();
@@ -4757,7 +4785,7 @@ function justifierAbsence(id, source) {
   abs.justifiePar = utilisateurConnecte ? utilisateurConnecte.nom : '';
   const now = new Date();
   abs.justifieLe = fmtDateISO(now) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-  localStorage.setItem('absences', JSON.stringify(absences));
+  Depot.ecrireJSON('absences', absences);
   if (source === 'surv') mettreAJourDashboardSurv();
   if (source === 'dir') mettreAJourDashboardDir();
   afficherToast(libelleStatutAbs(abs) + ' · ' + abs.motif, 'modif');
@@ -4878,7 +4906,7 @@ function supprimerClasseCourante() {
     const cl = classes.find(c => c.id === classeDetailCourante);
     if (cl) {
       absences = absences.filter(a => a.classe !== cl.nom);
-      localStorage.setItem('absences', JSON.stringify(absences));
+      Depot.ecrireJSON('absences', absences);
     }
     classes = classes.filter(c => c.id !== classeDetailCourante);
     sauvegarderClasses();
@@ -5844,7 +5872,7 @@ function confirmerImport() {
     });
   });
   sauvegarderClasses();
-  if (rattaches) localStorage.setItem('absences', JSON.stringify(absences));
+  if (rattaches) Depot.ecrireJSON('absences', absences);
   const total = importData.classes.reduce((s, c) => s + c.eleves.length, 0);
   importData = null;
   document.getElementById('import-preview').classList.add('hidden');
@@ -5955,7 +5983,7 @@ function fusionnerDoublonsEleves(groupes) {
     if (!garde.nom) garde.nom = garde.nomFr || garde.nomArabe || '';
   });
   sauvegarderClasses();
-  localStorage.setItem('absences', JSON.stringify(absences));
+  Depot.ecrireJSON('absences', absences);
   afficherGestionDir();
   mettreAJourDashboardDir();
   remplirListeClasses();
@@ -6242,12 +6270,12 @@ function changerMotDePasse(prefixe) {
     errDiv.classList.remove('hidden');
     return;
   }
-  // Mettre à jour dans comptes + persister (localStorage 'motsDePasse')
+  // Mettre à jour dans comptes + persister (via Depot)
   const idx = comptes.findIndex(c => c.email === utilisateurConnecte.email);
   if (idx >= 0) {
     comptes[idx].password = nouveau;
     utilisateurConnecte.password = nouveau;
-    localStorage.setItem('utilisateur', JSON.stringify(utilisateurConnecte));
+    Depot.ecrireJSON('utilisateur', utilisateurConnecte);
   }
   motsDePasse[utilisateurConnecte.email] = nouveau;
   sauvegarderMotsDePasse();
@@ -6287,11 +6315,11 @@ function enregistrerProfilDir() {
     sauvegarderNomsProfs();
     comptes.forEach(c => { if (c.email === utilisateurConnecte.email) c.nom = nom; });
     utilisateurConnecte.nom = nom;
-    localStorage.setItem('utilisateur', JSON.stringify(utilisateurConnecte));
+    Depot.ecrireJSON('utilisateur', utilisateurConnecte);
     if (ancien && ancien !== nom) {
       let maj = 0;
       absences.forEach(a => { if (a.enseignant === ancien) { a.enseignant = nom; maj++; } });
-      if (maj > 0) localStorage.setItem('absences', JSON.stringify(absences));
+      if (maj > 0) Depot.ecrireJSON('absences', absences);
     }
     const elNom = document.getElementById('profil-nom');
     if (elNom) elNom.textContent = nom;
@@ -6360,7 +6388,7 @@ window.addEventListener('orientationchange', ajusterHauteurAppbar);
 
 // ========== DONNEES DE TEST (historique aleatoire, une seule fois) ==========
 function genererDonneesTestHistorique() {
-  if (localStorage.getItem('testHistoGenere_v6')) return;
+  if (Depot.lire('testHistoGenere_v6', null)) return;
   const motifs = ['Maladie', 'Raison familiale', 'Raison personnelle', 'Transport', 'Autre'];
   const durees = ['15 min', '30 min', '1 h'];
 
@@ -6467,8 +6495,8 @@ function genererDonneesTestHistorique() {
   placerNonJustifies(2, fmtDateISO(hier), hier.getDay(), false, ['absence', 'retard']);
   placerNonJustifies(4, fmtDateISO(aujourdHui), aujourdHui.getDay(), true, ['absence', 'retard', 'retard', 'absence']);
 
-  localStorage.setItem('absences', JSON.stringify(absences));
-  localStorage.setItem('testHistoGenere_v6', '1');
+  Depot.ecrireJSON('absences', absences);
+  Depot.ecrire('testHistoGenere_v6', '1');
 }
 
 // ========== INIT ==========
@@ -6481,7 +6509,7 @@ function init() {
   majEtiquetteAnnee();
   majOptionsSemestres();
   genererDonneesTestHistorique();
-  const saved = localStorage.getItem('utilisateur');
+  const saved = Depot.lire('utilisateur', null);
   if (saved) {
     try {
       const compte = JSON.parse(saved);

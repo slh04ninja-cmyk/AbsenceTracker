@@ -30,7 +30,7 @@ AbsenceTrack-v2.html         LE LIVRABLE (assemblé — ne pas éditer)
 dist/                        copies horodatées par version (générées)
 tests/                       37 suites jsdom
    └── fixtures/              données de test réelles (relevés MASSAR, tableaux de service, arabe)
-outils/verif.py              vérification : syntaxe + divs + nommage + suites (rapide / complet)
+outils/verif.py              vérification : syntaxe + divs + nommage + porte Depot + suites (rapide / complet)
 outils/build.py              assemble app/ -> livrable (+ --verifier pour la CI)
 outils/pdf/                  générateur des PDF (identifiants, fiche) + tables arabes
 outils/generateurs/          régénère les fixtures de tests/ à partir des fichiers xlsx
@@ -41,6 +41,10 @@ historique/                  archive : les 143 scripts de patch d'avant Git (voi
 .github/workflows/           tests.yml (les 37 suites), release.yml (livrable joint à la Release)
 ARCHITECTURE.md              architecture cible et feuille de route
 ```
+
+**La porte des données** : tout accès au stockage passe par `Depot` (`app/js/01-chargement.js`) —
+c'est le seul endroit qui touche `localStorage`, et `verif.py` le vérifie. C'est cette porte qui
+sera remplacée par Supabase.
 
 Les suites se lancent **depuis la racine du dépôt** (leurs chemins de fixtures sont relatifs à
 la racine, pas au dossier `tests/`) — `python3 outils/verif.py` s'en charge.

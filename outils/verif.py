@@ -58,13 +58,27 @@ def controles_forme():
     o, n = s.count('<div'), s.count('</div>')
     ver = re.search(r'AbsenceTrack (v[\d.]+)', s)
     fa = re.findall(r'class="[^"]*\bfa-[0-9]\b[^"]*"', s)
+    # la porte des donnees : tout acces au stockage doit passer par Depot (app/js/01-chargement.js)
+    hors_porte = []
+    dossier_js = os.path.join(RACINE, 'app', 'js')
+    if os.path.isdir(dossier_js):
+        for f in sorted(os.listdir(dossier_js)):
+            if not f.endswith('.js') or f == '01-chargement.js':
+                continue
+            t = io.open(os.path.join(dossier_js, f), encoding='utf-8').read()
+            for ligne in t.split('\n'):
+                nu = ligne.strip()
+                if 'localStorage' in nu and not nu.startswith('//'):
+                    hors_porte.append('%s : %s' % (f, nu[:60]))
     print('source     : %s' % os.path.relpath(html, RACINE))
     print('syntaxe JS : %s' % ('OK' if r.returncode == 0 else 'CASSÉE -> ' + r.stderr[:200]))
     print('divs       : %d / %d %s' % (o, n, 'OK' if o == n else 'DÉSÉQUILIBRE'))
     print('version    : %s' % (ver.group(1) if ver else '??'))
     if fa:
         print('!! classes fa-<chiffre> (icônes Font Awesome => affichent un numéro) : %s' % fa[:3])
-    return r.returncode == 0 and o == n and not fa
+    if hors_porte:
+        print('!! accès au stockage hors de la porte Depot : %s' % hors_porte[:3])
+    return r.returncode == 0 and o == n and not fa and not hors_porte
 
 
 def lancer(item):

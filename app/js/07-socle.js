@@ -1,6 +1,6 @@
 // fichier: app/js/07-socle.js
 // ========== VARIABLES GLOBALES ==========
-let absences = JSON.parse(localStorage.getItem('absences')) || [];
+let absences = Depot.lireJSON('absences', []) || [];
 let utilisateurConnecte = null;
 let elevesCoches = new Map(); // id eleve -> type (absence / retard)
 let classeSelectionnee = null;
@@ -170,7 +170,7 @@ function seanceCourante() {
 
 // ========== THEME SOMBRE ==========
 function appliquerTheme() {
-  const sombre = localStorage.getItem('prefTheme') === 'sombre';
+  const sombre = Depot.lire('prefTheme', null) === 'sombre';
   document.body.classList.toggle('theme-sombre', sombre);
   // l'interrupteur suit l'etat reel (et change de libelle pour l'accessibilite)
   document.querySelectorAll('.sw-theme').forEach(function (sw) {
@@ -184,7 +184,7 @@ function appliquerTheme() {
 }
 
 function basculerTheme() {
-  localStorage.setItem('prefTheme', localStorage.getItem('prefTheme') === 'sombre' ? 'clair' : 'sombre');
+  Depot.ecrire('prefTheme', Depot.lire('prefTheme', null) === 'sombre' ? 'clair' : 'sombre');
   appliquerTheme();
   // Les lignes eleves utilisent des couleurs en style inline : on les redessine
   if (typeof classeSelectionnee !== 'undefined' && classeSelectionnee) afficherListeEleves();
@@ -233,7 +233,7 @@ function connexion() {
   }
 
   utilisateurConnecte = compte;
-  localStorage.setItem('utilisateur', JSON.stringify(compte));
+  Depot.ecrireJSON('utilisateur', compte);
   appliquerRoleTheme();
 
   if (compte.role === 'enseignant') {
@@ -261,7 +261,7 @@ function deconnexion() {
   classeSelectionnee = null;
   choisirClasse('');
   afficherInfosProf();
-  localStorage.removeItem('utilisateur');
+  Depot.effacer('utilisateur');
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').classList.add('hidden');
