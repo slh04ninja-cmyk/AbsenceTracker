@@ -4,8 +4,8 @@
 const fs = require('fs');
 const { JSDOM, VirtualConsole } = require('jsdom');
 const html = fs.readFileSync('AbsenceTrack-v2.html', 'utf8');
-const AOA_SERVICE = JSON.parse(fs.readFileSync('_aoa_service.json', 'utf8'));
-const AOA_ELEVES = JSON.parse(fs.readFileSync('_aoa_eleves.json', 'utf8'));
+const AOA_SERVICE = JSON.parse(fs.readFileSync('tests/fixtures/_aoa_service.json', 'utf8'));
+const AOA_ELEVES = JSON.parse(fs.readFileSync('tests/fixtures/_aoa_eleves.json', 'utf8'));
 
 // classe existante avec un eleve deja present (pour tester le dedoublonnage par code MASSAR)
 const classesPerso = [

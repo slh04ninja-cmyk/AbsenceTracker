@@ -33,3 +33,4 @@ _check*.js
 # ---- sorties de suivi CI / brouillons ----
 _jobid.txt
 _ci.log
+_msg_commit.txt

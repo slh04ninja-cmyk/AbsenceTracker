@@ -7,8 +7,8 @@ const zlib = require('zlib');
 const PDFLib = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 
-const D = __dirname + '/';
-(0, eval)(fs.readFileSync(D + '_arabe_fn.js', 'utf8'));
+const D = __dirname + '/../';   // racine du depot
+(0, eval)(fs.readFileSync(D + 'tests/fixtures/_arabe_fn.js', 'utf8'));
 const id = require(D + 'outils/pdf/identifiants.js');
 
 // --- correspondance glyphe -> caractere (extraite de la police par fontTools) ---

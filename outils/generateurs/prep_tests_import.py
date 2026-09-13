@@ -21,8 +21,8 @@ def aoa_de(chemin):
     return sortie
 
 # 1. tableau de service de reference
-data = aoa_de('tab_service_TCSLHF1.xlsx')
-io.open('_aoa_service.json', 'w', encoding='utf-8').write(json.dumps(data, ensure_ascii=False))
+data = aoa_de('tests/fixtures/tab_service_TCSLHF1.xlsx')
+io.open('tests/fixtures/_aoa_service.json', 'w', encoding='utf-8').write(json.dumps(data, ensure_ascii=False))
 print('_aoa_service.json :', {k: (len(v['aoa']), len(v['merges'])) for k, v in data.items()})
 
 # 2. tableaux des eleves (2 classes, format arabe reel)
@@ -48,10 +48,10 @@ feuille(ws2, 'TCSF-4', [
     ('J130012350', 'الطازي كريم', 'Tazi Karim'),
 ])
 ws2.append(['ملاحظة', 'اختبار'])
-wb.save('_eleves_test.xlsx')
+wb.save('tests/fixtures/_eleves_test.xlsx')
 
-data2 = aoa_de('_eleves_test.xlsx')
-io.open('_aoa_eleves.json', 'w', encoding='utf-8').write(json.dumps(data2, ensure_ascii=False))
+data2 = aoa_de('tests/fixtures/_eleves_test.xlsx')
+io.open('tests/fixtures/_aoa_eleves.json', 'w', encoding='utf-8').write(json.dumps(data2, ensure_ascii=False))
 print('_aoa_eleves.json :', {k: len(v['aoa']) for k, v in data2.items()})
 for k, v in data2.items():
     print('---', k); [print('   ', r) for r in v['aoa']]

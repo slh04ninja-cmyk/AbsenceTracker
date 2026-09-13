@@ -194,7 +194,7 @@ setTimeout(() => {
       t('le PDF est produit une seconde fois', !!blobCapture && blobCapture.length > 2000);
 
       // ================= 5. Mise en forme arabe intacte =================
-      const ref = JSON.parse(fs.readFileSync('_ref_arabe.json', 'utf8'));
+      const ref = JSON.parse(fs.readFileSync('tests/fixtures/_ref_arabe.json', 'utf8'));
       const noms = Object.keys(ref).filter(n => n.indexOf('الحاضي') >= 0 || n.indexOf('خليفي') >= 0 || n.indexOf('القامة') >= 0);
       const justes = noms.filter(n => win.eval("formeArabe('" + n.replace(/'/g, "\\'") + "')") === ref[n]);
       t('mise en forme arabe conforme à la référence Python', justes.length === noms.length && noms.length > 0,

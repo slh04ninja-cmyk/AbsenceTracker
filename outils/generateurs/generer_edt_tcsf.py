@@ -193,8 +193,8 @@ for mat, (h, forme, prof, code) in MATIERES.items():
     liste.sort(key=lambda c: (c['jour'], c['debut']))
     profs[code] = {'matiere': mat, 'prof': prof, 'heures': sum(s['duree'] for s in place if s['matiere'] == mat), 'creneaux': liste}
 
-io.open('_edt_classes.json', 'w', encoding='utf-8').write(json.dumps(edt, ensure_ascii=False, indent=1))
-io.open('_edt_profs.json', 'w', encoding='utf-8').write(json.dumps(profs, ensure_ascii=False, indent=1))
+io.open('tests/fixtures/_edt_classes.json', 'w', encoding='utf-8').write(json.dumps(edt, ensure_ascii=False, indent=1))
+io.open('tests/fixtures/_edt_profs.json', 'w', encoding='utf-8').write(json.dumps(profs, ensure_ascii=False, indent=1))
 
 print('\n=== heures par classe ===')
 for cl in CLASSES:

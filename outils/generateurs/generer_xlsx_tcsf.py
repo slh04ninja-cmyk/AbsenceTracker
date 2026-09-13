@@ -6,7 +6,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
-EDT = json.load(io.open('_edt_classes.json', encoding='utf-8'))
+EDT = json.load(io.open('tests/fixtures/_edt_classes.json', encoding='utf-8'))
 JOURS = {'1': 'الإثنين', '2': 'الثلاثاء', '3': 'الأربعاء', '4': 'الخميس', '5': 'الجمعة', '6': 'السبت'}
 CRENEAUX = ['08:00-09:00', '09:00-10:00', '10:00-11:00', '11:00-12:00',
             '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00']

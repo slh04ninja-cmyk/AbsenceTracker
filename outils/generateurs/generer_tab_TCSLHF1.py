@@ -17,7 +17,7 @@ try:
 except ImportError as e:
     raise SystemExit('openpyxl manquant : ' + str(e))
 
-SORTIE = 'tab_service_TCSLHF1.xlsx'
+SORTIE = 'tests/fixtures/tab_service_TCSLHF1.xlsx'
 
 CRENEAUX = ['08:30-09:30', '09:30-10:30', '10:30-11:30', '11:30-12:30',
             '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00']
