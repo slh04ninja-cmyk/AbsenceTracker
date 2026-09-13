@@ -4,15 +4,15 @@
 const fs = require('fs');
 const zlib = require('zlib');
 // chemins explicites : la suite doit tourner depuis le dossier du projet sans réglage
-const PDFLib = require('./_pdf/node_modules/pdf-lib');
-const fontkit = require('./_pdf/node_modules/@pdf-lib/fontkit');
+const PDFLib = require('pdf-lib');
+const fontkit = require('@pdf-lib/fontkit');
 
 const D = __dirname + '/';
 (0, eval)(fs.readFileSync(D + '_arabe_fn.js', 'utf8'));
-const id = require(D + '_pdf/identifiants.js');
+const id = require(D + 'outils/pdf/identifiants.js');
 
 // --- correspondance glyphe -> caractere (extraite de la police par fontTools) ---
-const carParGlyphe = JSON.parse(fs.readFileSync(D + '_pdf/glyphes.json', 'utf8'));
+const carParGlyphe = JSON.parse(fs.readFileSync(D + 'outils/pdf/glyphes.json', 'utf8'));
 
 // --- extraire la suite de glyphes ecrite dans le PDF ---
 function glyphesEcrits(chemin) {
@@ -49,6 +49,7 @@ const NOMS = ['سامية الحاضي', 'أيوب الكمرة', 'محمد خل
   const lignes = NOMS.map((nom, i) => ({ nom: nom, email: 'x' + i + '@taalim.ma', password: 'Ab3xY9z2' }));
   const sections = [{ titre: 'Enseignants', lignes: lignes }];
   const doc = await id.construirePdfIdentifiants(PDFLib, PDFLib.PDFDocument, fontkit, octetsPolice, sections, {});
+  if (!fs.existsSync(D + '_pdf')) fs.mkdirSync(D + '_pdf', { recursive: true });
   const chemin = D + '_pdf/_test_ordre.pdf';
   fs.writeFileSync(chemin, Buffer.from(await doc.save()));
 

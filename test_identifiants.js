@@ -2,7 +2,7 @@
 // regle d'or sur les emails, mots de passe, unicite, numerotation par matiere.
 const fs = require('fs');
 (0, eval)(fs.readFileSync(__dirname + '/_arabe_fn.js', 'utf8'));
-const id = require('./_pdf/identifiants.js');
+const id = require('./outils/pdf/identifiants.js');
 
 let ok = true;
 const t = (n, c, e) => { console.log((c ? 'OK   ' : 'ECHEC') + ' ' + n + (e !== undefined ? '  [' + e + ']' : '')); if (!c) ok = false; };

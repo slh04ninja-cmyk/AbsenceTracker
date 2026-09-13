@@ -112,8 +112,8 @@ setTimeout(() => {
     win.eval("JSON.stringify(comptes.filter(function(c){return c.role!=='directeur';}).map(function(c){return c.email+'|'+c.password;}))") === etatAvant);
 
   // ================= 3. Génération réelle + PDF =================
-  win.eval(fs.readFileSync('./_pdf/node_modules/pdf-lib/dist/pdf-lib.min.js', 'utf8'));
-  win.eval(fs.readFileSync('./_pdf/node_modules/@pdf-lib/fontkit/dist/fontkit.umd.min.js', 'utf8'));
+  win.eval(fs.readFileSync('./node_modules/pdf-lib/dist/pdf-lib.min.js', 'utf8'));
+  win.eval(fs.readFileSync('./node_modules/@pdf-lib/fontkit/dist/fontkit.umd.min.js', 'utf8'));
   t('pdf-lib et fontkit disponibles dans la page', !!win.PDFLib && !!win.fontkit);
 
   // on capture les sections transmises au générateur (le PDF est quand même produit pour de vrai)
@@ -156,6 +156,7 @@ setTimeout(() => {
     t('un fichier a été produit', !!blobCapture && blobCapture.length > 2000, blobCapture ? blobCapture.length + ' octets' : 'aucun');
     let cheminPdf = null;
     if (blobCapture) {
+      if (!fs.existsSync('_pdf')) fs.mkdirSync('_pdf', { recursive: true });
       cheminPdf = '_pdf/pdf_du_test_app.pdf';
       fs.writeFileSync(cheminPdf, Buffer.from(blobCapture));
       t('c est bien un PDF', Buffer.from(blobCapture.slice(0, 5)).toString('latin1') === '%PDF-');

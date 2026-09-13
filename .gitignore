@@ -29,3 +29,7 @@ apercu_identifiants.pdf
 
 # ---- sorties de vérification jetables ----
 _check*.js
+
+# ---- sorties de suivi CI / brouillons ----
+_jobid.txt
+_ci.log

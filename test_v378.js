@@ -89,8 +89,8 @@ setTimeout(() => {
   t('le mot de passe est copié dans le presse-papiers', copie === apres.password, String(copie));
 
   // ---------- 4. La fiche PDF individuelle ----------
-  win.eval(fs.readFileSync('./_pdf/node_modules/pdf-lib/dist/pdf-lib.min.js', 'utf8'));
-  win.eval(fs.readFileSync('./_pdf/node_modules/@pdf-lib/fontkit/dist/fontkit.umd.min.js', 'utf8'));
+  win.eval(fs.readFileSync('./node_modules/pdf-lib/dist/pdf-lib.min.js', 'utf8'));
+  win.eval(fs.readFileSync('./node_modules/@pdf-lib/fontkit/dist/fontkit.umd.min.js', 'utf8'));
   const sections = [];
   const vraie = win.construirePdfIdentifiants;
   win.construirePdfIdentifiants = function (lib, PD, fk, police, s, infos) { sections.push(s); return vraie.apply(null, arguments); };
@@ -106,7 +106,8 @@ setTimeout(() => {
       blobCapture ? blobCapture.length + ' octets' : 'aucun');
 
     let chemin = null;
-    if (blobCapture) { chemin = '_pdf/fiche_individuelle.pdf'; fs.writeFileSync(chemin, Buffer.from(blobCapture)); }
+    if (blobCapture) { if (!fs.existsSync('_pdf')) fs.mkdirSync('_pdf', { recursive: true });
+      chemin = '_pdf/fiche_individuelle.pdf'; fs.writeFileSync(chemin, Buffer.from(blobCapture)); }
     if (chemin) {
       let texte = '';
       try { texte = execSync('pdftotext -layout ' + chemin + ' -').toString(); } catch (e) {}
