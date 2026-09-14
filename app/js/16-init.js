@@ -13,14 +13,13 @@ function init() {
   if (saved) {
     try {
       const compte = JSON.parse(saved);
-      const valid = comptes.find(c => c.email === compte.email && c.role === compte.role);
-      if (valid) {
-        utilisateurConnecte = valid;
-        appliquerRoleTheme();
-        if (valid.role === 'enseignant') { afficherEcran('enseignant'); remplirListeClasses(); choisirClasse(''); afficherInfosProf(); appliquerTableauService(); }
-        else if (valid.role === 'surveillant') { afficherEcran('surveillant'); mettreAJourDashboardSurv(); afficherSeancesAnnulees(); }
-        else if (valid.role === 'directeur') { afficherEcran('directeur'); mettreAJourDashboardDir(); afficherSeancesAnnulees(); }
-        return;
+      if (compte && compte.serveur) {
+        // Compte du SERVEUR : on le reprend tel quel tant que le jeton est encore la.
+        serveurChargerSession();
+        if (SERVEUR.session) { connecterReussi(compte); return; }
+      } else {
+        const valid = comptes.find(c => c.email === compte.email && c.role === compte.role);
+        if (valid) { connecterReussi(valid); return; }
       }
     } catch(e) {}
   }

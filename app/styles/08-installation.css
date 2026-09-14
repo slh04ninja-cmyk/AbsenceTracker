@@ -1,0 +1,31 @@
+/* fichier: app/styles/08-installation.css */
+/* ========== PREMIERE INSTALLATION (relier l'application au serveur) ========== */
+.lien-installation {
+  display: block; width: 100%; margin-top: 14px; padding: 0; border: 0;
+  background: none; font-size: 12px; text-align: center;
+  color: #1e3a8a; text-decoration: underline; cursor: pointer;
+}
+.lien-installation:hover { color: #1d4ed8; }
+body.theme-sombre .lien-installation { color: #93c5fd; }
+
+#modal-installation .inst-etape { display: none; }
+#modal-installation[data-etape="1"] .inst-etape-1 { display: block; }
+#modal-installation[data-etape="2"] .inst-etape-2 { display: block; }
+
+.inst-message {
+  display: none; margin-bottom: 10px; padding: 10px 12px; border-radius: 10px;
+  font-size: 13px; line-height: 1.5; text-align: left; white-space: pre-line;
+}
+.inst-message.ok   { display: block; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+.inst-message.ko   { display: block; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.inst-message.info { display: block; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+
+.inst-compte {
+  margin: 0 0 10px; padding: 10px 12px; border-radius: 10px;
+  background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 13px; color: #334155;
+}
+
+body.theme-sombre .inst-message.ok   { background: #052e16; border-color: #166534; color: #86efac; }
+body.theme-sombre .inst-message.ko   { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
+body.theme-sombre .inst-message.info { background: #172554; border-color: #1e40af; color: #93c5fd; }
+body.theme-sombre .inst-compte { background: #1e293b; border-color: #334155; color: #cbd5e1; }

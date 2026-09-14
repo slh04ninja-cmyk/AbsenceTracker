@@ -1,11 +1,12 @@
-CI : test_seed deterministe + verif.py qui detaille les echecs
+Le compte du serveur, la porte du premier directeur et le demenagement des donnees
 
-test_seed.js : le generateur de donnees de demo tire au hasard (Math.random, 7 fois). La meme
-suite produisait donc des donnees differentes a chaque execution, et echouait de facon aleatoire
-et non reproductible ("2 non justifies hier", ">= 20 anciens" selon le tirage) - c'est ce qui
-faisait rougir la CI alors que tout passait ici. Math.random est remplace par une suite
-deterministe (graine 42) : le jeu de demo est desormais toujours identique.
-Verifie par 3 executions consecutives, resultat identique.
-
-outils/verif.py : en cas d'echec, affiche les lignes ECHEC de la suite fautive et son stderr,
-au lieu du seul nom de la suite. Un echec en CI devient diagnosticable depuis le journal.
+- migration 0003 « premier_directeur » (porte a usage unique, security definer) + son banc d'essai
+- app/js/03b-serveur.js : connexion reelle, session (jetons seuls), RENOUVELLEMENT AUTOMATIQUE
+  du jeton (il ne vit qu'une heure), appels REST et RPC
+- fenetre « Espace serveur / Premiere installation » (titre selon la situation) et lien depuis Mon profil
+- envoi REJOUABLE des listes, puis des personnes, puis des absences (aucun doublon au 2e envoi)
+- en mode serveur, les ecrans LISENT le serveur et chaque saisie d'absence y est renvoyee
+  (copie de secours avant remplacement ; une lecture vide n'ecrase rien)
+- outils : outils/page_copie.py, supabase/_test_connexion.py, supabase/_envoyer_schema.py
+- tests : tests/test_v387_serveur.js (95 assertions) ; tests/test_v381.js n'attend plus un delai fixe
+- livrable v3.96 — 40 suites vertes, 3 bancs d'essai SQL verts

@@ -205,33 +205,22 @@ function togglePassword() {
   }
 }
 
-function connexion() {
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  const password = document.getElementById('login-password').value;
-  const errorDiv = document.getElementById('login-error');
-  const errorText = document.getElementById('login-error-text');
+// Un seul endroit fabrique le message de connexion (erreur rouge, ou information bleue
+// pendant l'attente du serveur).
+function messageConnexion(texte, estInfo) {
+  const div = document.getElementById('login-error');
+  const el = document.getElementById('login-error-text');
+  if (!div || !el) return;
+  el.textContent = texte;
+  div.classList.toggle('login-info', !!estInfo);
+  div.classList.remove('hidden');
+}
 
-  errorDiv.classList.add('hidden');
+function erreurConnexion(message) { messageConnexion(message, false); }
 
-  if (!email || !password) {
-    errorText.textContent = 'Veuillez remplir tous les champs';
-    errorDiv.classList.remove('hidden');
-    return;
-  }
-
-  if (!email.endsWith('@taalim.ma')) {
-    errorText.textContent = "L'email doit contenir @taalim.ma";
-    errorDiv.classList.remove('hidden');
-    return;
-  }
-
-  const compte = comptes.find(c => c.email === email && c.password === password);
-  if (!compte) {
-    errorText.textContent = 'Email ou mot de passe incorrect';
-    errorDiv.classList.remove('hidden');
-    return;
-  }
-
+// Suite COMMUNE aux deux portes d'entree : le compte de demonstration (ci-dessous)
+// et le compte du SERVEUR (voir connexionParLeServeur, module 03b).
+function connecterReussi(compte) {
   utilisateurConnecte = compte;
   Depot.ecrireJSON('utilisateur', compte);
   appliquerRoleTheme();
@@ -251,6 +240,42 @@ function connexion() {
     mettreAJourDashboardDir();
     afficherSeancesAnnulees();
   }
+
+  // Compte du SERVEUR : le serveur devient la source des donnees (lire ET ecrire).
+  if (compte.serveur) {
+    serveurChargerDonnees().then(serveurRafraichirEcrans).catch(function (e) {
+      afficherToast('Lecture du serveur impossible : ' + e.message, 'warning');
+    });
+  }
+}
+
+function connexion() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+
+  document.getElementById('login-error').classList.add('hidden');
+
+  if (!email || !password) {
+    erreurConnexion('Veuillez remplir tous les champs');
+    return;
+  }
+
+  if (!email.endsWith('@taalim.ma')) {
+    erreurConnexion("L'email doit contenir @taalim.ma");
+    return;
+  }
+
+  const compte = comptes.find(c => c.email === email && c.password === password);
+  if (compte) { connecterReussi(compte); return; }
+
+  // Ce n'est pas un compte de demonstration : c'est peut-etre un compte du SERVEUR.
+  // Cette voie est ASYNCHRONE, on ne l'emprunte donc que si la page sait vraiment
+  // joindre le reseau — sinon on garde le message d'erreur immediat d'avant.
+  if (serveurConfigure() && typeof fetch === 'function') {
+    connexionParLeServeur(email, password);
+    return;
+  }
+  erreurConnexion('Email ou mot de passe incorrect');
 }
 
 function deconnexion() {

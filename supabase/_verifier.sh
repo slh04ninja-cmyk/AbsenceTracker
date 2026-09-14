@@ -47,6 +47,8 @@ prepare_base() {
   $P -c "create or replace function auth.uid() returns uuid language sql stable as \$\$
          select nullif(current_setting('app.uid', true), '')::uuid \$\$"
   # Supabase accorde « all » a authenticated/anon des la creation de chaque objet
+  $P -c "create or replace function auth.jwt() returns jsonb language sql stable as \$\$
+         select jsonb_build_object('email', nullif(current_setting('app.email', true), '')) \$\$"
   $P -c "alter default privileges in schema public grant all on tables to authenticated, anon"
   $P -c "alter default privileges in schema public grant all on sequences to authenticated, anon"
   $P -c "alter default privileges in schema public grant all on functions to authenticated, anon"

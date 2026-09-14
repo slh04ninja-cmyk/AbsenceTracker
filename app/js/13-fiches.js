@@ -287,7 +287,7 @@ function enregistrerProfilDir() {
     if (ancien && ancien !== nom) {
       let maj = 0;
       absences.forEach(a => { if (a.enseignant === ancien) { a.enseignant = nom; maj++; } });
-      if (maj > 0) Depot.ecrireJSON('absences', absences);
+      if (maj > 0) { Depot.ecrireJSON('absences', absences); serveurApresEcritureAbsences(); }
     }
     const elNom = document.getElementById('profil-nom');
     if (elNom) elNom.textContent = nom;

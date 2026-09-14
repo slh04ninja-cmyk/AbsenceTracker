@@ -39,10 +39,32 @@ function fichier(n) {
   }
   return out;
 }
+// L'import est ASYNCHRONE (lecture du fichier, puis Promise.all) et l'application ne
+// l'attend pas : le `confirmerImport()` qui suit travaillait donc sur un apercu pas encore
+// construit. Le test dormait 150 ms — trop court des que la machine est chargee (constate en
+// reel : 3 suites en parallele sur ce telephone, echec alors que le code etait correct, et
+// passage complet quand la suite tourne seule). On attend maintenant un SIGNAL REEL : le
+// premier appel a `resumeImportClasse`, qui est ce qui construit l'apercu.
+let apercuFait = null;
 function importer(liste) {
+  apercuFait = new Promise(function (res) {
+    const vrai = win.resumeImportClasse;
+    win.resumeImportClasse = function () {
+      win.resumeImportClasse = vrai;              // on rend sa place a la fonction d'origine
+      const r = vrai.apply(this, arguments);
+      res(true);
+      return r;
+    };
+  });
   win.XLSX = { read: function () { return { SheetNames: ['feuille'], Sheets: { feuille: {} } }; } };
   win.analyserFeuilleMASSAR = function () { return { nom: 'TCSF-1', eleves: liste }; };
   win.importerMassar({ files: [new win.File([new Uint8Array([1, 2])], 'massar.xlsx')], value: '' });
+}
+// attend la construction de l'apercu, puis laisse passer un tour : l'ecriture de son texte
+// se termine dans la meme sequence synchrone que l'appel surveille.
+async function importPret() {
+  if (apercuFait) await apercuFait;
+  await attendre(0);
 }
 
 setTimeout(async () => {
@@ -57,7 +79,7 @@ setTimeout(async () => {
 
   // ---------- 1. premier import : le fichier de 28 eleves ----------
   importer(fichier(28));
-  await attendre(150);
+  await importPret();
   t('apercu : « 28 élève(s) au total »',
     doc.getElementById('preview-eleves-count').textContent.indexOf('28 élève(s) au total') >= 0,
     doc.getElementById('preview-eleves-count').textContent);
@@ -77,7 +99,7 @@ setTimeout(async () => {
 
   // ---------- 2. reimport du meme fichier, sans rien supprimer ----------
   importer(fichier(28));
-  await attendre(150);
+  await importPret();
   t('apercu : « tous déjà présents » annonce avant validation',
     doc.getElementById('preview-eleves-list').textContent.indexOf('tous déjà présents') >= 0,
     doc.getElementById('preview-eleves-list').textContent);
@@ -95,7 +117,7 @@ setTimeout(async () => {
   t('M007 n est plus dans la classe', !ELEVES().some(e => e.massar === 'M007'));
   t('la suppression ne detruit pas le signalement', nbAbsences() === 1, nbAbsences());
   importer(fichier(28));
-  await attendre(150);
+  await importPret();
   win.confirmerImport();
   t('SCENARIO : reimport du meme fichier -> 28 eleves, PAS 55', ELEVES().length === 28, ELEVES().length);
   t('SCENARIO : aucun code MASSAR en double', new Set(codes()).size === 28, codes().join(','));
@@ -114,7 +136,7 @@ setTimeout(async () => {
   corrige[4].nom = 'Eleve 5 CORRIGE';
   corrige[4].nomFr = 'Eleve 5 CORRIGE';
   importer(corrige);
-  await attendre(150);
+  await importPret();
   win.confirmerImport();
   const e5 = ELEVES().find(e => e.massar === 'M005');
   t('nom corrige dans MASSAR : applique dans l app', e5 && e5.nom === 'Eleve 5 CORRIGE', e5 && e5.nom);
@@ -126,7 +148,7 @@ setTimeout(async () => {
 
   // ---------- 5. un eleve ne figure plus dans le fichier ----------
   importer(fichier(28).filter(e => e.massar !== 'M007'));
-  await attendre(150);
+  await importPret();
   win.confirmerImport();
   const msg = doc.getElementById('message-confirmation').textContent;
   t('fichier sans M007 : l app PROPOSE de le marquer sorti',
@@ -161,7 +183,7 @@ setTimeout(async () => {
   // ---------- 7. un import partiel ne touche pas les autres classes ----------
   win.eval("classes.push({ id: 99, nom: 'TCSF-9', eleves: [{ id: 990, massar: 'Z001', nom: 'Autre' }] }); sauvegarderClasses();");
   importer(fichier(28).filter(e => e.massar !== 'M001'));
-  await attendre(150);
+  await importPret();
   win.confirmerImport();
   win.validerConfirmation();
   t('la classe absente du fichier n est pas touchee',

@@ -115,6 +115,7 @@ function supprimerClasseCourante() {
     if (cl) {
       absences = absences.filter(a => a.classe !== cl.nom);
       Depot.ecrireJSON('absences', absences);
+      serveurApresEcritureAbsences();
     }
     classes = classes.filter(c => c.id !== classeDetailCourante);
     sauvegarderClasses();

@@ -222,6 +222,7 @@ function justifierAbsence(id, source) {
   const now = new Date();
   abs.justifieLe = fmtDateISO(now) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
   Depot.ecrireJSON('absences', absences);
+  serveurApresEcritureAbsences();
   if (source === 'surv') mettreAJourDashboardSurv();
   if (source === 'dir') mettreAJourDashboardDir();
   afficherToast(libelleStatutAbs(abs) + ' · ' + abs.motif, 'modif');

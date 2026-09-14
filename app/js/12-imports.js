@@ -748,7 +748,7 @@ function confirmerImport() {
     });
   });
   sauvegarderClasses();
-  if (rattaches) Depot.ecrireJSON('absences', absences);
+  if (rattaches) { Depot.ecrireJSON('absences', absences); serveurApresEcritureAbsences(); }
   const total = importData.classes.reduce((s, c) => s + c.eleves.length, 0);
   importData = null;
   document.getElementById('import-preview').classList.add('hidden');
@@ -860,6 +860,7 @@ function fusionnerDoublonsEleves(groupes) {
   });
   sauvegarderClasses();
   Depot.ecrireJSON('absences', absences);
+  serveurApresEcritureAbsences();
   afficherGestionDir();
   mettreAJourDashboardDir();
   remplirListeClasses();

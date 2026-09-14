@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="styles/05-lots-par-role-clair-enseignant.css">
   <link rel="stylesheet" href="styles/06-menus-deroulants-select.css">
   <link rel="stylesheet" href="styles/07-listes-deroulantes-personnalisees.css">
+  <link rel="stylesheet" href="styles/08-installation.css">
 </head>
 <body>
 
@@ -59,9 +60,11 @@
           <i class="fas fa-sign-in-alt"></i> Se connecter
         </button>
 
-        <p class="text-center text-xs text-gray-400 mt-6">
+        <p class="text-center text-xs text-gray-400 mt-4">
           <i class="fas fa-shield-alt mr-1"></i> Connexion sécurisée
         </p>
+
+        <button type="button" class="lien-installation" onclick="ouvrirInstallation()">Première installation (directeur)</button>
 
         <div class="mt-5 pt-4 border-t border-gray-200">
           <p class="text-center text-xs text-gray-500 leading-relaxed">Comptes test — mot de passe 12345 :<br>
@@ -73,7 +76,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.86 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.96 — Prototype</p>
     </div>
   </div>
 </div>
@@ -922,6 +925,13 @@
           <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Au moins un chiffre (0-9)</li>
           <li><i class="fas fa-times-circle text-gray-400 mr-2"></i>Pas de caractères spéciaux</li>
         </ul>
+
+        <hr class="my-3 border-gray-200">
+        <p class="text-sm font-bold text-gray-700 sep-titre">Espace serveur</p>
+        <p class="aide">Ton établissement, tes classes et tes élèves — ce que le serveur connaît déjà.</p>
+        <button type="button" onclick="fermerProfilDir(); ouvrirInstallation();" class="btn-outline-primaire w-full flex items-center justify-center gap-2 mt-2">
+          <i class="fas fa-cloud"></i> Ouvrir l'espace serveur
+        </button>
       </div>
     </div>
     <div class="flex gap-3 px-4 pt-2 pb-5" style="flex-shrink: 0;">
@@ -985,10 +995,89 @@
 <!-- ============================================ -->
 <!-- JAVASCRIPT                                   -->
 <!-- ============================================ -->
+<!-- MODAL PREMIERE INSTALLATION (relier l'application au serveur) -->
+<div id="modal-installation" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4" data-etape="1" style="z-index: 420;">
+<div class="w-full max-w-md bg-white rounded-3xl scale-in shadow-2xl carte-settings" style="max-height: 90vh; display: flex; flex-direction: column;">
+  <div class="flex items-center px-5 pt-4 pb-2" style="flex-shrink: 0;">
+    <span style="width: 28px; flex-shrink: 0;"></span>
+    <h2 class="text-lg font-bold text-gray-800 flex-1 text-center" id="inst-titre">Première installation</h2>
+    <button onclick="fermerInstallation()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none" style="width: 28px; flex-shrink: 0; text-align: right;">&times;</button>
+  </div>
+  <div style="flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0;">
+    <div class="px-4 pb-4 carte-settings">
+      <div id="inst-message" class="inst-message"></div>
+
+      <div class="inst-etape inst-etape-1">
+        <p class="aide">Connecte-toi avec le compte créé dans Supabase. Le mot de passe n'est jamais conservé : seuls les jetons le sont.</p>
+        <div class="form-group">
+          <label><i class="fas fa-envelope mr-1"></i> Adresse du compte</label>
+          <input type="email" id="inst-email" placeholder="directeur@taalim.ma" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-lock mr-1"></i> Mot de passe</label>
+          <input type="password" id="inst-mdp" placeholder="••••••" autocomplete="off">
+        </div>
+        <button type="button" id="inst-btn-connexion" onclick="installationConnexion()" class="btn-primary btn-ripple w-full flex items-center justify-center gap-2 mt-2">
+          <i class="fas fa-plug"></i> Se connecter au serveur
+        </button>
+      </div>
+
+      <div class="inst-etape inst-etape-2">
+        <p class="inst-compte" id="inst-compte"></p>
+        <p class="aide" id="inst-aide-fiche"></p>
+        <div id="inst-donnees" style="display: none;">
+          <p class="sep-titre">Mes données</p>
+          <p class="aide" id="inst-donnees-local"></p>
+          <p class="aide" id="inst-donnees-serveur"></p>
+          <button type="button" id="inst-btn-envoyer" onclick="installationEnvoyer()" class="btn-primary btn-ripple w-full flex items-center justify-center gap-2 mt-2">
+            <i class="fas fa-cloud-upload-alt"></i> Envoyer mes données au serveur
+          </button>
+          </div>
+          <button type="button" class="lien-installation" id="inst-reconnecter" style="display: none;" onclick="installationDeconnexion()">Se reconnecter au serveur</button>
+        <div id="inst-formulaire">
+          <div class="form-group">
+            <label>Code de l'établissement (MASSAR)</label>
+            <input type="text" id="inst-code" placeholder="le code figurant sur tes fichiers">
+          </div>
+          <div class="form-group">
+            <label>Nom de l'établissement</label>
+            <input type="text" id="inst-nom" placeholder="nom complet de l'établissement">
+          </div>
+          <div class="form-group">
+            <label>Ton nom (directeur)</label>
+            <input type="text" id="inst-nomdir" placeholder="Nom et prénom">
+          </div>
+          <div class="form-group">
+            <label>Académie régionale</label>
+            <input type="text" id="inst-academie" placeholder="ex. Grand Casablanca-Settat">
+          </div>
+          <div class="form-group">
+            <label>Direction provinciale</label>
+            <input type="text" id="inst-direction" placeholder="ex. Settat">
+          </div>
+          <div class="form-group">
+            <label>Année scolaire</label>
+            <input type="text" id="inst-annee" placeholder="2026-2027">
+          </div>
+          <button type="button" id="inst-btn-creer" onclick="installationCreer()" class="btn-primary btn-ripple w-full flex items-center justify-center gap-2 mt-2">
+            <i class="fas fa-school"></i> Créer mon établissement
+          </button>
+            
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="flex gap-3 px-4 pt-2 pb-5" style="flex-shrink: 0;">
+    <button onclick="fermerInstallation()" class="btn-fermer flex-1">Fermer</button>
+  </div>
+</div>
+</div>
+
 <script src="js/00-noyau.js"></script>
   <script src="js/01-chargement.js"></script>
   <script src="js/02-tableaux-service.js"></script>
   <script src="js/03-comptes.js"></script>
+  <script src="js/03b-serveur.js"></script>
   <script src="js/04-gestion.js"></script>
   <script src="js/05-formulaires.js"></script>
   <script src="js/06-rh.js"></script>

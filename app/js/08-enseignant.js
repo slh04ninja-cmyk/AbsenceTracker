@@ -188,10 +188,12 @@ function basculerMarque(id, type, coche) {
     decochesManuellement.add(id);
     absences = absences.filter(a => !(a.eleveId === id && a.dateISO === jour && (a.seance || 'matin') === seance && a.classe === classeSelectionnee.nom));
     Depot.ecrireJSON('absences', absences);
+    serveurApresEcritureAbsences();
   } else {
     // Un seul type à la fois : on remplace mon enregistrement du jour (même séance)
     absences = absences.filter(a => !(a.eleveId === id && a.dateISO === jour && (a.seance || 'matin') === seance && a.classe === classeSelectionnee.nom && a.enseignant === utilisateurConnecte.nom));
     Depot.ecrireJSON('absences', absences);
+    serveurApresEcritureAbsences();
     decochesManuellement.delete(id);
     elevesCoches.set(id, type);
   }
@@ -280,6 +282,7 @@ function confirmerAbsences() {
   });
 
   Depot.ecrireJSON('absences', absences);
+  serveurApresEcritureAbsences();
   document.getElementById('modal-confirmation').classList.add('hidden');
   afficherToast('Signalement(s) enregistré(s) !', 'success');
   elevesCoches.clear();

@@ -781,7 +781,7 @@ function confirmerRenommageProf() {
   absences.forEach(a => {
     if ((codeProf && a.profCode === codeProf) || (ancien && a.enseignant === ancien)) { a.enseignant = nouveau; maj++; }
   });
-  if (maj > 0) Depot.ecrireJSON('absences', absences);
+  if (maj > 0) { Depot.ecrireJSON('absences', absences); serveurApresEcritureAbsences(); }
   // un surveillant ne vient pas d'un import : son nom doit etre conserve dans sa liste
   if (prof && prof.role === 'surveillant') majSurveillantRH(prof.code || prof.email, { nom: nouveau });
   afficherListeProfs();
