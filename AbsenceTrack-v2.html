@@ -648,7 +648,7 @@ body.theme-sombre .inst-compte { background: #1e293b; border-color: #334155; col
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.96 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.100 — Prototype</p>
     </div>
   </div>
 </div>
@@ -2422,7 +2422,7 @@ function anneeLocale() {
 // Ce que le serveur contient deja pour mon etablissement.
 async function serveurCompterDonnees() {
   const idEtab = serveurIdEtablissement();
-  if (!idEtab) return { classes: 0, eleves: 0, profils: 0, signalements: 0 };
+  if (!idEtab) return { classes: 0, eleves: 0, profils: 0, signalements: 0, seances: 0 };
   const cs = (await serveurAppel('/rest/v1/classes?etablissement_id=eq.' + idEtab + '&select=id')) || [];
   let eleves = 0;
   if (cs.length) {
@@ -2433,9 +2433,11 @@ async function serveurCompterDonnees() {
   // On compte les personnes SANS le directeur : c'est ce que le telephone compte aussi
   // (sinon les deux nombres ne veulent pas dire la meme chose — l'utilisateur a pose la question).
   const ps = (await serveurAppel('/rest/v1/profils?etablissement_id=eq.' + idEtab +
-                                 '&role=neq.directeur&select=id')) || [];
+                                 '&role=neq.directeur&actif=is.true&select=id')) || [];
   const ss = (await serveurAppel('/rest/v1/signalements?etablissement_id=eq.' + idEtab + '&select=id')) || [];
-  return { classes: cs.length, eleves: eleves, profils: ps.length, signalements: ss.length };
+  const ses = (await serveurAppel('/rest/v1/seances?etablissement_id=eq.' + idEtab + '&select=id')) || [];
+  return { classes: cs.length, eleves: eleves, profils: ps.length, signalements: ss.length,
+           seances: ses.length };
 }
 
 // Envoie (ou remet a jour) les listes du telephone vers le serveur.
@@ -2526,6 +2528,14 @@ async function serveurChargerDonnees() {
   const pServ = (await serveurAppel('/rest/v1/profils?etablissement_id=eq.' + idEtab + '&select=id,nom,code,role,matiere,email')) || [];
   const sServ = (await serveurAppel('/rest/v1/signalements?etablissement_id=eq.' + idEtab +
         '&select=id,eleve_id,classe_id,prof_id,date_abs,moment,heure,type,retard_minutes,statut,motif,decide_par,decide_le&order=date_abs')) || [];
+  const seServ = (await serveurAppel('/rest/v1/seances?etablissement_id=eq.' + idEtab +
+        '&select=id,prof_id,classe_id,jour,debut,fin,salle,matiere')) || [];
+  const feServ = (await serveurAppel('/rest/v1/fermetures?etablissement_id=eq.' + idEtab +
+        '&select=id,type,libelle,debut,fin,portee,cree_par,cree_le')) || [];
+  const apServ = (await serveurAppel('/rest/v1/absences_personnel?etablissement_id=eq.' + idEtab +
+        '&select=id,prof_id,role_absent,debut,fin,portee,motif,cree_par')) || [];
+  const anServ = (await serveurAppel('/rest/v1/annulations_seances?etablissement_id=eq.' + idEtab +
+        '&select=id,date_seance,classe_id,debut,fin,motif,cree_par')) || [];
 
   const profParId = {}, classeParId = {}, eleveParId = {};
   pServ.forEach(function (p) { profParId[p.id] = p; });
@@ -2557,11 +2567,67 @@ async function serveurChargerDonnees() {
     };
   });
 
+  // les tableaux de service : reconstruits par professeur (cle = email, sinon nom, sinon matiere)
+  const tableau = {};
+  seServ.forEach(function (s) {
+    const pr = profParId[s.prof_id] || {};
+    const cl = classeParId[s.classe_id] || {};
+    const cle = pr.email || pr.nom || ('matiere:' + (s.matiere || ''));
+    if (!tableau[cle]) tableau[cle] = [];
+    tableau[cle].push({ jour: s.jour, debut: String(s.debut || '').slice(0, 5),
+                        fin: String(s.fin || '').slice(0, 5), classe: cl.nom || '',
+                        matiere: s.matiere || pr.matiere || '', prof: pr.nom || '',
+                        salle: s.salle || '' });
+  });
+
   // copie de secours AVANT de remplacer (au cas ou), puis remplacement
   Depot.ecrireJSON('classesAvantServeur', classes);
+  Depot.ecrireJSON('tableauxServiceAvantServeur', tableauxService);
   Depot.ecrireJSON('absencesAvantServeur', absences);
   classes = nouvelles;
   absences = nouvellesAbsences;
+  if (Object.keys(tableau).length) {          // jamais d'ecrasement par une lecture vide
+    tableauxService = tableau;
+    sauvegarderTableauxService();
+  }
+  // les fermetures : petites, on les remplace (une liste vide est une verite possible ici)
+  const nouvellesFermetures = feServ.map(function (f) {
+    const pr = profParId[f.cree_par] || {};
+    return { id: f.id, type: f.type, libelle: f.libelle || '', debut: f.debut, fin: f.fin,
+             portee: f.portee || 'journee', par: pr.nom || '',
+             le: f.cree_le ? String(f.cree_le).slice(0, 10) : '' };
+  });
+  Depot.ecrireJSON('fermeturesEtabAvantServeur', fermeturesEtab);
+  fermeturesEtab = nouvellesFermetures;
+  sauvegarderFermetures();
+
+  // les absences du personnel : on retrouve la personne par son code (le champ local est profCode)
+  const codeParProfId = {};
+  pServ.forEach(function (p) { if (p.code) codeParProfId[p.id] = p.code; });
+  const nouvellesIndispos = apServ.map(function (a) {
+    const pr = profParId[a.prof_id] || {};
+    return { id: a.id, profCode: codeParProfId[a.prof_id] || pr.email || pr.nom || '',
+             role: a.role_absent || 'enseignant', debut: a.debut, fin: a.fin,
+             portee: a.portee || 'journee', motif: a.motif || '',
+             par: (profParId[a.cree_par] || {}).nom || '',
+             le: a.cree_le ? String(a.cree_le).slice(0, 10) : '' };
+  });
+  Depot.ecrireJSON('indispoProfsAvantServeur', indispoProfs);
+  indispoProfs = nouvellesIndispos;
+  sauvegarderIndispo();
+
+  // les annulations de seance
+  const nouvellesAnnulations = anServ.map(function (a) {
+    const cl = classeParId[a.classe_id] || {};
+    return { id: a.id, dateISO: a.date_seance, classe: cl.nom || '',
+             debut: String(a.debut || '').slice(0, 5), fin: String(a.fin || '').slice(0, 5),
+             motif: a.motif || '', par: (profParId[a.cree_par] || {}).nom || '',
+             le: (a.cree_le ? String(a.cree_le).slice(0, 10) : '') + ' ' +
+                 String(a.cree_le ? a.cree_le.slice(11, 16) : '') };
+  });
+  Depot.ecrireJSON('seancesAnnuleesAvantServeur', seancesAnnulees);
+  seancesAnnulees = nouvellesAnnulations;
+  sauvegarderSeancesAnnulees();
   sauvegarderClasses();
   Depot.ecrireJSON('absences', absences);
 
@@ -2577,7 +2643,9 @@ async function serveurChargerDonnees() {
     if (Array.isArray(et.semestres) && et.semestres.length) anneeScolaire.semestres = et.semestres;
     Depot.ecrireJSON('anneeScolaire', anneeScolaire);
   }
-  return { classes: nouvelles.length, eleves: eServ.length, absences: nouvellesAbsences.length };
+  return { classes: nouvelles.length, eleves: eServ.length, absences: nouvellesAbsences.length,
+           seances: seServ.length, fermetures: nouvellesFermetures.length,
+           indispos: nouvellesIndispos.length, annulations: nouvellesAnnulations.length };
 }
 
 // Apres une lecture, on redessine les ecrans qui existent pour le role connecte.
@@ -2596,6 +2664,165 @@ function serveurApresEcritureAbsences() {
   serveurEnvoyerSignalements().catch(function (e) {
     instDire('ko', 'Enregistré sur le téléphone, mais pas encore sur le serveur (' + e.message + ').');
   });
+}
+
+// ---- LES ABSENCES DU PERSONNEL (indisponibilites d'un professeur ou d'un surveillant) ----
+async function serveurEnvoyerAbsencesPersonnel() {
+  const idEtab = serveurIdEtablissement();
+  if (!idEtab) throw new Error('aucun etablissement dans ce compte');
+  const rapport = { absences: 0, ignores: 0, raisons: [] };
+  const moi = serveurIdFiche();
+  const pServ = (await serveurAppel('/rest/v1/profils?etablissement_id=eq.' + idEtab + '&select=id,code,nom,email')) || [];
+  const parCode = {}, parNom = {}, parMail = {};
+  pServ.forEach(function (p) {
+    if (p.code) parCode[p.code] = p;
+    parNom[p.nom] = p;
+    if (p.email) parMail[String(p.email).toLowerCase()] = p;
+  });
+  await serveurAppel('/rest/v1/absences_personnel?etablissement_id=eq.' + idEtab, { methode: 'DELETE' });
+  const lignes = [];
+  for (let i = 0; i < indispoProfs.length; i++) {
+    const a = indispoProfs[i];
+    const prof = parCode[a.profCode] || parMail[String(a.profCode || '').toLowerCase()] || parNom[a.profCode] || null;
+    if (!prof) { rapport.ignores++; rapport.raisons.push('personne non reconnue : ' + a.profCode); continue; }
+    if (!a.debut || !a.fin || String(a.fin) < String(a.debut)) {
+      rapport.ignores++; rapport.raisons.push('periode invalide pour ' + a.profCode); continue;
+    }
+    lignes.push({ etablissement_id: idEtab, prof_id: prof.id,
+                  role_absent: a.role === 'surveillant' ? 'surveillant' : 'enseignant',
+                  debut: a.debut, fin: a.fin,
+                  portee: (a.portee === 'matin' || a.portee === 'apres-midi') ? a.portee : 'journee',
+                  motif: a.motif || null, cree_par: moi });
+  }
+  if (lignes.length) {
+    const crees = await serveurAppel('/rest/v1/absences_personnel', {
+      methode: 'POST', entetes: { 'Prefer': 'return=representation' }, corps: lignes
+    });
+    rapport.absences = crees ? crees.length : lignes.length;
+  }
+  return rapport;
+}
+
+// ---- LES ANNULATIONS DE SEANCE (une seance precise, saisie a la main) ----
+async function serveurEnvoyerAnnulations() {
+  const idEtab = serveurIdEtablissement();
+  if (!idEtab) throw new Error('aucun etablissement dans ce compte');
+  const rapport = { annulations: 0, ignores: 0, raisons: [] };
+  const moi = serveurIdFiche();
+  const cServ = (await serveurAppel('/rest/v1/classes?etablissement_id=eq.' + idEtab + '&select=id,nom')) || [];
+  const classeParNom = {};
+  cServ.forEach(function (c) { classeParNom[c.nom] = c.id; });
+  await serveurAppel('/rest/v1/annulations_seances?etablissement_id=eq.' + idEtab, { methode: 'DELETE' });
+  const lignes = [], dejaVues = {};
+  for (let i = 0; i < seancesAnnulees.length; i++) {
+    const a = seancesAnnulees[i];
+    const idClasse = classeParNom[a.classe];
+    if (!idClasse) { rapport.ignores++; rapport.raisons.push('classe inconnue : ' + a.classe); continue; }
+    if (!a.dateISO || !a.debut) { rapport.ignores++; rapport.raisons.push('seance incomplete (date ou heure)'); continue; }
+    const cle = idClasse + '|' + a.dateISO + '|' + a.debut;
+    if (dejaVues[cle]) { rapport.ignores++; rapport.raisons.push('deja annulee : ' + a.classe + ' ' + a.dateISO + ' ' + a.debut); continue; }
+    dejaVues[cle] = 1;
+    lignes.push({ etablissement_id: idEtab, date_seance: a.dateISO, classe_id: idClasse,
+                  debut: a.debut + ':00', fin: a.fin ? (a.fin + ':00') : null,
+                  motif: a.motif || null, cree_par: moi });
+  }
+  if (lignes.length) {
+    const crees = await serveurAppel('/rest/v1/annulations_seances', {
+      methode: 'POST', entetes: { 'Prefer': 'return=representation' }, corps: lignes
+    });
+    rapport.annulations = crees ? crees.length : lignes.length;
+  }
+  return rapport;
+}
+
+// ---- LES FERMETURES (vacances, fetes, examens...) ----
+// Ces tables sont PETITES : on remplace la liste entiere (la liste locale est la verite), ce qui
+// rend l'envoi rejouable. Une lecture VIDE est ici une verite possible (aucune fermeture), donc
+// on remplace meme par une liste vide — contrairement aux classes/eleves, ou une lecture vide est
+// forcement suspecte et ne doit rien ecraser.
+async function serveurEnvoyerFermetures() {
+  const idEtab = serveurIdEtablissement();
+  if (!idEtab) throw new Error('aucun etablissement dans ce compte');
+  const rapport = { fermetures: 0, ignores: 0, raisons: [] };
+  const moi = serveurIdFiche();
+  await serveurAppel('/rest/v1/fermetures?etablissement_id=eq.' + idEtab, { methode: 'DELETE' });
+  const lignes = [];
+  for (let i = 0; i < fermeturesEtab.length; i++) {
+    const f = fermeturesEtab[i];
+    const p = (f.portee === 'matin' || f.portee === 'apres-midi') ? f.portee : 'journee';
+    if (!f.debut || !f.fin || String(f.fin) < String(f.debut)) {
+      rapport.ignores++;
+      rapport.raisons.push('fermeture invalide : ' + (f.libelle || f.type || '?') + ' (' + f.debut + ' → ' + f.fin + ')');
+      continue;
+    }
+    lignes.push({ etablissement_id: idEtab, type: f.type || 'Autre', libelle: f.libelle || null,
+                  debut: f.debut, fin: f.fin, portee: p, cree_par: moi });
+  }
+  if (lignes.length) {
+    const crees = await serveurAppel('/rest/v1/fermetures', {
+      methode: 'POST', entetes: { 'Prefer': 'return=representation' }, corps: lignes
+    });
+    rapport.fermetures = crees ? crees.length : lignes.length;
+  }
+  return rapport;
+}
+
+// ---- LES TABLEAUX DE SERVICE (les seances) : le prealable aux comptes des professeurs ----
+// Un enseignant qui se connecte doit voir SES cours : ils doivent donc etre sur le serveur.
+// On REMPLACE le tableau d'un professeur (comme le fait l'import local) : rejouable, sans doublon.
+async function serveurEnvoyerSeances() {
+  const idEtab = serveurIdEtablissement();
+  if (!idEtab) throw new Error('aucun etablissement dans ce compte');
+  const rapport = { seances: 0, profs: 0, ignores: 0, raisons: [] };
+  const cServ = (await serveurAppel('/rest/v1/classes?etablissement_id=eq.' + idEtab + '&select=id,nom')) || [];
+  const classeParNom = {};
+  cServ.forEach(function (c) { classeParNom[c.nom] = c.id; });
+  const pServ = (await serveurAppel('/rest/v1/profils?etablissement_id=eq.' + idEtab + '&select=id,nom,code,matiere,email')) || [];
+  const profParEmail = {}, profParNom = {}, profsParMatiere = {};
+  pServ.forEach(function (p) {
+    if (p.email) profParEmail[String(p.email).toLowerCase()] = p;
+    profParNom[p.nom] = p;
+    const m = normaliserMatiere(p.matiere);
+    if (m) { if (!profsParMatiere[m]) profsParMatiere[m] = []; profsParMatiere[m].push(p); }
+  });
+
+  for (const cle in tableauxService) {
+    const liste = tableauxService[cle] || [];
+    if (!liste.length) continue;
+    let prof = profParEmail[String(cle).toLowerCase()] || profParNom[cle] || null;
+    if (!prof) {
+      const cands = profsParMatiere[normaliserMatiere(cle.replace(/^matiere:/, '') || liste[0].matiere)] || [];
+      if (cands.length === 1) prof = cands[0];       // une seule fiche pour cette matiere : aucun doute
+    }
+    if (!prof) {
+      rapport.ignores++;
+      rapport.raisons.push('professeur non reconnu pour un tableau : ' + cle);
+      continue;
+    }
+    await serveurAppel('/rest/v1/seances?prof_id=eq.' + prof.id, { methode: 'DELETE' });
+    const lignes = [];
+    for (let i = 0; i < liste.length; i++) {
+      const s = liste[i];
+      const idClasse = classeParNom[s.classe];
+      if (!idClasse) { rapport.ignores++; rapport.raisons.push('classe inconnue : ' + s.classe); continue; }
+      if (!(s.jour >= 1 && s.jour <= 6)) { rapport.ignores++; rapport.raisons.push('jour invalide : ' + s.jour); continue; }
+      if (hhmmEnMinutes(s.fin) <= hhmmEnMinutes(s.debut)) {
+        rapport.ignores++; rapport.raisons.push('horaire invalide : ' + s.classe + ' ' + s.debut + '-' + s.fin);
+        continue;
+      }
+      lignes.push({ etablissement_id: idEtab, prof_id: prof.id, classe_id: idClasse,
+                    jour: s.jour, debut: s.debut + ':00', fin: s.fin + ':00',
+                    salle: s.salle || null, matiere: s.matiere || prof.matiere || null });
+    }
+    if (lignes.length) {
+      const crees = await serveurAppel('/rest/v1/seances', {
+        methode: 'POST', entetes: { 'Prefer': 'return=representation' }, corps: lignes
+      });
+      rapport.seances += (crees ? crees.length : lignes.length);
+      rapport.profs++;
+    }
+  }
+  return rapport;
 }
 
 // ---- les personnes (fiches sans compte) : prealable obligatoire aux absences, car
@@ -2643,7 +2870,7 @@ async function serveurEnvoyerFiches() {
   if (!idEtab) throw new Error('aucun etablissement dans ce compte');
   const rapport = { fiches: 0, maj: 0 };
   const fServ = (await serveurAppel('/rest/v1/profils?etablissement_id=eq.' + idEtab +
-                                    '&select=id,code,nom,matiere')) || [];
+                                    '&select=id,code,nom,matiere,role,email,actif')) || [];
   const parCode = {}, parNom = {};
   fServ.forEach(function (f) {
     if (f.code) parCode[f.code] = f;
@@ -2668,6 +2895,30 @@ async function serveurEnvoyerFiches() {
       });
       rapport.maj++;
     }
+  }
+
+  // Les personnes qui ne sont PLUS dans la liste du telephone sont marquees INACTIVES.
+  // On ne les supprime JAMAIS : l'historique de ce qu'elles ont approuve doit rester lisible.
+  // Une fiche est « encore la » si l'un de ses identifiants (code, email, nom) est dans la liste —
+  // ainsi un simple renommage ne la desactive pas.
+  const identifiants = {};
+  for (let k = 0; k < liste.length; k++) {
+    const q = liste[k];
+    if (q.code) identifiants['code:' + q.code] = 1;
+    if (q.email) identifiants['mail:' + String(q.email).toLowerCase()] = 1;
+    identifiants['nom:' + q.nom] = 1;
+  }
+  rapport.desactivees = 0;
+  for (let k = 0; k < fServ.length; k++) {
+    const f = fServ[k];
+    if (f.role === 'directeur') continue;
+    if (f.actif === false) continue;                       // deja inactive
+    const encore = (f.code && identifiants['code:' + f.code]) ||
+                   (f.email && identifiants['mail:' + String(f.email).toLowerCase()]) ||
+                   identifiants['nom:' + f.nom];
+    if (encore) continue;
+    await serveurAppel('/rest/v1/profils?id=eq.' + f.id, { methode: 'PATCH', corps: { actif: false } });
+    rapport.desactivees++;
   }
   return rapport;
 }
@@ -2909,8 +3160,11 @@ function majDonneesLocal() {
   if (!zone) return;
   let nbEleves = 0;
   for (let i = 0; i < classes.length; i++) nbEleves += classes[i].eleves.length;
+  let nbSeances = 0;
+  try { for (const k in tableauxService) nbSeances += (tableauxService[k] || []).length; } catch (e) {}
   zone.textContent = 'Sur ce téléphone : ' + classes.length + ' classe(s) · ' + nbEleves + ' élève(s) · ' +
-                     personnesAEtager().length + ' personne(s) · ' + absences.length + ' signalement(s)';
+                     personnesAEtager().length + ' personne(s) · ' + absences.length + ' signalement(s) · ' +
+                     nbSeances + ' séance(s)';
 }
 
 async function majDonneesServeur() {
@@ -2920,7 +3174,8 @@ async function majDonneesServeur() {
   try {
     const c = await serveurCompterDonnees();
     zone.textContent = 'Sur le serveur : ' + c.classes + ' classe(s) · ' + c.eleves + ' élève(s) · ' +
-                       c.profils + ' personne(s) · ' + c.signalements + ' signalement(s)';
+                       c.profils + ' personne(s) · ' + c.signalements + ' signalement(s) · ' +
+                       c.seances + ' séance(s)';
   } catch (e) {
     zone.textContent = 'Sur le serveur : impossible de lire (' + e.message + ')';
   }
@@ -2933,10 +3188,23 @@ async function installationEnvoyer() {
   try {
     const l = await serveurEnvoyerDonnees();
     const p = await serveurEnvoyerFiches();
+    const se = await serveurEnvoyerSeances();
+    const fe = await serveurEnvoyerFermetures();
+    const ap = await serveurEnvoyerAbsencesPersonnel();
+    const an = await serveurEnvoyerAnnulations();
     const s = await serveurEnvoyerSignalements();
     let texte = 'Envoyé.\nListes : ' + l.classes + ' classe(s) nouvelle(s), ' + l.eleves +
                 ' élève(s) ajouté(s).\nPersonnes : ' + p.fiches + ' nouvelle(s), ' + p.maj +
-                ' renommée(s).\nAbsences : ' + s.ajoutes + ' ajoutée(s), ' + s.maj + ' mise(s) à jour';
+                ' renommée(s).\nCours : ' + se.seances + ' séance(s) envoyée(s).\nFermetures : ' +
+                fe.fermetures + ' envoyée(s)';
+    if (fe.ignores) texte += ' (' + fe.ignores + ' ignorée(s) : ' + fe.raisons[0] + ')';
+    texte += '\nPersonnel : ' + ap.absences + ' indisponibilité(s), ' + an.annulations +
+             ' annulation(s) de séance';
+    if (ap.ignores || an.ignores) texte += ' (' + (ap.ignores + an.ignores) + ' ignorée(s) : ' +
+      (ap.raisons[0] || an.raisons[0] || '') + ')';
+    texte += '\nAbsences : ' +
+                s.ajoutes + ' ajoutée(s), ' + s.maj + ' mise(s) à jour';
+    if (p.desactivees) texte += '. ' + p.desactivees + ' personne(s) marquée(s) INACTIVE(S) (retirée(s) de la liste, historique conservé)';
     if (s.orphelins) texte += ', ' + s.orphelins + ' rattachée(s) par leur nom';
     if (s.ignores) {
       texte += ', ' + s.ignores + ' NON envoyée(s) :';

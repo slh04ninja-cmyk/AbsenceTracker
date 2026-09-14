@@ -26,7 +26,8 @@ let refreshRefus = false;      // si vrai : le renouvellement lui-meme echoue
 
 // ---- un MINI-SERVEUR simule : les tables classes et eleves, comme sur le vrai serveur ----
 let idSuivant = 100;
-const base = { classes: [], eleves: [], fiches: [], signalements: [] };
+const base = { classes: [], eleves: [], fiches: [], signalements: [], seances: [], fermetures: [],
+               indispos: [], annulations: [] };
 
 const dom = new JSDOM(html, {
   runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true,
@@ -88,13 +89,64 @@ const dom = new JSDOM(html, {
           base.fiches.push(f);
           corps = [f];
         } else if (options.method === 'PATCH') {
+          // le simulateur APPLIQUE vraiment la modification (sinon le test ne prouverait rien)
+          const mid = url.match(/id=eq\.(\d+)/);
+          const corpsEnvoye = JSON.parse(options.body || '{}');
+          if (mid) {
+            base.fiches.forEach(function (f) {
+              if (f.id === Number(mid[1])) Object.assign(f, corpsEnvoye);
+            });
+          }
           corps = [];
         } else if (/select=id($|&)/.test(url)) {
-          corps = base.fiches.map(function (f) { return { id: f.id }; });
+          corps = base.fiches.filter(function (f) {
+            return url.indexOf('actif=is.true') < 0 || f.actif !== false;
+          }).map(function (f) { return { id: f.id }; });
         } else {
           corps = base.fiches.map(function (f) {
-            return { id: f.id, code: f.code, nom: f.nom, matiere: f.matiere };
+            return { id: f.id, code: f.code, nom: f.nom, matiere: f.matiere, role: f.role, email: f.email };
           });
+        }
+      } else if (url.indexOf('/rest/v1/absences_personnel') >= 0 ||
+                 url.indexOf('/rest/v1/annulations_seances') >= 0) {
+        const table = url.indexOf('/absences_personnel') >= 0 ? 'indispos' : 'annulations';
+        if (options.method === 'DELETE') {
+          base[table] = [];
+          corps = [];
+        } else if (options.method === 'POST') {
+          let b = JSON.parse(options.body);
+          if (!Array.isArray(b)) b = [b];
+          b.forEach(function (x) { base[table].push(Object.assign({ id: ++idSuivant }, x)); });
+          corps = b;
+        } else {
+          corps = base[table];
+        }
+      } else if (url.indexOf('/rest/v1/fermetures') >= 0) {
+        if (options.method === 'DELETE') {
+          base.fermetures = [];
+          corps = [];
+        } else if (options.method === 'POST') {
+          let b = JSON.parse(options.body);
+          if (!Array.isArray(b)) b = [b];
+          b.forEach(function (f) { base.fermetures.push(Object.assign({ id: ++idSuivant }, f)); });
+          corps = b;
+        } else {
+          corps = base.fermetures;
+        }
+      } else if (url.indexOf('/rest/v1/seances') >= 0) {
+        if (options.method === 'DELETE') {
+          const mp = url.match(/prof_id=eq\.(\d+)/);
+          if (mp) base.seances = base.seances.filter(function (s) { return s.prof_id !== Number(mp[1]); });
+          corps = [];
+        } else if (options.method === 'POST') {
+          let b = JSON.parse(options.body);
+          if (!Array.isArray(b)) b = [b];
+          b.forEach(function (s) { base.seances.push(Object.assign({ id: ++idSuivant }, s)); });
+          corps = b;
+        } else if (/select=id($|&)/.test(url)) {
+          corps = base.seances.map(function (s) { return { id: s.id }; });
+        } else {
+          corps = base.seances;
         }
       } else if (url.indexOf('/rest/v1/signalements') >= 0) {
         if (options.method === 'POST') {
@@ -376,11 +428,85 @@ const attendreQue = async (cond, tours) => {
     /Eleve Disparu/.test(rs3.raisons[0]) && /13\/09\/2026/.test(rs3.raisons[0]) && /absence/.test(rs3.raisons[0]),
     rs3.raisons[0]);
 
+  // ---------- 10j) LES DEUX DERNIERES TABLES : absences du personnel et annulations ----------
+  ev("indispoProfs = [ { id: 1, profCode: 'math-prof1', role: 'enseignant', debut: '2026-11-16', fin: '2026-11-18', portee: 'journee', motif: 'Formation', par: 'Directeur', le: '2026-09-13' }," +
+     " { id: 2, profCode: 'inconnu-xyz', role: 'enseignant', debut: '2026-11-20', fin: '2026-11-21', portee: 'journee', motif: 'X', par: 'Directeur', le: '2026-09-13' } ];");
+  const rap = await ev('serveurEnvoyerAbsencesPersonnel()');
+  t('les absences du personnel partent, et une personne inconnue est SIGNALEE',
+    rap.absences === 1 && rap.ignores === 1 && base.indispos.length === 1,
+    rap.absences + ' envoyee(s), ' + rap.ignores + ' ignoree(s) : ' + rap.raisons[0]);
+  t('la personne est reliee par sa FICHE, avec son role',
+    base.indispos[0].role_absent === 'enseignant' && !!base.indispos[0].prof_id &&
+    base.indispos[0].prof_id === base.fiches.filter(function (f) { return f.code === 'math-prof1'; })[0].id);
+
+  ev("seancesAnnulees = [ { id: 1, dateISO: '2026-10-05', classe: 'TCSF-1', debut: '08:00', fin: '10:00', motif: 'Reunion', par: 'Directeur', le: '2026-09-13 10:00' }," +
+     " { id: 2, dateISO: '2026-10-05', classe: 'TCSF-1', debut: '08:00', fin: '10:00', motif: 'Doublon', par: 'Directeur', le: '2026-09-13 10:05' } ];");
+  const ran = await ev('serveurEnvoyerAnnulations()');
+  t('les annulations partent, et un DOUBLON est refuse proprement (la base l interdit)',
+    ran.annulations === 1 && ran.ignores === 1 && base.annulations.length === 1,
+    ran.annulations + ' + ' + ran.ignores + ' ignoree(s) : ' + ran.raisons[0]);
+  t('l annulation porte la classe par son identifiant et l heure de debut',
+    !!base.annulations[0].classe_id && base.annulations[0].debut === '08:00:00');
+
+  // ---------- 10i) LES FERMETURES ----------
+  ev("fermeturesEtab = [ { id: 1, type: 'Vacances', libelle: 'Toussaint', debut: '2026-10-26', fin: '2026-11-01', portee: 'journee', par: 'Directeur', le: '2026-09-13' }," +
+     " { id: 2, type: 'Reunion', libelle: 'Conseil', debut: '2026-11-10', fin: '2026-11-10', portee: 'matin', par: 'Directeur', le: '2026-09-13' }," +
+     " { id: 3, type: 'Autre', libelle: 'Dates inversees', debut: '2026-12-05', fin: '2026-12-01', portee: 'journee', par: 'Directeur', le: '2026-09-13' } ];");
+  const rfe = await ev('serveurEnvoyerFermetures()');
+  t('les fermetures partent sur le serveur, et une fermeture incoherente est SIGNALEE',
+    rfe.fermetures === 2 && rfe.ignores === 1 && base.fermetures.length === 2,
+    rfe.fermetures + ' envoyees, ' + rfe.ignores + ' ignorees : ' + rfe.raisons[0]);
+  t('la portee (journee / matin) est transmise',
+    base.fermetures.some(function (f) { return f.portee === 'matin'; }));
+  const rfe2 = await ev('serveurEnvoyerFermetures()');
+  t('2e envoi : les fermetures sont REMPLACEES, pas dupliquees',
+    rfe2.fermetures === 2 && base.fermetures.length === 2, base.fermetures.length + ' au total');
+
+  // ---------- 10h) RETIRER UNE PERSONNE : elle est marquee INACTIVE, jamais supprimee ----------
+  const avantFiches = base.fiches.length;
+  const surveillant = base.fiches.filter(function (f) { return f.role === 'surveillant'; })[0];
+  // (comptes est une const : on retire l'element EN PLACE, on ne reassigne pas la variable)
+  ev("(function () { for (var i = comptes.length - 1; i >= 0; i--) {" +
+     " if (comptes[i].nom === '" + surveillant.nom + "') comptes.splice(i, 1); } })();");
+  const rd = await ev('serveurEnvoyerFiches()');
+  t('une personne retiree de la liste est marquee INACTIVE sur le serveur',
+    rd.desactivees === 1 && base.fiches.filter(function (f) { return f.actif === false; }).length === 1,
+    'desactivees=' + rd.desactivees);
+  t('elle n est PAS supprimee (son historique reste lisible)',
+    base.fiches.length === avantFiches &&
+    !!base.fiches.filter(function (f) { return f.nom === surveillant.nom; })[0]);
+  t('elle sort des compteurs de personnes (comparables des deux cotes)',
+    await (async function () {
+      const c = await ev('serveurCompterDonnees()');
+      return c.profils === base.fiches.filter(function (f) { return f.actif !== false; }).length;
+    })());
+
+  // ---------- 10g) LES TABLEAUX DE SERVICE sur le serveur (prealable aux comptes des profs) ----------
+  ev("tableauxService = { 'math-prof1@taalim.ma': [" +
+     "{ jour: 2, debut: '08:00', fin: '10:00', classe: 'TCSF-1', matiere: 'Maths', prof: 'math-prof1' }," +
+     "{ jour: 4, debut: '14:00', fin: '16:00', classe: 'TCSF-2', matiere: 'Maths', prof: 'math-prof1' } ]" +
+     ", 'prof-inconnu@taalim.ma': [ { jour: 1, debut: '08:00', fin: '09:00', classe: 'TCSF-1', matiere: 'Test', prof: 'X' } ] };");
+  const rse = await ev('serveurEnvoyerSeances()');
+  t('les seances du tableau de service partent sur le serveur',
+    rse.seances === 2 && base.seances.length === 2,
+    rse.seances + ' envoyees, ' + rse.ignores + ' ignorees ' + rse.raisons.join(' / '));
+  t('un tableau dont le professeur est inconnu est SIGNALE, pas avale en silence',
+    rse.ignores === 1 && /professeur non reconnu/.test(rse.raisons[0]), rse.raisons[0]);
+  const s1 = base.seances[0];
+  t('la seance porte la classe, le professeur, le jour et les horaires',
+    s1.jour === 2 && s1.debut === '08:00:00' && s1.fin === '10:00:00' &&
+    s1.classe_id === base.classes.filter(function (c) { return c.nom === 'TCSF-1'; })[0].id &&
+    !!s1.prof_id, JSON.stringify(s1));
+  const rse2 = await ev('serveurEnvoyerSeances()');
+  t('2e envoi : le tableau est REMPLACE, pas duplique',
+    rse2.seances === 2 && base.seances.length === 2, base.seances.length + ' seances au total');
+
   // ---------- 10f) LES ECRANS LISENT LE SERVEUR : la lecture remplace les donnees du telephone ----------
   const avantLecture = JSON.parse(ev('JSON.stringify(classes)'));
   const charge = await ev('serveurChargerDonnees()');
-  t('la lecture ramene les classes, les eleves et les absences du serveur',
-    charge.classes === 2 && charge.eleves === 3 && charge.absences === 4, JSON.stringify(charge));
+  t('la lecture ramene les classes, les eleves, les absences ET les cours du serveur',
+    charge.classes === 2 && charge.eleves === 3 && charge.absences === 4 && charge.seances === 2,
+    JSON.stringify(charge));
   const apres = JSON.parse(ev('JSON.stringify(classes)'));
   t('la lecture a bien remplace les donnees precedentes', avantLecture.length === 2);
   t('les classes de l app viennent maintenant du SERVEUR (pas du telephone)',
@@ -393,6 +519,12 @@ const attendreQue = async (cond, tours) => {
     ab.length + ' absences');
   t('et avec le nom de l enseignant (relie par sa FICHE du serveur)',
     ab.every(function (a) { return !!a.enseignant; }), ab[0] && ab[0].enseignant);
+  const tabApres = JSON.parse(ev('JSON.stringify(tableauxService)'));
+  t('les tableaux de service sont reconstruits depuis le serveur (cle = email du professeur)',
+    Object.keys(tabApres).length === 1 && tabApres['math-prof1@taalim.ma'] &&
+    tabApres['math-prof1@taalim.ma'].length === 2 &&
+    tabApres['math-prof1@taalim.ma'][0].classe === 'TCSF-1',
+    JSON.stringify(Object.keys(tabApres)));
   t('une copie de secours des donnees du telephone est gardee avant remplacement',
     !!win.localStorage.getItem('classesAvantServeur') && !!win.localStorage.getItem('absencesAvantServeur'));
   // garde-fou : une lecture VIDE ne doit RIEN remplacer (protection des donnees du telephone)
@@ -407,9 +539,10 @@ const attendreQue = async (cond, tours) => {
     'refus=' + refus + ' classes=' + ev('classes.length'));
 
   const cpt2 = await ev('serveurCompterDonnees()');
-  t('les compteurs complets : 4 familles de donnees',
-    cpt2.classes === 2 && cpt2.eleves === 3 && cpt2.profils === base.fiches.length && cpt2.signalements === 4,
-    JSON.stringify(cpt2));
+  t('les compteurs complets : 5 familles de donnees (dont les cours)',
+    cpt2.classes === 2 && cpt2.eleves === 3 &&
+    cpt2.profils === base.fiches.filter(function (f) { return f.actif !== false; }).length &&
+    cpt2.signalements === 4 && cpt2.seances === 2, JSON.stringify(cpt2));
 
   // ---------- 10e) LE JETON D UNE HEURE PERIME : l app doit se renouveler SEULE ----------
   const avant = rafraichissements;
