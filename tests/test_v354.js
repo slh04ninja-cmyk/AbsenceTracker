@@ -28,6 +28,7 @@ vc.on('jsdomError', e => erreurs.push('jsdomError: ' + (e.message || e)));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true, virtualConsole: vc,
   beforeParse(win) {
+    win.localStorage.setItem('modeDemonstration', '1');   // ce banc teste l'application de DEMONSTRATION
     const V = win.Date;
     win.Date = class extends V { constructor(...a) { super(...(a.length ? a : [FIXE])); } static now() { return FIXE; } };
     win.localStorage.setItem('absenceTrackVersion', 'v3.0');

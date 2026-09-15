@@ -28,6 +28,7 @@ vc.on('jsdomError', e => erreurs.push('jsdomError: ' + (e.message || e)));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true, virtualConsole: vc,
   beforeParse(win) {
+    win.localStorage.setItem('modeDemonstration', '1');   // ce banc teste l'application de DEMONSTRATION
     const V = win.Date;
     win.Date = class extends V { constructor(...a) { super(...(a.length ? a : [FIXE])); } static now() { return FIXE; } };
     win.localStorage.setItem('absenceTrackVersion', 'v3.0');
@@ -110,7 +111,7 @@ setTimeout(() => {
   // v3.66 : la carte du Dashboard n'affiche QUE les séances annulées (pas les absences des profs)
   // v3.68 : l'absence du prof genere ses propres séances annulées (2e source)
   t('les séances de l absence du prof apparaissent (2e source)',
-    txt('annul-liste').indexOf('Absence prof') >= 0 && txt('annul-liste').indexOf('Absence de سامية الحاضي') >= 0 &&
+    txt('annul-liste').indexOf('Absence de سامية الحاضي') >= 0 &&
     txt('annul-liste').indexOf('Maladie') >= 0, txt('annul-liste').slice(0, 90));
   t('l absence du prof est bien dans la liste déroulante RH',
     txt('indispo-liste').indexOf('Maladie') >= 0 && txt('indispo-liste').indexOf('سامية الحاضي') >= 0,

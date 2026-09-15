@@ -1,6 +1,7 @@
 // fichier: app/js/16-init.js
 // ========== INIT ==========
 function init() {
+  if (typeof appliquerModeEcole === 'function') appliquerModeEcole();
   // relecture de la liste des surveillants AVANT de la reinjecter dans les comptes
   // (sans cette ligne, un surveillant ajoute disparaissait au redemarrage)
   surveillantsRH = chargerSurveillantsRH();
@@ -8,7 +9,9 @@ function init() {
   appliquerMotsDePasse(); appliquerListeSurveillants();
   majEtiquetteAnnee();
   majOptionsSemestres();
-  genererDonneesTestHistorique();
+  // L'historique de demonstration ne se fabrique que sur un telephone de demonstration.
+  // Une ecole livree commence VIDE.
+  if (modeDemonstration()) genererDonneesTestHistorique();
   const saved = Depot.lire('utilisateur', null);
   if (saved) {
     try {
@@ -24,6 +27,12 @@ function init() {
       }
     } catch(e) {}
   }
+  // en mode ecole, une session deja ouverte se rouvre toute seule (on voit la page du role)
+  if (typeof estModeEcole === 'function' && estModeEcole()) {
+    afficherEcran('login');
+    rouvrirSessionSiBesoin();
+    return;
+  }
   afficherEcran('login');
 }
 
@@ -34,5 +43,6 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-init();
+// init() est appele par le DERNIER module (18-connexion.js) : lance ici, il tombait avant
+// que les fonctions du serveur soient declarees (defaut trouve par le banc v4.03).
 

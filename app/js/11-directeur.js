@@ -138,15 +138,15 @@ function ouvrirDetailClasse(id) {
     elevesDiv.innerHTML = '<p class="text-xs text-gray-500 mb-2">' + (cl.eleves.length - sortis) + ' élève(s) actif(s)' +
       (sortis ? ' · ' + sortis + ' sorti(s) (masqués à l\'appel)' : '') + '</p>' +
       cl.eleves.map(e =>
-      `<div class="flex justify-between items-center p-3 rounded-lg mb-2" style="${estSorti(e) ? 'background:#f1f5f9;opacity:0.75;' : 'background:#f9fafb;'}">
+      `<div class="ligne-classe-eleve${estSorti(e) ? ' ligne-classe-sortie' : ''} flex justify-between items-center p-3 rounded-lg mb-2">
         <div>
           <span class="font-medium">${libelleEleve(e)}</span>
           ${e.massar ? '<span class="text-xs text-gray-400 ml-2">(' + e.massar + ')</span>' : ''}
-          ${estSorti(e) ? '<span class="text-xs font-bold ml-2" style="color:#b45309;background:#fef3c7;border-radius:999px;padding:1px 8px;">sorti</span>' : ''}
+          ${estSorti(e) ? '<span class="etiquette-sorti text-xs font-bold ml-2">sorti</span>' : ''}
         </div>
         <div class="flex items-center gap-3">
-          <button onclick="marquerEleveSorti(${cl.id}, ${e.id}, ${estSorti(e) ? 'false' : 'true'})" class="js-sortir-eleve text-xs font-bold" style="color:${estSorti(e) ? '#16a34a' : '#475569'};">
-            <i class="fas ${estSorti(e) ? 'fa-rotate-left' : 'fa-user-slash'}"></i> ${estSorti(e) ? 'Rétablir' : 'Marquer sorti'}
+          <button onclick="marquerEleveSorti(${cl.id}, ${e.id}, ${estSorti(e) ? 'false' : 'true'})" class="js-sortir-eleve text-base" title="${estSorti(e) ? 'Rétablir cet élève' : 'Marquer cet élève sorti'}" style="color:${estSorti(e) ? '#ef4444' : '#94a3b8'};">
+            <i class="fas fa-user-slash"></i>
           </button>
           <button onclick="demanderSuppressionEleve(${cl.id}, ${e.id})" class="js-supprimer-eleve text-red-500 hover:text-red-700"><i class="fas fa-trash-alt"></i></button>
         </div>

@@ -4,6 +4,7 @@ const erreurs = [];
 const vc = new VirtualConsole();
 vc.on('jsdomError', e => erreurs.push('jsdomError: ' + (e.message || e)));
 const dom = new JSDOM(fs.readFileSync('AbsenceTrack-v2.html', 'utf8'), {
+  beforeParse(win) { win.localStorage.setItem('modeDemonstration', '1'); },   // banc de DEMONSTRATION
   runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true, virtualConsole: vc
 });
 const win = dom.window, doc = win.document;

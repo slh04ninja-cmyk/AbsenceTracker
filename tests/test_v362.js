@@ -10,6 +10,7 @@ vc.on('jsdomError', e => erreurs.push('jsdomError: ' + (e.message || e)));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true, virtualConsole: vc,
   beforeParse(win) {
+    win.localStorage.setItem('modeDemonstration', '1');   // ce banc teste l'application de DEMONSTRATION
     win.localStorage.setItem('absenceTrackVersion', 'v3.0');
     win.localStorage.setItem('testHistoGenere_v6', '1');
     win.localStorage.setItem('classes', JSON.stringify(classes));

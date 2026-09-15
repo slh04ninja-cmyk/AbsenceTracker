@@ -907,3 +907,54 @@ function rechercherEleves(idInput, idResultats) {
   });
 }
 
+
+
+// ========== RECHERCHER LES ELEVES QUI N'ONT PAS DE CODE MASSAR (lecture seule) ==========
+// Sans code MASSAR, un eleve ne peut etre ni reconnu lors d'un import, ni propose
+// comme « sorti » : il resterait melange aux vrais eleves. Cet outil les RETROUVE
+// et les LISTE, classe par classe. Il ne modifie rien (v3.96 : avant, il inventait
+// un code temporaire — l'utilisateur a demande une simple recherche).
+function elevesSansCode() {
+  const liste = [];
+  classes.forEach(c => c.eleves.forEach(e => {
+    if (!String(e.massar || '').trim()) {
+      liste.push({ classe: c.nom, classeId: c.id, eleveId: e.id, eleve: libelleEleve(e) });
+    }
+  }));
+  return liste;
+}
+
+function rechercherElevesSansCode() {
+  const cont = document.getElementById('massar-manquants-liste');
+  if (!cont) return;
+  const liste = elevesSansCode();
+  cont.classList.remove('hidden');
+  cont.innerHTML = '';
+  if (!liste.length) {
+    // meme comportement que « Rechercher les doublons d'élèves » : une notification le dit
+    afficherToast('Aucun élève sans code MASSAR détecté', 'info');
+    cont.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">Tous les élèves ont un code MASSAR.</p>';
+    return;
+  }
+  const total = document.createElement('p');
+  total.className = 'text-sm font-bold text-gray-700 mb-2';
+  total.textContent = liste.length + ' élève(s) sans code MASSAR';
+  cont.appendChild(total);
+  let classeCourante = '';
+  liste.forEach(r => {
+    if (r.classe !== classeCourante) {
+      classeCourante = r.classe;
+      const entete = document.createElement('p');
+      entete.className = 'text-xs font-bold text-gray-500 mt-2 mb-1';
+      entete.textContent = classeCourante + ' · ' + liste.filter(x => x.classe === classeCourante).length + ' élève(s)';
+      cont.appendChild(entete);
+    }
+    const item = document.createElement('div');
+    item.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg mb-1';
+    item.style.cursor = 'pointer';
+    item.onclick = () => ouvrirFicheEleve(r.eleveId, r.classeId);
+    item.innerHTML = '<p class="font-medium text-gray-800">' + r.eleve + '</p>' +
+      '<span class="text-xs text-gray-500">sans code</span>';
+    cont.appendChild(item);
+  });
+}

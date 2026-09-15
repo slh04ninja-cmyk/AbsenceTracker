@@ -224,7 +224,7 @@
     .btn-mini-profil { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; border: 2px solid var(--primary); background: transparent; color: var(--primary); font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
     .btn-mini-profil:hover { background: rgba(30,58,138,0.07); }
     body.theme-sombre .btn-mini-profil { border-color: #93c5fd; color: #93c5fd; }
-    .tag-avenir { display: inline-block; font-size: 10px; font-weight: 700; color: #1d4ed8; background: rgba(29,78,216,0.12); border-radius: 999px; padding: 1px 7px; vertical-align: middle; }
+    .tag-avenir { display: inline-block; font-size: 10px; font-weight: 700; color: #0A5C72; background: rgba(12,130,159,0.16); border-radius: 999px; padding: 1px 7px; vertical-align: middle; }
     body.theme-sombre .tag-avenir { color: #93c5fd; background: rgba(147,197,253,0.18); }
 
     /* Listes de cartes (seances annulees, absences, fermetures, annulations, personnel) : meme rendu */
@@ -266,7 +266,29 @@
       .appbar-title { font-size: 17px; }
       .stat-value { font-size: 32px; }
     }
-    /* ============ CARTES COMPACTES (direction) ============ */
+
+    /* Ligne d'un eleve dans la fenetre « detail d'une classe ». Les couleurs sont
+       ICI et non en dur dans le code : le theme sombre peut ainsi les changer. */
+    .ligne-classe-eleve { background: #f9fafb; }
+    .ligne-classe-eleve.ligne-classe-sortie { background: #f1f5f9; opacity: 0.75; }
+    .etiquette-sorti { color: #b45309; background: #fef3c7; border-radius: 999px; padding: 1px 8px; }
+
+    /* Temoin « sur quoi je travaille ? » : dans la barre de titre, sur toutes les pages.
+       serveur (vert) / telephone (ardoise) / hors ligne (ambre). La barre est sombre dans
+       les deux themes : les couleurs sont donc les memes partout. */
+    .badge-etat { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; font-size: 10px;
+                  font-weight: 700; text-transform: uppercase; letter-spacing: .4px; border-radius: 999px;
+                  padding: 2px 8px; background: rgba(255,255,255,0.18); color: #e2e8f0; cursor: pointer; }
+    .badge-etat.badge-serveur { background: #10b981; color: #ffffff; }
+    .badge-etat.badge-telephone { background: rgba(255,255,255,0.22); color: #e2e8f0; }
+    .badge-etat.badge-hors-ligne { background: #f59e0b; color: #3b2a06; }
+
+    /* Boutons d'action des cartes de liste (« Modifier », « Rétablir », corbeille) :
+       la teinte est portee par une CLASSE, jamais ecrite en dur dans le JS. */
+    .carte-action-lien { color: #1d4ed8; }
+    .carte-action-principale { color: #1e3a8a; }   /* = var(--primary), ecrit en clair pour rester verifiable */
+    .carte-action-danger { color: #dc2626; }
+/* ============ CARTES COMPACTES (direction) ============ */
     .stat-mini { padding: 12px 14px; margin-bottom: 0; }
     .stat-mini .stat-label { font-size: 11px; }
     .stat-mini .stat-value { font-size: 24px; margin: 4px 0 0; }
@@ -319,7 +341,18 @@
     body.theme-sombre .btn-fermer { background: #ea580c !important; color: #fff !important; border-color: #ea580c !important; }
     #modal-absence-detail .btn-fermer, #modal-absence-detail #btn-justifier-absence,
     #modal-fiche-eleve .btn-fermer, #modal-fiche-eleve .btn-primary { font-size: 17px; font-weight: 800; padding: 15px 20px; }
-    /* ============ BLOC MOTIF DE JUSTIFICATION ============ */
+
+    /* Fenetre « detail d'une classe » : la meme chose en sombre (memes gris que le
+       reste de l'application). */
+    body.theme-sombre .ligne-classe-eleve { background: #273549; }
+    body.theme-sombre .ligne-classe-eleve.ligne-classe-sortie { background: #1e293b; opacity: 0.85; }
+    body.theme-sombre .etiquette-sorti { color: #fcd34d; background: rgba(245,158,11,0.18); }
+
+    /* Boutons d'action des cartes de liste : en sombre, les bleus fonces ci-dessus
+       devenaient illisibles sur les cartes (#273549) : on passe au bleu clair de l'app. */
+    body.theme-sombre .carte-action-lien, body.theme-sombre .carte-action-principale { color: #93c5fd; }
+    body.theme-sombre .carte-action-danger { color: #fca5a5; }
+/* ============ BLOC MOTIF DE JUSTIFICATION ============ */
     .motif-carte { border-radius: 20px; padding: 14px; background: linear-gradient(135deg, #eff6ff 0%, #ffffff 55%, #f8fafc 100%); border: 1px solid #bfdbfe; box-shadow: 0 4px 14px rgba(30,58,138,0.08); }
     .motif-entete { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; text-align: center; }
     .motif-titre { font-size: 13px; font-weight: 800; color: #1e3a8a; line-height: 1.2; }
@@ -392,7 +425,7 @@
     }
     /* Pastilles : teal du theme */
     body.role-enseignant:not(.theme-sombre) .tag-avenir, body.role-surveillant:not(.theme-sombre) .tag-avenir,
-    body.role-directeur:not(.theme-sombre) .tag-avenir { color: var(--lot-secondaire); background: rgba(12, 130, 159, 0.12); }
+    body.role-directeur:not(.theme-sombre) .tag-avenir { color: #0A5C72; background: rgba(12, 130, 159, 0.16); }
     /* Cartes eleves de l'historique : degrade doux du theme */
     body.role-enseignant:not(.theme-sombre) .carte-eleve, body.role-surveillant:not(.theme-sombre) .carte-eleve,
     body.role-directeur:not(.theme-sombre) .carte-eleve {
@@ -606,17 +639,67 @@
           <i class="fas fa-shield-alt mr-1"></i> Connexion sécurisée
         </p>
 
-        <div class="mt-5 pt-4 border-t border-gray-200">
-          <p class="text-center text-xs text-gray-500 leading-relaxed">Comptes test — mot de passe 12345 :<br>
+        <div class="mt-5 pt-4 border-t border-gray-200" id="bloc-comptes-test">
+          <p class="text-center text-xs text-gray-500 leading-relaxed">Comptes du téléphone (sans internet) — mot de passe 12345 :<br>
           Profs : math-prof1 · pc-prof1 · svt-prof1 · fr-prof1 · ang-prof1 · ar-prof1 @taalim.ma<br>
           eps-prof1 · info-prof1 · philo-prof1 · ei-prof1 · hg-prof1 @taalim.ma<br>
           Surveillants : s1 · s2 @taalim.ma · Directeur : d @taalim.ma</p>
+        </div>
+
+        <!-- ===== NOUVELLE ECOLE : installation en une fois ===== -->
+        <div class="mt-5 pt-4 border-t border-gray-200">
+          <button type="button" onclick="basculerPanneauEcole()" class="btn-secondary w-full">
+            <i class="fas fa-school"></i> Installer une nouvelle école
+          </button>
+          <div id="panneau-ecole" class="hidden mt-4">
+            <p class="aide mb-3">L'école se prépare toute seule : la base est créée avec vos règles,
+               votre établissement et votre fiche de directeur. <b>Aucune donnée d'élève n'est
+               ajoutée</b> : vous importerez vos listes ensuite.</p>
+            <div class="form-group">
+              <label>Code de l'établissement</label>
+              <input type="text" id="ecole-code" placeholder="ex. 55300S07">
+            </div>
+            <div class="form-group">
+              <label>Nom de l'établissement</label>
+              <input type="text" id="ecole-nom" placeholder="ex. الثانوية الفتح التأهيلية">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="form-group">
+                <label>Académie</label>
+                <select id="ecole-academie" onchange="changerAcademieEcole()"></select>
+              </div>
+              <div class="form-group">
+                <label>Direction</label>
+                <select id="ecole-direction"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Année scolaire</label>
+              <input type="text" id="ecole-annee" placeholder="2026-2027">
+            </div>
+            <p class="text-sm font-bold text-gray-700 sep-titre">Le compte du directeur</p>
+            <div class="form-group">
+              <label>Son nom</label>
+              <input type="text" id="ecole-directeur">
+            </div>
+            <div class="form-group">
+              <label>Son adresse (identifiant)</label>
+              <input type="email" id="ecole-email" placeholder="directeur@exemple.ma" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>Son mot de passe</label>
+              <input type="password" id="ecole-mdp" placeholder="6 caractères minimum" autocomplete="new-password">
+            </div>
+            <button type="button" onclick="installerEcoleDepuisFormulaire()" class="btn-primary w-full">
+              <i class="fas fa-check"></i> Installer cette école
+            </button>
+          </div>
         </div>
       </div>
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.86 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.04 — Prototype</p>
     </div>
   </div>
 </div>
@@ -1037,6 +1120,11 @@
         <p class="text-sm font-bold text-gray-700 sep-titre">Doublons d&rsquo;élèves</p>
         <p class="text-xs text-gray-500 mb-2">Un élève dont le code MASSAR est déjà présent n&rsquo;est jamais dupliqué à l&rsquo;import. Si un ancien import a créé des doublons, cet outil les retrouve et les fusionne en gardant l&rsquo;historique.</p>
         <button onclick="verifierDoublonsEleves()" class="btn-secondary w-full"><i class="fas fa-clone"></i> Rechercher les doublons d&rsquo;élèves</button>
+
+        <p class="text-sm font-bold text-gray-700 sep-titre">Codes MASSAR manquants</p>
+        <p class="text-xs text-gray-500 mb-2">Un élève <b>sans code</b> ne peut être ni reconnu, ni proposé comme « sorti » lors d&rsquo;un import : il resterait mélangé aux vrais élèves. Cet outil <b>retrouve</b> ces élèves et les liste, classe par classe (touche une ligne pour ouvrir sa fiche). Rien n&rsquo;est modifié.</p>
+        <button onclick="rechercherElevesSansCode()" class="btn-secondary w-full"><i class="fas fa-search"></i> Rechercher les élèves sans code MASSAR</button>
+        <div id="massar-manquants-liste" class="hidden mt-3"></div>
       </div>
 
       <!-- Liste des classes -->
@@ -1332,8 +1420,9 @@
     <div class="px-4 pb-3" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;">
       <div id="detail-classe-eleves"></div>
     </div>
-    <div class="px-4 pb-5 pt-2" style="flex-shrink: 0;">
-      <button onclick="demanderSuppressionClasse()" class="btn-danger w-full"><i class="fas fa-trash"></i> Supprimer cette classe</button>
+    <div class="px-4 pb-5 pt-2 flex gap-3" style="flex-shrink: 0;">
+      <button onclick="fermerDetailClasse()" class="btn-fermer" style="flex: 0 0 auto;">Fermer</button>
+      <button onclick="demanderSuppressionClasse()" class="btn-danger" style="flex: 1 1 auto;"><i class="fas fa-trash"></i> Supprimer la classe</button>
     </div>
   </div>
 </div>
@@ -1465,6 +1554,14 @@
           <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Au moins un chiffre (0-9)</li>
           <li><i class="fas fa-times-circle text-gray-400 mr-2"></i>Pas de caractères spéciaux</li>
         </ul>
+
+        <hr class="my-3 border-gray-200">
+        <p class="text-sm font-bold text-gray-700 sep-titre">Repartir du serveur</p>
+        <p class="aide">Efface tout ce qui est sur ce téléphone (listes, élèves, absences, anciens comptes)
+           et ne garde que la connexion à votre école, sur le serveur.</p>
+        <button type="button" onclick="repartirDuServeur()" class="btn-danger w-full">
+          <i class="fas fa-cloud-download-alt"></i> Effacer ce téléphone et repartir du serveur
+        </button>
       </div>
     </div>
     <div class="flex gap-3 px-4 pt-2 pb-5" style="flex-shrink: 0;">
@@ -1574,7 +1671,8 @@ const Depot = {
     catch (e) { console.warn('Depot : ecriture impossible pour ' + cle, e); return false; }
   },
   ecrireJSON(cle, valeur) { return Depot.ecrire(cle, JSON.stringify(valeur)); },
-  effacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} }
+  effacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} },
+  effacerTout() { try { localStorage.clear(); } catch (e) {} }     // « repartir du serveur »
 };
 // ========== CHARGEMENT DES CLASSES (persistees en localStorage) ==========
 let classes = [];
@@ -1583,20 +1681,30 @@ let nextEleveId = 1;
 
 const DEMO_VERSION = 'v3.0';
 
+// Les donnees de DEMONSTRATION (classes + historique) ne se chargent QUE si on le demande :
+//   - le telephone de l'utilisateur qui veut une demo : Depot.ecrire('modeDemonstration', '1') ;
+//   - une ecole livree n'a AUCUNE donnee de test : elle commence vide et importe ses listes.
+function modeDemonstration() { return Depot.lire('modeDemonstration', null) === '1'; }
+
 function chargerClasses() {
   const sauve = Depot.lire('classes', null);
   const version = Depot.lire('absenceTrackVersion', null);
-  if (sauve && version === DEMO_VERSION) {
+  if (sauve) {
     try {
       const liste = JSON.parse(sauve);
       if (Array.isArray(liste) && liste.length > 0) {
-        nextClasseId = liste.reduce((m, c) => Math.max(m, c.id), 0) + 1;
-        nextEleveId = liste.reduce((m, c) => Math.max(m, c.eleves.reduce((mm, e) => Math.max(mm, e.id), 0)), 0) + 1;
-        return liste;
+        // REGLE : ce qui est enregistre n'est JAMAIS perdu. On ne remplace l'enregistrement
+        // que sur le telephone de demonstration, quand la demonstration elle-meme a change.
+        if (!modeDemonstration() || version === DEMO_VERSION) {
+          nextClasseId = liste.reduce((m, c) => Math.max(m, c.id), 0) + 1;
+          nextEleveId = liste.reduce((m, c) => Math.max(m, c.eleves.reduce((mm, e) => Math.max(mm, e.id), 0)), 0) + 1;
+          return liste;
+        }
       }
     } catch (e) {}
   }
-  // Nouveau jeu de donnees de test : on repart de zero
+  // Rien a reprendre : ecole (on part VIDE) ou telephone de demonstration (on pose le jeu de test)
+  if (!modeDemonstration()) return [];
   Depot.effacer('absences');
   const init = JSON.parse(JSON.stringify(classesDemo));
   nextClasseId = init.reduce((m, c) => Math.max(m, c.id), 0) + 1;
@@ -1699,6 +1807,8 @@ function chargerTableauxService() {
     const sauve = Depot.lireJSON('tableauxService_v2', null);
     if (sauve && typeof sauve === 'object' && !Array.isArray(sauve)) return sauve;
   } catch (e) {}
+  // Le telephone de demonstration recoit les tableaux de test ; une ECOLE commence VIDE.
+  if (!modeDemonstration()) return {};
   return JSON.parse(JSON.stringify(TABLEAUX_SERVICE_DEFAUT));
 }
 function sauvegarderTableauxService() {
@@ -1712,6 +1822,7 @@ const NB_ELEVES_CLASSE_SERVICE = 12;
 
 // Ajout des classes des tableaux de service : jamais destructif, on saute celles qui existent
 function ajouterClassesTableauxService() {
+  if (!modeDemonstration()) return 0;      // aucune classe de demonstration dans une ecole
   let ajoutees = 0;
   // classes citees dans les tableaux + liste de test
   const aCreer = CLASSES_TABLEAUX_SERVICE.slice();
@@ -2342,6 +2453,13 @@ function majCreneauxAnnulation() {
     });
   }
 }
+// Teinte d'un bouton d'action de carte : une CLASSE, jamais une couleur en dur dans le JS.
+// Les regles existent en clair (00-base.css) et en sombre (02-theme-sombre.css).
+function classeTeinteCarte(couleur) {
+  if (couleur === '#dc2626') return 'carte-action-danger';
+  if (couleur === 'var(--primary)') return 'carte-action-principale';
+  return 'carte-action-lien';
+}
 // Carte de liste commune (meme rendu pour les seances annulees et les absences du personnel)
 function carteLigne(titre, sousTitre, action) {
   const item = document.createElement('div');
@@ -2360,8 +2478,10 @@ function carteLigne(titre, sousTitre, action) {
   if (action) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'btn-inline flex-shrink-0';
-    b.style = 'color: ' + (action.couleur || '#1d4ed8') + ';';
+    // La teinte vient d'une CLASSE (feuille claire ET feuille sombre) : un bleu fonce ecrit
+    // en dur devenait illisible sur la carte en mode sombre (defaut signale : « Modifier »,
+    // « Rétablir »).
+    b.className = 'btn-inline flex-shrink-0 ' + classeTeinteCarte(action.couleur);
     b.innerHTML = action.icone || false;
     if (action.texte) b.textContent = action.texte;
     b.onclick = action.onclick;
@@ -2382,9 +2502,19 @@ function seancesAnnuleesParAbsence() {
     const fin = ind.fin || ind.debut;
     if (!code || !debut) return;
     // creneaux hebdomadaires du prof (jour de la semaine -> creneaux)
+    // ATTENTION : dans les tableaux de service, « prof » porte tantot le CODE
+    // (math-prof1), tantot le NOM AFFICHE (أيوب الكمرة). Comparer au seul code
+    // faisait que les seances annulees par une absence n'apparaissaient JAMAIS
+    // chez le directeur ni chez le surveillant (defaut reellement signale).
+    const nomDuProf = (function () {
+      try { return nomProfCode(code); } catch (e) { return ''; }
+    })();
+    const nomsPossibles = [code, nomDuProf];
+    if (nomsProfs && nomsProfs[code]) nomsPossibles.push(nomsProfs[code]);
+    const estCeProf = c => nomsPossibles.some(n => n && String(c.prof || '') === String(n));
     const parJour = {};
     Object.keys(tableauxService).forEach(mail => (tableauxService[mail] || []).forEach(c => {
-      if (c.prof !== code) return;
+      if (!estCeProf(c)) return;
       parJour[c.jour] = parJour[c.jour] || [];
       if (!parJour[c.jour].some(x => x.classe === c.classe && x.debut === c.debut)) parJour[c.jour].push(c);
     }));
@@ -2479,14 +2609,26 @@ function absencesCompteesPeriode(debut, fin, classe) {
 }
 
 // Ordre : de la plus proche a la plus lointaine (les seances a venir d'abord, puis les passees recentes)
+// Ordre d'affichage : la seance la PLUS PROCHE d'aujourd'hui vient en premier
+// (hier ou demain d'abord, puis on s'eloigne). A egalite de distance, celle a venir
+// passe avant celle passee. Remarque de l'utilisateur : « ordre decroissant de plus
+// proche » — c'est-a-dire de la plus proche vers la plus lointaine.
 function trierSeancesAnnulees(liste) {
   const auj = fmtDateISO(new Date());
+  const distant = (d) => {
+    const j = new Date(String(d || auj) + 'T12:00:00').getTime();
+    const t = new Date(auj + 'T12:00:00').getTime();
+    return Math.abs(j - t);
+  };
   return (liste || seancesAnnulees).slice().sort((a, b) => {
     const da = String(a.dateISO || '');
     const db = String(b.dateISO || '');
+    const ea = distant(da);
+    const eb = distant(db);
+    if (ea !== eb) return ea - eb;                 // la plus proche d'abord
     const fa = da > auj;
     const fb = db > auj;
-    if (fa !== fb) return fa ? -1 : 1;
+    if (fa !== fb) return fa ? -1 : 1;             // meme distance : a venir d'abord
     if (da !== db) return fa ? da.localeCompare(db) : db.localeCompare(da);
     return String(a.debut || '').localeCompare(String(b.debut || ''));
   });
@@ -2506,8 +2648,10 @@ function afficherSeancesAnnulees() {
     liste.forEach(sn => {
       const jour = String(sn.dateISO || '');
       const parAbsence = sn.origine === 'absence';
+      // Plus de pastille « Absence prof » (retiree le 15/09 : elle ne s'affichait pas en mode
+      // clair). Une seance annulee par une absence reste reconnaissable a son sous-titre
+      // « Absence de ... ».
       const titre = dateAffichage(jour) + ' · ' + sn.classe + ' · ' + sn.debut + '–' + (sn.fin || '') +
-        (parAbsence ? ' <span class="tag-avenir">Absence prof</span>' : '') +
         (jour > auj ? ' <span class="tag-avenir">À venir</span>' : '');
       const sous = parAbsence
         ? 'Absence de ' + nomProfCode(sn.profCode) + (sn.motif ? ' · ' + sn.motif : '')
@@ -3552,6 +3696,8 @@ function identifiantAGenerer(compte) {
 
 // Popup de controle avant d'agir
 function demanderIdentifiants() {
+  // EN MODE ECOLE : la liste vient de la BASE, les mots de passe de l'APPLICATION.
+  if (typeof estModeEcole === 'function' && estModeEcole()) { telechargerIdentifiantsEcole(); return; }
   const surveillants = comptes.filter(c => c.role === 'surveillant');
   const enseignants = comptes.filter(c => c.role === 'enseignant');
   const personnel = surveillants.concat(enseignants);
@@ -3613,6 +3759,44 @@ async function telechargerIdentifiants() {
     telechargerFichier(octets, 'identifiants.pdf');
     afficherListeProfs();
     afficherToast((lignesSurv.length + lignesEns.length) + ' identifiants enregistres et telecharges', 'success');
+  } catch (e) {
+    afficherToast('Generation du PDF impossible : ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
+// Identifiants d'une ECOLE reliee a la base : on lit les fiches du serveur et on
+// imprime les mots de passe fabriques par l'application (+ un mot de passe NEUF pour
+// chaque fiche sans compte).
+async function telechargerIdentifiantsEcole() {
+  if (!(await pdfPret())) return;
+  try {
+    const fiches = await atFichesPersonnel();
+    if (!fiches.length) { afficherToast('Aucun membre du personnel dans la base', 'error'); return; }
+    let nouveaux = 0;
+    const aLigne = function (f) {
+      const avant = String((f && f.email) || '').trim().toLowerCase();
+      const mdp = motDePassePourFiche(f);
+      if (mdp && mdp !== 'deja remis' && !motsDePasseEcole()[avant]) nouveaux++;
+      return { nom: f.nom, matiere: f.matiere || '', email: avant, password: mdp,
+               abreviation: f.role === 'surveillant' ? 'surv' : null,
+               separateur: f.role === 'surveillant' ? '' : '-prof' };
+    };
+    const lignesSurv = fiches.filter(f => f.role === 'surveillant').map(aLigne);
+    const lignesEns = fiches.filter(f => f.role === 'enseignant').map(aLigne);
+    const lib = window.PDFLib;
+    const sections = [
+      { titre: 'Surveillants', lignes: lignesSurv },
+      { titre: 'Enseignants', lignes: lignesEns }
+    ];
+    const doc = await construirePdfIdentifiants(lib, lib.PDFDocument, window.fontkit,
+      base64VersOctets(POLICE_ARABE_B64), sections, {
+        etablissement: (etablissement && etablissement.nom) || '',
+        annee: (anneeScolaire && anneeScolaire.libelle) || '',
+        date: dateAffichage(jourCourant())
+      });
+    const octets = await doc.save();
+    telechargerFichier(octets, 'identifiants.pdf');
+    afficherToast((lignesSurv.length + lignesEns.length) + ' identifiant(s) telecharge(s)', 'success');
   } catch (e) {
     afficherToast('Generation du PDF impossible : ' + (e && e.message ? e.message : e), 'error');
   }
@@ -3924,6 +4108,8 @@ function togglePassword() {
 }
 
 function connexion() {
+  // Ecole reliee a la base : le compte est verifie par le SERVEUR (et non par le telephone).
+  if (typeof estModeEcole === 'function' && estModeEcole()) { connexionParLaBase(); return; }
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const password = document.getElementById('login-password').value;
   const errorDiv = document.getElementById('login-error');
@@ -3937,15 +4123,21 @@ function connexion() {
     return;
   }
 
-  if (!email.endsWith('@taalim.ma')) {
-    errorText.textContent = "L'email doit contenir @taalim.ma";
-    errorDiv.classList.remove('hidden');
-    return;
-  }
-
+  // 1) Les comptes du TELEPHONE (l'application fonctionne sans internet)
   const compte = comptes.find(c => c.email === email && c.password === password);
   if (!compte) {
-    errorText.textContent = 'Email ou mot de passe incorrect';
+    // 2) Le SERVEUR : cette personne a peut-etre un compte dans une ecole installee
+    //    (meme adresse, mot de passe venu de la base) -> l'application se relie a son ecole.
+    //    (Le repli n'a lieu que si l'application peut joindre un serveur : dans les bancs
+    //     d'essai hors ligne, le comportement du telephone reste inchange.)
+    if (typeof connexionParLaBase === 'function' && typeof fetch === 'function') {
+      errorText.textContent = 'Connexion en cours...';
+      errorDiv.classList.remove('hidden');
+      connexionParLaBase(true);
+      return;
+    }
+    errorText.textContent = email.endsWith('@taalim.ma') ? 'Email ou mot de passe incorrect'
+                                                        : "L'email doit contenir @taalim.ma";
     errorDiv.classList.remove('hidden');
     return;
   }
@@ -3972,6 +4164,7 @@ function connexion() {
 }
 
 function deconnexion() {
+  if (typeof atSeDeconnecter === 'function') atSeDeconnecter();   // ferme aussi la session du serveur
   utilisateurConnecte = null;
   appliquerRoleTheme();
   elevesCoches.clear();
@@ -4062,6 +4255,9 @@ const TONS_TOAST = {
   error: { ton: 'ton-erreur', icone: 'fa-times-circle' }           // erreur, refus
 };
 let toastMinuterie = null, toastMinuterieSortie = null;
+// Duree d'affichage d'une notification avant qu'elle ne disparaisse.
+// 3,2 s = 1 s de plus qu'avant (demande de l'utilisateur : laisser le temps de lire).
+const DUREE_NOTIFICATION = 3200;
 
 function afficherToast(message, type) {
   const toast = document.getElementById('toast');
@@ -4085,7 +4281,7 @@ function afficherToast(message, type) {
   toastMinuterie = setTimeout(function () {
     toast.classList.remove('show');
     toastMinuterieSortie = setTimeout(function () { toast.className = 'toast hidden'; }, 600);
-  }, 2200);
+  }, DUREE_NOTIFICATION);
 }
 
 // ========== ENSEIGNANT — CLASSE & ÉLÈVES ==========
@@ -4988,15 +5184,15 @@ function ouvrirDetailClasse(id) {
     elevesDiv.innerHTML = '<p class="text-xs text-gray-500 mb-2">' + (cl.eleves.length - sortis) + ' élève(s) actif(s)' +
       (sortis ? ' · ' + sortis + ' sorti(s) (masqués à l\'appel)' : '') + '</p>' +
       cl.eleves.map(e =>
-      `<div class="flex justify-between items-center p-3 rounded-lg mb-2" style="${estSorti(e) ? 'background:#f1f5f9;opacity:0.75;' : 'background:#f9fafb;'}">
+      `<div class="ligne-classe-eleve${estSorti(e) ? ' ligne-classe-sortie' : ''} flex justify-between items-center p-3 rounded-lg mb-2">
         <div>
           <span class="font-medium">${libelleEleve(e)}</span>
           ${e.massar ? '<span class="text-xs text-gray-400 ml-2">(' + e.massar + ')</span>' : ''}
-          ${estSorti(e) ? '<span class="text-xs font-bold ml-2" style="color:#b45309;background:#fef3c7;border-radius:999px;padding:1px 8px;">sorti</span>' : ''}
+          ${estSorti(e) ? '<span class="etiquette-sorti text-xs font-bold ml-2">sorti</span>' : ''}
         </div>
         <div class="flex items-center gap-3">
-          <button onclick="marquerEleveSorti(${cl.id}, ${e.id}, ${estSorti(e) ? 'false' : 'true'})" class="js-sortir-eleve text-xs font-bold" style="color:${estSorti(e) ? '#16a34a' : '#475569'};">
-            <i class="fas ${estSorti(e) ? 'fa-rotate-left' : 'fa-user-slash'}"></i> ${estSorti(e) ? 'Rétablir' : 'Marquer sorti'}
+          <button onclick="marquerEleveSorti(${cl.id}, ${e.id}, ${estSorti(e) ? 'false' : 'true'})" class="js-sortir-eleve text-base" title="${estSorti(e) ? 'Rétablir cet élève' : 'Marquer cet élève sorti'}" style="color:${estSorti(e) ? '#ef4444' : '#94a3b8'};">
+            <i class="fas fa-user-slash"></i>
           </button>
           <button onclick="demanderSuppressionEleve(${cl.id}, ${e.id})" class="js-supprimer-eleve text-red-500 hover:text-red-700"><i class="fas fa-trash-alt"></i></button>
         </div>
@@ -6100,6 +6296,57 @@ function rechercherEleves(idInput, idResultats) {
   });
 }
 
+
+
+// ========== RECHERCHER LES ELEVES QUI N'ONT PAS DE CODE MASSAR (lecture seule) ==========
+// Sans code MASSAR, un eleve ne peut etre ni reconnu lors d'un import, ni propose
+// comme « sorti » : il resterait melange aux vrais eleves. Cet outil les RETROUVE
+// et les LISTE, classe par classe. Il ne modifie rien (v3.96 : avant, il inventait
+// un code temporaire — l'utilisateur a demande une simple recherche).
+function elevesSansCode() {
+  const liste = [];
+  classes.forEach(c => c.eleves.forEach(e => {
+    if (!String(e.massar || '').trim()) {
+      liste.push({ classe: c.nom, classeId: c.id, eleveId: e.id, eleve: libelleEleve(e) });
+    }
+  }));
+  return liste;
+}
+
+function rechercherElevesSansCode() {
+  const cont = document.getElementById('massar-manquants-liste');
+  if (!cont) return;
+  const liste = elevesSansCode();
+  cont.classList.remove('hidden');
+  cont.innerHTML = '';
+  if (!liste.length) {
+    // meme comportement que « Rechercher les doublons d'élèves » : une notification le dit
+    afficherToast('Aucun élève sans code MASSAR détecté', 'info');
+    cont.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">Tous les élèves ont un code MASSAR.</p>';
+    return;
+  }
+  const total = document.createElement('p');
+  total.className = 'text-sm font-bold text-gray-700 mb-2';
+  total.textContent = liste.length + ' élève(s) sans code MASSAR';
+  cont.appendChild(total);
+  let classeCourante = '';
+  liste.forEach(r => {
+    if (r.classe !== classeCourante) {
+      classeCourante = r.classe;
+      const entete = document.createElement('p');
+      entete.className = 'text-xs font-bold text-gray-500 mt-2 mb-1';
+      entete.textContent = classeCourante + ' · ' + liste.filter(x => x.classe === classeCourante).length + ' élève(s)';
+      cont.appendChild(entete);
+    }
+    const item = document.createElement('div');
+    item.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg mb-1';
+    item.style.cursor = 'pointer';
+    item.onclick = () => ouvrirFicheEleve(r.eleveId, r.classeId);
+    item.innerHTML = '<p class="font-medium text-gray-800">' + r.eleve + '</p>' +
+      '<span class="text-xs text-gray-500">sans code</span>';
+    cont.appendChild(item);
+  });
+}
 // ========== FICHE ELEVE ==========
 let ficheEleveId = null;
 let ficheClasseId = null;
@@ -6302,6 +6549,9 @@ function motDePasseSaisi(prefixe) {
 
 // prefixe = 'profil' (page Profil) ou 'mdpdir' (popup Mon profil du directeur)
 function changerMotDePasse(prefixe) {
+  // ECOLE RELIEE A LA BASE : c'est le SERVEUR qui verifie l'ancien mot de passe et qui
+  // enregistre le nouveau (le telephone ne les connait pas).
+  if (typeof estModeEcole === 'function' && estModeEcole()) { changerMotDePasseServeur(prefixe); return; }
   const p = prefixe || 'profil';
   const champs = motDePasseSaisi(p);
   const ancien = champs.ancien;
@@ -6570,6 +6820,7 @@ function genererDonneesTestHistorique() {
 
 // ========== INIT ==========
 function init() {
+  if (typeof appliquerModeEcole === 'function') appliquerModeEcole();
   // relecture de la liste des surveillants AVANT de la reinjecter dans les comptes
   // (sans cette ligne, un surveillant ajoute disparaissait au redemarrage)
   surveillantsRH = chargerSurveillantsRH();
@@ -6577,7 +6828,9 @@ function init() {
   appliquerMotsDePasse(); appliquerListeSurveillants();
   majEtiquetteAnnee();
   majOptionsSemestres();
-  genererDonneesTestHistorique();
+  // L'historique de demonstration ne se fabrique que sur un telephone de demonstration.
+  // Une ecole livree commence VIDE.
+  if (modeDemonstration()) genererDonneesTestHistorique();
   const saved = Depot.lire('utilisateur', null);
   if (saved) {
     try {
@@ -6593,6 +6846,12 @@ function init() {
       }
     } catch(e) {}
   }
+  // en mode ecole, une session deja ouverte se rouvre toute seule (on voit la page du role)
+  if (typeof estModeEcole === 'function' && estModeEcole()) {
+    afficherEcran('login');
+    rouvrirSessionSiBesoin();
+    return;
+  }
   afficherEcran('login');
 }
 
@@ -6603,7 +6862,8 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-init();
+// init() est appele par le DERNIER module (18-connexion.js) : lance ici, il tombait avant
+// que les fonctions du serveur soient declarees (defaut trouve par le banc v4.03).
 
 // ========== LISTES DEROULANTES PERSONNALISEES ==========
 function sdOptionCourante(select) { return select.options[select.selectedIndex] || null; }
@@ -6727,6 +6987,546 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initialiserListesDeroulantes);
 } else {
   initialiserListesDeroulantes();
+}
+// ========== CONNEXION A LA BASE DE L'ECOLE (Supabase) ==========
+// Principe : les donnees de travail restent sur le telephone (l'application continue
+// de fonctionner sans reseau). La BASE, elle, sert a trois choses :
+//   1. savoir si le code d'une ecole est deja installe  (avant toute connexion) ;
+//   2. installer une ecole NEUVE : l'etablissement + la fiche de son directeur ;
+//   3. identifier la personne et relier un professeur a sa fiche.
+// La cle utilisee est PUBLIQUE par nature : elle ne donne acces qu'a ce que les
+// regles de la base autorisent (chaque role ne voit que ce qui le concerne).
+//
+// Toutes les portes cote base : etat_etablissement, premier_directeur,
+// rattacher_mon_compte. Aucune autre n'est necessaire.
+
+const AT_BASE = 'https://fgrkjrttcbuflykligfw.supabase.co';
+const AT_CLE = 'sb_publishable_q2lOylqVGhUCuHw9kQ7JgQ_Ske0LC9b';
+const AT_DOSSIER_SESSION = 'atSession';
+
+let atSession = null;         // { access_token, refresh_token, expire_le, email, id }
+
+// ---------- petites briques ----------
+function atEntetes(jeton, avecContenu) {
+  const t = { apikey: AT_CLE, Authorization: 'Bearer ' + (jeton || AT_CLE) };
+  if (avecContenu) t['Content-Type'] = 'application/json';
+  return t;
+}
+
+async function atReponse(rep) {
+  const texte = await rep.text();
+  let donnees = null;
+  try { donnees = texte ? JSON.parse(texte) : null; } catch (e) { donnees = null; }
+  if (!rep.ok) {
+    const msg = (donnees && (donnees.msg || donnees.message || donnees.error_description ||
+                             donnees.hint || donnees.details)) || ('Erreur ' + rep.status);
+    const erreur = new Error(msg);
+    erreur.statut = rep.status;
+    throw erreur;
+  }
+  return donnees;
+}
+
+function atEnregistrerSession(session) {
+  atSession = session;
+  try { Depot.ecrire(AT_DOSSIER_SESSION, JSON.stringify(session)); } catch (e) {}
+}
+
+function atChargerSession() {
+  if (atSession) return atSession;
+  try {
+    const brut = Depot.lire(AT_DOSSIER_SESSION, null);
+    if (brut) atSession = JSON.parse(brut);
+  } catch (e) { atSession = null; }
+  return atSession;
+}
+
+function atOublierSession() {
+  atSession = null;
+  Depot.effacer(AT_DOSSIER_SESSION);      // Depôt : lire / ecrire / ecrireJSON / effacer
+}
+
+// ---------- 1. l'ecole est-elle deja installee ? ----------
+async function atEtatCode(code) {
+  const rep = await fetch(AT_BASE + '/rest/v1/rpc/etat_etablissement', {
+    method: 'POST', headers: atEntetes(null, true), body: JSON.stringify({ p_code: code })
+  });
+  return await atReponse(rep);            // 'code_vide' | 'libre' | 'installe' | 'sans_directeur'
+}
+
+// ---------- 2. creer un compte (inscription) ----------
+async function atCreerCompte(email, motDePasse) {
+  const rep = await fetch(AT_BASE + '/auth/v1/signup', {
+    method: 'POST', headers: atEntetes(null, true),
+    body: JSON.stringify({ email: email, password: motDePasse })
+  });
+  const d = await atReponse(rep);
+  if (!d || !d.access_token) {
+    throw new Error("Le serveur attend une confirmation par courriel. Ce reglage doit etre " +
+                    "desactive une fois pour toutes (Authentication > Sign In / Providers > Email).");
+  }
+  atEnregistrerSession({
+    access_token: d.access_token, refresh_token: d.refresh_token,
+    expire_le: Date.now() + ((d.expires_in || 3600) * 1000),
+    email: (d.user && d.user.email) || email, id: (d.user && d.user.id) || null
+  });
+  return atSession;
+}
+
+// ---------- 3. se connecter ----------
+async function atConnecter(email, motDePasse) {
+  const rep = await fetch(AT_BASE + '/auth/v1/token?grant_type=password', {
+    method: 'POST', headers: atEntetes(null, true),
+    body: JSON.stringify({ email: email, password: motDePasse })
+  });
+  const d = await atReponse(rep);
+  atEnregistrerSession({
+    access_token: d.access_token, refresh_token: d.refresh_token,
+    expire_le: Date.now() + ((d.expires_in || 3600) * 1000),
+    email: (d.user && d.user.email) || email, id: (d.user && d.user.id) || null
+  });
+  return atSession;
+}
+
+async function atRenouveler() {
+  const s = atChargerSession();
+  if (!s || !s.refresh_token) return null;
+  const rep = await fetch(AT_BASE + '/auth/v1/token?grant_type=refresh_token', {
+    method: 'POST', headers: atEntetes(null, true), body: JSON.stringify({ refresh_token: s.refresh_token })
+  });
+  const d = await atReponse(rep);
+  atEnregistrerSession({
+    access_token: d.access_token, refresh_token: d.refresh_token || s.refresh_token,
+    expire_le: Date.now() + ((d.expires_in || 3600) * 1000), email: s.email, id: s.id
+  });
+  return atSession;
+}
+
+// jeton valable : on renouvelle avant qu'il n'expire (marge de 60 s)
+async function atJeton() {
+  const s = atChargerSession();
+  if (!s) return null;
+  if (s.expire_le && Date.now() > (s.expire_le - 60000)) {
+    try { await atRenouveler(); } catch (e) { atOublierSession(); return null; }
+  }
+  return (atSession && atSession.access_token) || null;
+}
+
+// ---------- 4. installer une ecole neuve (le directeur) ----------
+async function atInstallerEcole(infos) {
+  const jeton = await atJeton();
+  if (!jeton) throw new Error('Connectez-vous d\'abord.');
+  const rep = await fetch(AT_BASE + '/rest/v1/rpc/premier_directeur', {
+    method: 'POST', headers: atEntetes(jeton, true),
+    body: JSON.stringify({
+      p_code_etab: infos.code, p_nom_etab: infos.nom, p_nom: infos.directeur,
+      p_academie: infos.academie || '', p_direction: infos.direction || '',
+      p_annee: infos.annee || '', p_semestres: infos.semestres || []
+    })
+  });
+  return await atReponse(rep);            // l'identifiant de la fiche creee
+}
+
+// ---------- 5. un membre du personnel se relie a sa fiche ----------
+async function atRelierMaFiche() {
+  const jeton = await atJeton();
+  if (!jeton) throw new Error('Connectez-vous d\'abord.');
+  const rep = await fetch(AT_BASE + '/rest/v1/rpc/rattacher_mon_compte', {
+    method: 'POST', headers: atEntetes(jeton, true), body: '{}'
+  });
+  return await atReponse(rep);            // l'identifiant de sa fiche
+}
+
+// ---------- 6. qui suis-je ? (ma fiche + mon ecole) ----------
+async function atQuiSuisJe() {
+  const jeton = await atJeton();
+  if (!jeton) return null;
+  const s = atChargerSession();
+  const rep = await fetch(AT_BASE + '/rest/v1/profils?select=id,nom,role,matiere,email,etablissement_id' +
+                          '&auth_user_id=eq.' + s.id, { headers: atEntetes(jeton) });
+  const fiches = await atReponse(rep);
+  if (!fiches || !fiches.length) return { fiche: null, etablissement: null, compte: s };
+  const fiche = fiches[0];
+  const rep2 = await fetch(AT_BASE + '/rest/v1/etablissements?select=id,code,nom,academie,direction,annee_libelle,semestres' +
+                           '&id=eq.' + fiche.etablissement_id, { headers: atEntetes(jeton) });
+  const etabs = await atReponse(rep2);
+  return { fiche: fiche, etablissement: (etabs && etabs[0]) || null, compte: s };
+}
+
+function atSeDeconnecter() { atOublierSession(); }
+
+if (typeof window !== 'undefined') {
+  window.atEtatCode = atEtatCode;
+  window.atCreerCompte = atCreerCompte;
+  window.atConnecter = atConnecter;
+  window.atJeton = atJeton;
+  window.atInstallerEcole = atInstallerEcole;
+  window.atRelierMaFiche = atRelierMaFiche;
+  window.atQuiSuisJe = atQuiSuisJe;
+  window.atSeDeconnecter = atSeDeconnecter;
+}
+
+// ========== 7. MODE « ECOLE » : L'APPLICATION RELIEE A LA BASE ==========
+// Deux façons de poser l'application dans une école :
+//   - « Nouvelle école » : le directeur remplit le formulaire, la base se prepare toute seule ;
+//   - « Se relier a ma fiche » : un professeur ou un surveillant dont la fiche existe deja.
+// Quand l'application est en mode ecole, elle ne fabrique AUCUNE donnee de demonstration :
+// une ecole neuve commence vide (c'est le but).
+function estModeEcole() {
+  return Depot.lire('installationServeur', null) === '1';
+}
+
+function passerEnModeEcole() {
+  Depot.ecrire('installationServeur', '1');
+  appliquerModeEcole();
+}
+
+// En mode ecole, les comptes du telephone (et leur mot de passe de demonstration)
+// ne s'affichent pas : la connexion passe par le serveur.
+function appliquerModeEcole() {
+  const bloc = document.getElementById('bloc-comptes-test');
+  if (bloc) bloc.classList.toggle('hidden', estModeEcole());
+}
+
+function direErreurLogin(message) {
+  const texte = document.getElementById('login-error-text');
+  const bloc = document.getElementById('login-error');
+  if (texte) texte.textContent = message;
+  if (bloc) bloc.classList.remove('hidden');
+}
+
+function traduireErreurBase(e) {
+  const m = String((e && e.message) || '');
+  if (/invalid login credentials/i.test(m)) return 'Adresse ou mot de passe incorrect';
+  if (/Aucune fiche ne correspond/i.test(m)) return m;
+  if (/deja reli/i.test(m)) return m;
+  if (/Plusieurs fiches/i.test(m)) return m;
+  if (/confirmation par courriel/i.test(m)) return m;
+  if (/Failed to fetch|NetworkError|network|fetch/i.test(m)) return 'Pas de connexion internet : reessayez dans un moment.';
+  return m || 'Connexion impossible';
+}
+
+// Ouvre l'application sur la page du role, avec la fiche et l'ecole venues de la base.
+function ouvrirSessionDeLaBase(moi) {
+  const f = moi.fiche;
+  const e = moi.etablissement || {};
+  utilisateurConnecte = {
+    email: moi.compte.email, role: f.role, code: f.code || '', matiere: f.matiere || '',
+    nom: f.nom, serveur: true, fiche: f.id, etablissementId: f.etablissement_id
+  };
+  Depot.ecrireJSON('utilisateur', utilisateurConnecte);
+  if (e && e.code) {
+    etablissement = { code: e.code || '', nom: e.nom || '', academie: e.academie || '', direction: e.direction || '' };
+    if (typeof sauvegarderParametres === 'function') sauvegarderParametres();
+    if (typeof afficherParametres === 'function') { try { afficherParametres(); } catch (err) {} }
+  }
+  appliquerRoleTheme();
+  if (typeof majBadgeEtat === 'function') majBadgeEtat();
+  if (f.role === 'enseignant') {
+    afficherEcran('enseignant'); remplirListeClasses(); choisirClasse(''); afficherInfosProf(); appliquerTableauService();
+  } else if (f.role === 'surveillant') {
+    afficherEcran('surveillant'); mettreAJourDashboardSurv(); afficherSeancesAnnulees();
+  } else {
+    afficherEcran('directeur'); mettreAJourDashboardDir(); afficherSeancesAnnulees();
+  }
+}
+
+// Connexion par la base : le compte est verifie par le serveur ; si la personne a une fiche
+// sans compte (preparee par son directeur), elle s'y relie toute seule.
+async function connexionParLaBase(basculerEnModeEcole) {
+  const email = (document.getElementById('login-email').value || '').trim().toLowerCase();
+  const mdp = document.getElementById('login-password').value;
+  const bloc = document.getElementById('login-error');
+  if (bloc) bloc.classList.add('hidden');
+  if (!email || !mdp) { direErreurLogin('Veuillez remplir tous les champs'); return false; }
+  try {
+    try {
+      await atConnecter(email, mdp);
+    } catch (e) {
+      // PREMIERE CONNEXION d'un membre du personnel : le compte n'existe pas encore.
+      // Le directeur lui a remis un mot de passe avec sa fiche -> l'application cree
+      // le compte avec CE mot de passe, puis le relie a sa fiche.
+      if (!/invalid|credential/i.test(String(e && e.message))) throw e;
+      await atCreerCompte(email, mdp);
+    }
+    let moi = await atQuiSuisJe();
+    if (moi && !moi.fiche) {
+      await atRelierMaFiche();
+      moi = await atQuiSuisJe();
+    }
+    if (!moi || !moi.fiche) {
+      direErreurLogin("Votre compte n'a pas encore de fiche : demandez au directeur de l'ajouter.");
+      atSeDeconnecter();
+      return false;
+    }
+    // Une personne venue de la base : l'application passe en mode ecole
+    // (les comptes du telephone ne s'affichent plus, la connexion passe par le serveur).
+    if (basculerEnModeEcole) passerEnModeEcole();
+    ouvrirSessionDeLaBase(moi);
+    return true;
+  } catch (e) {
+    direErreurLogin(traduireErreurBase(e));
+    return false;
+  }
+}
+
+// ---------- 8. INSTALLER UNE NOUVELLE ECOLE (le directeur) ----------
+function changerAcademieEcole() {
+  const sel = document.getElementById('ecole-academie');
+  const dir = document.getElementById('ecole-direction');
+  if (!sel || !dir) return;
+  const liste = (typeof directionsAcademie === 'function') ? directionsAcademie(sel.value) : [];
+  dir.innerHTML = '';
+  liste.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; dir.appendChild(o); });
+}
+
+function basculerPanneauEcole() {
+  const p = document.getElementById('panneau-ecole');
+  if (!p) return;
+  const ouvert = !p.classList.contains('hidden');
+  p.classList.toggle('hidden', ouvert);
+  if (!ouvert) {
+    const sel = document.getElementById('ecole-academie');
+    if (sel && !sel.options.length && typeof ACADEMIES !== 'undefined') {
+      ACADEMIES.forEach(a => { const o = document.createElement('option'); o.value = a.nom; o.textContent = a.nom; sel.appendChild(o); });
+      changerAcademieEcole();
+    }
+    const annee = document.getElementById('ecole-annee');
+    if (annee && !annee.value) annee.value = (typeof anneeScolaire !== 'undefined' && anneeScolaire.libelle) || '2026-2027';
+  }
+}
+
+function valeurChamp(id) { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; }
+
+async function installerEcoleDepuisFormulaire() {
+  const infos = {
+    code: valeurChamp('ecole-code'), nom: valeurChamp('ecole-nom'),
+    academie: valeurChamp('ecole-academie'), direction: valeurChamp('ecole-direction'),
+    annee: valeurChamp('ecole-annee') || '2026-2027',
+    directeur: valeurChamp('ecole-directeur'), email: valeurChamp('ecole-email'),
+    mdp: valeurChamp('ecole-mdp')
+  };
+  if (!infos.code || !infos.nom) { afficherToast("Indiquez le code et le nom de l'etablissement", 'error'); return; }
+  if (!infos.directeur || !infos.email || !infos.mdp) { afficherToast('Renseignez le compte du directeur', 'error'); return; }
+  if (infos.mdp.length < 6) { afficherToast('Le mot de passe doit faire au moins 6 caracteres', 'error'); return; }
+  try {
+    const etat = await atEtatCode(infos.code);
+    if (etat === 'installe') {
+      afficherToast('Cette ecole est deja installee : connectez-vous avec votre compte', 'warning');
+      return;
+    }
+    if (etat === 'sans_directeur') {
+      afficherToast('Une installation a ete commencee pour ce code : contactez le support', 'warning');
+      return;
+    }
+    await atCreerCompte(infos.email, infos.mdp);
+    await atInstallerEcole({
+      code: infos.code, nom: infos.nom, directeur: infos.directeur,
+      academie: infos.academie, direction: infos.direction, annee: infos.annee,
+      semestres: (typeof anneeScolaire !== 'undefined' && anneeScolaire.semestres) || []
+    });
+    passerEnModeEcole();
+    etablissement = { code: infos.code, nom: infos.nom, academie: infos.academie, direction: infos.direction };
+    if (typeof sauvegarderParametres === 'function') sauvegarderParametres();
+    const moi = await atQuiSuisJe();
+    if (moi && moi.fiche) { ouvrirSessionDeLaBase(moi); afficherToast('Ecole installee — bienvenue !', 'success'); }
+    else { direErreurLogin("L'ecole est creee, mais la fiche du directeur n'a pas ete lue. Connectez-vous."); }
+  } catch (e) {
+    afficherToast(traduireErreurBase(e), 'error');
+  }
+}
+
+// ---------- 9. LE PERSONNEL DE LA BASE + LES MOTS DE PASSE DE L'APPLICATION ----------
+// Le serveur ne peut PAS rendre un mot de passe (il les garde chiffres a sens unique).
+// C'est donc l'APPLICATION qui fabrique les mots de passe et qui les garde ; elle les
+// envoie le jour ou la personne cree son compte (sa premiere connexion).
+async function atFichesPersonnel() {
+  const jeton = await atJeton();
+  if (!jeton) throw new Error('Connexion requise.');
+  const rep = await fetch(AT_BASE + '/rest/v1/profils' +
+    '?select=id,nom,role,matiere,email,code,auth_user_id,actif' +
+    '&role=in.(enseignant,surveillant)&order=role,matiere,nom', { headers: atEntetes(jeton) });
+  return (await atReponse(rep)) || [];
+}
+
+function motsDePasseEcole() {
+  try { return JSON.parse(Depot.lire('identifiantsEcole', '{}')) || {}; } catch (e) { return {}; }
+}
+
+function retenirMotDePasseEcole(email, mdp) {
+  const t = motsDePasseEcole();
+  t[String(email).toLowerCase()] = mdp;
+  Depot.ecrireJSON('identifiantsEcole', t);
+}
+
+// Le mot de passe d'une fiche : celui que l'application connait, sinon un mot de passe
+// NEUF (la personne le creera en se connectant pour la premiere fois), sinon la mention
+// « deja remis » pour un compte cree ailleurs (l'application ne peut pas le relire).
+function motDePassePourFiche(fiche) {
+  const email = String((fiche && fiche.email) || '').trim().toLowerCase();
+  if (!email) return '';
+  const connus = motsDePasseEcole();
+  if (connus[email]) return connus[email];
+  if (!fiche.auth_user_id && typeof genererMotDePasse === 'function') {
+    const mdp = genererMotDePasse(8);
+    retenirMotDePasseEcole(email, mdp);
+    return mdp;
+  }
+  return 'deja remis';
+}
+
+// ---------- 10. « SUR QUOI JE TRAVAILLE ? » — LE TEMOIN VISIBLE ----------
+// Un petit temoin dans la barre de titre, sur TOUTES les pages :
+//   « serveur »  (vert)  : les comptes et l'ecole viennent de la base ;
+//   « telephone » (gris) : application non reliee, tout est sur le telephone ;
+//   « hors ligne » (ambre) : reliee, mais la base ne repond pas pour l'instant.
+function etatTravail() {
+  if (!estModeEcole()) return 'telephone';
+  return (atChargerSession() && atChargerSession().access_token) ? 'serveur' : 'hors-ligne';
+}
+
+function libelleEtatTravail(etat) {
+  if (etat === 'serveur') return 'serveur';
+  if (etat === 'hors-ligne') return 'hors ligne';
+  return 'telephone';
+}
+
+function majBadgeEtat() {
+  const etat = etatTravail();
+  const libelle = libelleEtatTravail(etat);
+  document.querySelectorAll('.badge-etat').forEach(function (b) {
+    b.className = 'badge-etat badge-' + etat;
+    b.innerHTML = '<i class="fas ' + (etat === 'serveur' ? 'fa-cloud' : (etat === 'hors-ligne' ? 'fa-cloud-slash' : 'fa-mobile-alt')) + '"></i> ' + libelle;
+    b.title = etat === 'serveur' ? 'Comptes et ecole lus sur le serveur' :
+              (etat === 'hors-ligne' ? 'Serveur injoignable : on travaille sur le telephone' :
+               'Application non reliee : tout est sur le telephone');
+    b.onclick = function () { verifierEtatTravail(); };
+  });
+}
+
+function poserBadgeEtat() {
+  document.querySelectorAll('.appbar').forEach(function (barre) {
+    if (barre.querySelector('.badge-etat')) return;
+    const b = document.createElement('span');
+    b.className = 'badge-etat';
+    barre.appendChild(b);
+  });
+  majBadgeEtat();
+}
+
+// Au clic : on redemande au serveur qui je suis, et on dit clairement ce qui a ete vu.
+async function verifierEtatTravail() {
+  if (!estModeEcole()) {
+    afficherToast('Application NON reliee : tout est sur le telephone', 'info');
+    return;
+  }
+  try {
+    const moi = await atQuiSuisJe();
+    if (moi && moi.fiche) {
+      majBadgeEtat();
+      afficherToast('Serveur : ' + (moi.etablissement ? moi.etablissement.nom : 'ecole') +
+                    ' · ' + moi.fiche.role + ' · ' + moi.fiche.nom, 'success');
+    } else {
+      afficherToast('Serveur joint, mais aucune fiche pour ce compte', 'warning');
+    }
+  } catch (e) {
+    majBadgeEtat();
+    afficherToast('Serveur injoignable : on continue sur le telephone', 'warning');
+  }
+}
+
+// ---------- 11. au demarrage : une session ouverte se rouvre toute seule ----------
+async function rouvrirSessionSiBesoin() {
+  if (!estModeEcole()) return false;
+  const jeton = await atJeton();
+  if (!jeton) return false;
+  try {
+    const moi = await atQuiSuisJe();
+    if (moi && moi.fiche) { ouvrirSessionDeLaBase(moi); return true; }
+  } catch (e) { /* hors ligne : on garde ce qui est deja dans le telephone */ }
+  return false;
+}
+
+// ---------- 12. CHANGER SON MOT DE PASSE (ecole reliee) ----------
+async function changerMotDePasseServeur(prefixe) {
+  const p = prefixe || 'profil';
+  const champs = (typeof motDePasseSaisi === 'function' ? motDePasseSaisi(p) : {}) || {};
+  const errDiv = document.getElementById(p + '-error');
+  const sucDiv = document.getElementById(p + '-success');
+  const dire = function (m) {
+    if (errDiv) { errDiv.textContent = m; errDiv.classList.remove('hidden'); }
+    if (sucDiv) sucDiv.classList.add('hidden');
+  };
+  if (errDiv) errDiv.classList.add('hidden');
+  if (sucDiv) sucDiv.classList.add('hidden');
+  if (!champs.ancien || !champs.nouveau || !champs.confirmer) return dire('Veuillez remplir tous les champs');
+  if (champs.nouveau !== champs.confirmer) return dire('Les deux mots de passe ne correspondent pas');
+  if (champs.nouveau === champs.ancien) return dire("Le nouveau mot de passe doit differer de l'ancien");
+  if (typeof validerMotDePasse === 'function') {
+    const e = validerMotDePasse(champs.nouveau);
+    if (e) return dire(e);
+  }
+  const email = utilisateurConnecte && utilisateurConnecte.email;
+  if (!email) return dire('Connectez-vous d\'abord.');
+  try {
+    await atConnecter(email, champs.ancien);          // l'ancien est verifie par le SERVEUR
+    const jeton = await atJeton();
+    const rep = await fetch(AT_BASE + '/auth/v1/user', {
+      method: 'PUT', headers: atEntetes(jeton, true), body: JSON.stringify({ password: champs.nouveau })
+    });
+    await atReponse(rep);
+    if (sucDiv) { sucDiv.textContent = 'Mot de passe change.'; sucDiv.classList.remove('hidden'); }
+    if (typeof afficherToast === 'function') afficherToast('Mot de passe change', 'success');
+  } catch (e) {
+    const m = String((e && e.message) || '');
+    if (/invalid|credential/i.test(m)) return dire("L'ancien mot de passe est incorrect");
+    return dire('Changement impossible : ' + m);
+  }
+}
+
+// ---------- 13. REPARTIR DU SERVEUR (effacer le telephone) ----------
+// Efface TOUT ce qui est sur le telephone (listes, eleves, absences, comptes locaux) et
+// ne garde que le lien avec l'ecole + la memoire des mots de passe remis au personnel.
+function repartirDuServeur() {
+  demanderConfirmation(
+    "Tout effacer sur ce telephone et repartir du serveur ?\n\n" +
+    "Vos listes, vos eleves et vos absences locales seront supprimes, et la connexion " +
+    "passera uniquement par le serveur (votre ecole et vos comptes y sont deja).",
+    function () {
+      try {
+        const garder = {
+          installationServeur: Depot.lire('installationServeur', null),
+          identifiantsEcole: Depot.lire('identifiantsEcole', null),
+          prefTheme: Depot.lire('prefTheme', null)
+        };
+        Depot.effacerTout();          // on passe par la porte unique (Depot)
+        if (garder.installationServeur) Depot.ecrire('installationServeur', garder.installationServeur);
+        if (garder.identifiantsEcole) Depot.ecrire('identifiantsEcole', garder.identifiantsEcole);
+        if (garder.prefTheme) Depot.ecrire('prefTheme', garder.prefTheme);
+      } catch (e) {}
+      atSeDeconnecter();
+      location.reload();
+    });
+}
+
+// DERNIER module charge : c'est ICI que l'application demarre. Lancer init() plus tot
+// (dans 16-init.js) tombait avant que les fonctions du serveur existent : le temoin et
+// la reouverture de session echouaient en mode ecole (defaut trouve par le banc v4.03).
+if (typeof window !== 'undefined') {
+  const demarrer = function () { try { poserBadgeEtat(); } catch (e) {} init(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer);
+  else demarrer();
+}
+
+if (typeof window !== 'undefined') {
+  window.estModeEcole = estModeEcole;
+  window.connexionParLaBase = connexionParLaBase;
+  window.installerEcoleDepuisFormulaire = installerEcoleDepuisFormulaire;
+  window.basculerPanneauEcole = basculerPanneauEcole;
+  window.changerAcademieEcole = changerAcademieEcole;
+  window.changerMotDePasseServeur = changerMotDePasseServeur;
+  window.repartirDuServeur = repartirDuServeur;
+  window.rouvrirSessionSiBesoin = rouvrirSessionSiBesoin;
 }
 </script>
 </body>

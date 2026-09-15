@@ -9,6 +9,7 @@ vc.on('jsdomError', e => erreurs.push('jsdomError: ' + (e.message || e)));
 vc.on('error', m => erreurs.push('error: ' + m));
 
 const dom = new JSDOM(html, {
+  beforeParse(win) { win.localStorage.setItem('modeDemonstration', '1'); },   // banc de DEMONSTRATION
   runScripts: 'dangerously',
   url: 'https://localhost/',
   pretendToBeVisual: true,

@@ -8,7 +8,9 @@ const vc = new VirtualConsole();
 vc.on('jsdomError', e => erreurs.push('jsdomError: ' + (e.message || e)));
 vc.on('error', m => erreurs.push('error: ' + m));
 
-const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true, virtualConsole: vc });
+const dom = new JSDOM(html, {
+  beforeParse(win) { win.localStorage.setItem('modeDemonstration', '1'); },   // banc de DEMONSTRATION
+  runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true, virtualConsole: vc });
 const win = dom.window, doc = win.document;
 let ok = true;
 const t = (n, c, e) => { console.log((c ? 'OK   ' : 'ECHEC') + ' ' + n + (e !== undefined ? '  [' + e + ']' : '')); if (!c) ok = false; };

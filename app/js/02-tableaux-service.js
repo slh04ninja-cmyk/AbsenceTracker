@@ -86,6 +86,8 @@ function chargerTableauxService() {
     const sauve = Depot.lireJSON('tableauxService_v2', null);
     if (sauve && typeof sauve === 'object' && !Array.isArray(sauve)) return sauve;
   } catch (e) {}
+  // Le telephone de demonstration recoit les tableaux de test ; une ECOLE commence VIDE.
+  if (!modeDemonstration()) return {};
   return JSON.parse(JSON.stringify(TABLEAUX_SERVICE_DEFAUT));
 }
 function sauvegarderTableauxService() {
@@ -99,6 +101,7 @@ const NB_ELEVES_CLASSE_SERVICE = 12;
 
 // Ajout des classes des tableaux de service : jamais destructif, on saute celles qui existent
 function ajouterClassesTableauxService() {
+  if (!modeDemonstration()) return 0;      // aucune classe de demonstration dans une ecole
   let ajoutees = 0;
   // classes citees dans les tableaux + liste de test
   const aCreer = CLASSES_TABLEAUX_SERVICE.slice();

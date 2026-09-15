@@ -37,6 +37,7 @@ const t = (n, c, e) => { console.log((c ? 'OK   ' : 'ECHEC') + ' ' + n + (e !== 
 const dom = new JSDOM(html, {
   runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true,
   beforeParse(win) {
+    win.localStorage.setItem('modeDemonstration', '1');   // ce banc teste l'application de DEMONSTRATION
     const Vrai = win.Date;
     win.Date = class extends Vrai {
       constructor(...a) { super(...(a.length ? a : [FIXE])); }

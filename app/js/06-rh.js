@@ -635,6 +635,8 @@ function identifiantAGenerer(compte) {
 
 // Popup de controle avant d'agir
 function demanderIdentifiants() {
+  // EN MODE ECOLE : la liste vient de la BASE, les mots de passe de l'APPLICATION.
+  if (typeof estModeEcole === 'function' && estModeEcole()) { telechargerIdentifiantsEcole(); return; }
   const surveillants = comptes.filter(c => c.role === 'surveillant');
   const enseignants = comptes.filter(c => c.role === 'enseignant');
   const personnel = surveillants.concat(enseignants);
@@ -696,6 +698,44 @@ async function telechargerIdentifiants() {
     telechargerFichier(octets, 'identifiants.pdf');
     afficherListeProfs();
     afficherToast((lignesSurv.length + lignesEns.length) + ' identifiants enregistres et telecharges', 'success');
+  } catch (e) {
+    afficherToast('Generation du PDF impossible : ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
+// Identifiants d'une ECOLE reliee a la base : on lit les fiches du serveur et on
+// imprime les mots de passe fabriques par l'application (+ un mot de passe NEUF pour
+// chaque fiche sans compte).
+async function telechargerIdentifiantsEcole() {
+  if (!(await pdfPret())) return;
+  try {
+    const fiches = await atFichesPersonnel();
+    if (!fiches.length) { afficherToast('Aucun membre du personnel dans la base', 'error'); return; }
+    let nouveaux = 0;
+    const aLigne = function (f) {
+      const avant = String((f && f.email) || '').trim().toLowerCase();
+      const mdp = motDePassePourFiche(f);
+      if (mdp && mdp !== 'deja remis' && !motsDePasseEcole()[avant]) nouveaux++;
+      return { nom: f.nom, matiere: f.matiere || '', email: avant, password: mdp,
+               abreviation: f.role === 'surveillant' ? 'surv' : null,
+               separateur: f.role === 'surveillant' ? '' : '-prof' };
+    };
+    const lignesSurv = fiches.filter(f => f.role === 'surveillant').map(aLigne);
+    const lignesEns = fiches.filter(f => f.role === 'enseignant').map(aLigne);
+    const lib = window.PDFLib;
+    const sections = [
+      { titre: 'Surveillants', lignes: lignesSurv },
+      { titre: 'Enseignants', lignes: lignesEns }
+    ];
+    const doc = await construirePdfIdentifiants(lib, lib.PDFDocument, window.fontkit,
+      base64VersOctets(POLICE_ARABE_B64), sections, {
+        etablissement: (etablissement && etablissement.nom) || '',
+        annee: (anneeScolaire && anneeScolaire.libelle) || '',
+        date: dateAffichage(jourCourant())
+      });
+    const octets = await doc.save();
+    telechargerFichier(octets, 'identifiants.pdf');
+    afficherToast((lignesSurv.length + lignesEns.length) + ' identifiant(s) telecharge(s)', 'success');
   } catch (e) {
     afficherToast('Generation du PDF impossible : ' + (e && e.message ? e.message : e), 'error');
   }

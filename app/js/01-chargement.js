@@ -25,7 +25,8 @@ const Depot = {
     catch (e) { console.warn('Depot : ecriture impossible pour ' + cle, e); return false; }
   },
   ecrireJSON(cle, valeur) { return Depot.ecrire(cle, JSON.stringify(valeur)); },
-  effacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} }
+  effacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} },
+  effacerTout() { try { localStorage.clear(); } catch (e) {} }     // « repartir du serveur »
 };
 // ========== CHARGEMENT DES CLASSES (persistees en localStorage) ==========
 let classes = [];
@@ -34,20 +35,30 @@ let nextEleveId = 1;
 
 const DEMO_VERSION = 'v3.0';
 
+// Les donnees de DEMONSTRATION (classes + historique) ne se chargent QUE si on le demande :
+//   - le telephone de l'utilisateur qui veut une demo : Depot.ecrire('modeDemonstration', '1') ;
+//   - une ecole livree n'a AUCUNE donnee de test : elle commence vide et importe ses listes.
+function modeDemonstration() { return Depot.lire('modeDemonstration', null) === '1'; }
+
 function chargerClasses() {
   const sauve = Depot.lire('classes', null);
   const version = Depot.lire('absenceTrackVersion', null);
-  if (sauve && version === DEMO_VERSION) {
+  if (sauve) {
     try {
       const liste = JSON.parse(sauve);
       if (Array.isArray(liste) && liste.length > 0) {
-        nextClasseId = liste.reduce((m, c) => Math.max(m, c.id), 0) + 1;
-        nextEleveId = liste.reduce((m, c) => Math.max(m, c.eleves.reduce((mm, e) => Math.max(mm, e.id), 0)), 0) + 1;
-        return liste;
+        // REGLE : ce qui est enregistre n'est JAMAIS perdu. On ne remplace l'enregistrement
+        // que sur le telephone de demonstration, quand la demonstration elle-meme a change.
+        if (!modeDemonstration() || version === DEMO_VERSION) {
+          nextClasseId = liste.reduce((m, c) => Math.max(m, c.id), 0) + 1;
+          nextEleveId = liste.reduce((m, c) => Math.max(m, c.eleves.reduce((mm, e) => Math.max(mm, e.id), 0)), 0) + 1;
+          return liste;
+        }
       }
     } catch (e) {}
   }
-  // Nouveau jeu de donnees de test : on repart de zero
+  // Rien a reprendre : ecole (on part VIDE) ou telephone de demonstration (on pose le jeu de test)
+  if (!modeDemonstration()) return [];
   Depot.effacer('absences');
   const init = JSON.parse(JSON.stringify(classesDemo));
   nextClasseId = init.reduce((m, c) => Math.max(m, c.id), 0) + 1;

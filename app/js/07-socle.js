@@ -206,6 +206,8 @@ function togglePassword() {
 }
 
 function connexion() {
+  // Ecole reliee a la base : le compte est verifie par le SERVEUR (et non par le telephone).
+  if (typeof estModeEcole === 'function' && estModeEcole()) { connexionParLaBase(); return; }
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const password = document.getElementById('login-password').value;
   const errorDiv = document.getElementById('login-error');
@@ -219,15 +221,21 @@ function connexion() {
     return;
   }
 
-  if (!email.endsWith('@taalim.ma')) {
-    errorText.textContent = "L'email doit contenir @taalim.ma";
-    errorDiv.classList.remove('hidden');
-    return;
-  }
-
+  // 1) Les comptes du TELEPHONE (l'application fonctionne sans internet)
   const compte = comptes.find(c => c.email === email && c.password === password);
   if (!compte) {
-    errorText.textContent = 'Email ou mot de passe incorrect';
+    // 2) Le SERVEUR : cette personne a peut-etre un compte dans une ecole installee
+    //    (meme adresse, mot de passe venu de la base) -> l'application se relie a son ecole.
+    //    (Le repli n'a lieu que si l'application peut joindre un serveur : dans les bancs
+    //     d'essai hors ligne, le comportement du telephone reste inchange.)
+    if (typeof connexionParLaBase === 'function' && typeof fetch === 'function') {
+      errorText.textContent = 'Connexion en cours...';
+      errorDiv.classList.remove('hidden');
+      connexionParLaBase(true);
+      return;
+    }
+    errorText.textContent = email.endsWith('@taalim.ma') ? 'Email ou mot de passe incorrect'
+                                                        : "L'email doit contenir @taalim.ma";
     errorDiv.classList.remove('hidden');
     return;
   }
@@ -254,6 +262,7 @@ function connexion() {
 }
 
 function deconnexion() {
+  if (typeof atSeDeconnecter === 'function') atSeDeconnecter();   // ferme aussi la session du serveur
   utilisateurConnecte = null;
   appliquerRoleTheme();
   elevesCoches.clear();
@@ -344,6 +353,9 @@ const TONS_TOAST = {
   error: { ton: 'ton-erreur', icone: 'fa-times-circle' }           // erreur, refus
 };
 let toastMinuterie = null, toastMinuterieSortie = null;
+// Duree d'affichage d'une notification avant qu'elle ne disparaisse.
+// 3,2 s = 1 s de plus qu'avant (demande de l'utilisateur : laisser le temps de lire).
+const DUREE_NOTIFICATION = 3200;
 
 function afficherToast(message, type) {
   const toast = document.getElementById('toast');
@@ -367,6 +379,6 @@ function afficherToast(message, type) {
   toastMinuterie = setTimeout(function () {
     toast.classList.remove('show');
     toastMinuterieSortie = setTimeout(function () { toast.className = 'toast hidden'; }, 600);
-  }, 2200);
+  }, DUREE_NOTIFICATION);
 }
 

@@ -63,17 +63,67 @@
           <i class="fas fa-shield-alt mr-1"></i> Connexion sécurisée
         </p>
 
-        <div class="mt-5 pt-4 border-t border-gray-200">
-          <p class="text-center text-xs text-gray-500 leading-relaxed">Comptes test — mot de passe 12345 :<br>
+        <div class="mt-5 pt-4 border-t border-gray-200" id="bloc-comptes-test">
+          <p class="text-center text-xs text-gray-500 leading-relaxed">Comptes du téléphone (sans internet) — mot de passe 12345 :<br>
           Profs : math-prof1 · pc-prof1 · svt-prof1 · fr-prof1 · ang-prof1 · ar-prof1 @taalim.ma<br>
           eps-prof1 · info-prof1 · philo-prof1 · ei-prof1 · hg-prof1 @taalim.ma<br>
           Surveillants : s1 · s2 @taalim.ma · Directeur : d @taalim.ma</p>
+        </div>
+
+        <!-- ===== NOUVELLE ECOLE : installation en une fois ===== -->
+        <div class="mt-5 pt-4 border-t border-gray-200">
+          <button type="button" onclick="basculerPanneauEcole()" class="btn-secondary w-full">
+            <i class="fas fa-school"></i> Installer une nouvelle école
+          </button>
+          <div id="panneau-ecole" class="hidden mt-4">
+            <p class="aide mb-3">L'école se prépare toute seule : la base est créée avec vos règles,
+               votre établissement et votre fiche de directeur. <b>Aucune donnée d'élève n'est
+               ajoutée</b> : vous importerez vos listes ensuite.</p>
+            <div class="form-group">
+              <label>Code de l'établissement</label>
+              <input type="text" id="ecole-code" placeholder="ex. 55300S07">
+            </div>
+            <div class="form-group">
+              <label>Nom de l'établissement</label>
+              <input type="text" id="ecole-nom" placeholder="ex. الثانوية الفتح التأهيلية">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="form-group">
+                <label>Académie</label>
+                <select id="ecole-academie" onchange="changerAcademieEcole()"></select>
+              </div>
+              <div class="form-group">
+                <label>Direction</label>
+                <select id="ecole-direction"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Année scolaire</label>
+              <input type="text" id="ecole-annee" placeholder="2026-2027">
+            </div>
+            <p class="text-sm font-bold text-gray-700 sep-titre">Le compte du directeur</p>
+            <div class="form-group">
+              <label>Son nom</label>
+              <input type="text" id="ecole-directeur">
+            </div>
+            <div class="form-group">
+              <label>Son adresse (identifiant)</label>
+              <input type="email" id="ecole-email" placeholder="directeur@exemple.ma" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>Son mot de passe</label>
+              <input type="password" id="ecole-mdp" placeholder="6 caractères minimum" autocomplete="new-password">
+            </div>
+            <button type="button" onclick="installerEcoleDepuisFormulaire()" class="btn-primary w-full">
+              <i class="fas fa-check"></i> Installer cette école
+            </button>
+          </div>
         </div>
       </div>
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.86 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.04 — Prototype</p>
     </div>
   </div>
 </div>
@@ -494,6 +544,11 @@
         <p class="text-sm font-bold text-gray-700 sep-titre">Doublons d&rsquo;élèves</p>
         <p class="text-xs text-gray-500 mb-2">Un élève dont le code MASSAR est déjà présent n&rsquo;est jamais dupliqué à l&rsquo;import. Si un ancien import a créé des doublons, cet outil les retrouve et les fusionne en gardant l&rsquo;historique.</p>
         <button onclick="verifierDoublonsEleves()" class="btn-secondary w-full"><i class="fas fa-clone"></i> Rechercher les doublons d&rsquo;élèves</button>
+
+        <p class="text-sm font-bold text-gray-700 sep-titre">Codes MASSAR manquants</p>
+        <p class="text-xs text-gray-500 mb-2">Un élève <b>sans code</b> ne peut être ni reconnu, ni proposé comme « sorti » lors d&rsquo;un import : il resterait mélangé aux vrais élèves. Cet outil <b>retrouve</b> ces élèves et les liste, classe par classe (touche une ligne pour ouvrir sa fiche). Rien n&rsquo;est modifié.</p>
+        <button onclick="rechercherElevesSansCode()" class="btn-secondary w-full"><i class="fas fa-search"></i> Rechercher les élèves sans code MASSAR</button>
+        <div id="massar-manquants-liste" class="hidden mt-3"></div>
       </div>
 
       <!-- Liste des classes -->
@@ -789,8 +844,9 @@
     <div class="px-4 pb-3" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;">
       <div id="detail-classe-eleves"></div>
     </div>
-    <div class="px-4 pb-5 pt-2" style="flex-shrink: 0;">
-      <button onclick="demanderSuppressionClasse()" class="btn-danger w-full"><i class="fas fa-trash"></i> Supprimer cette classe</button>
+    <div class="px-4 pb-5 pt-2 flex gap-3" style="flex-shrink: 0;">
+      <button onclick="fermerDetailClasse()" class="btn-fermer" style="flex: 0 0 auto;">Fermer</button>
+      <button onclick="demanderSuppressionClasse()" class="btn-danger" style="flex: 1 1 auto;"><i class="fas fa-trash"></i> Supprimer la classe</button>
     </div>
   </div>
 </div>
@@ -922,6 +978,14 @@
           <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Au moins un chiffre (0-9)</li>
           <li><i class="fas fa-times-circle text-gray-400 mr-2"></i>Pas de caractères spéciaux</li>
         </ul>
+
+        <hr class="my-3 border-gray-200">
+        <p class="text-sm font-bold text-gray-700 sep-titre">Repartir du serveur</p>
+        <p class="aide">Efface tout ce qui est sur ce téléphone (listes, élèves, absences, anciens comptes)
+           et ne garde que la connexion à votre école, sur le serveur.</p>
+        <button type="button" onclick="repartirDuServeur()" class="btn-danger w-full">
+          <i class="fas fa-cloud-download-alt"></i> Effacer ce téléphone et repartir du serveur
+        </button>
       </div>
     </div>
     <div class="flex gap-3 px-4 pt-2 pb-5" style="flex-shrink: 0;">
@@ -1003,5 +1067,6 @@
   <script src="js/15-donnees-test.js"></script>
   <script src="js/16-init.js"></script>
   <script src="js/17-listes-deroulantes.js"></script>
+  <script src="js/18-connexion.js"></script>
 </body>
 </html>

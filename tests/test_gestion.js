@@ -14,6 +14,7 @@ vc.on('jsdomError', e => erreurs.push('jsdomError: ' + (e.message || e)));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true, virtualConsole: vc,
   beforeParse(win) {
+    win.localStorage.setItem('modeDemonstration', '1');   // ce banc teste l'application de DEMONSTRATION
     win.localStorage.setItem('classes', JSON.stringify(classes));
     win.localStorage.setItem('absenceTrackVersion', 'v3.0');
     win.localStorage.setItem('absences', '[]');
@@ -148,7 +149,7 @@ const attendre = ms => new Promise(r => setTimeout(r, ms));
   // 5bis. suppression d'une classe : confirmation obligatoire
   win.switchDirPage('dir-gestion');
   const boutonSupprClasse = () => Array.from(doc.querySelectorAll('#modal-classe-detail button'))
-    .find(b => b.textContent.indexOf('Supprimer cette classe') >= 0);
+    .find(b => b.textContent.indexOf('Supprimer la classe') >= 0);   // bouton raccourci (une seule ligne)
   const nbClassesAvant = JSON.parse(win.localStorage.getItem('classes')).length;
   clic(doc.querySelectorAll('#dir-classes-list > div')[nbClassesAvant - 1]);   // la derniere, pour garder la classe 1
   clic(boutonSupprClasse());

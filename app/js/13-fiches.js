@@ -201,6 +201,9 @@ function motDePasseSaisi(prefixe) {
 
 // prefixe = 'profil' (page Profil) ou 'mdpdir' (popup Mon profil du directeur)
 function changerMotDePasse(prefixe) {
+  // ECOLE RELIEE A LA BASE : c'est le SERVEUR qui verifie l'ancien mot de passe et qui
+  // enregistre le nouveau (le telephone ne les connait pas).
+  if (typeof estModeEcole === 'function' && estModeEcole()) { changerMotDePasseServeur(prefixe); return; }
   const p = prefixe || 'profil';
   const champs = motDePasseSaisi(p);
   const ancien = champs.ancien;

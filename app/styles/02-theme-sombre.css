@@ -48,4 +48,14 @@
     body.theme-sombre .btn-fermer { background: #ea580c !important; color: #fff !important; border-color: #ea580c !important; }
     #modal-absence-detail .btn-fermer, #modal-absence-detail #btn-justifier-absence,
     #modal-fiche-eleve .btn-fermer, #modal-fiche-eleve .btn-primary { font-size: 17px; font-weight: 800; padding: 15px 20px; }
-    
+
+    /* Fenetre « detail d'une classe » : la meme chose en sombre (memes gris que le
+       reste de l'application). */
+    body.theme-sombre .ligne-classe-eleve { background: #273549; }
+    body.theme-sombre .ligne-classe-eleve.ligne-classe-sortie { background: #1e293b; opacity: 0.85; }
+    body.theme-sombre .etiquette-sorti { color: #fcd34d; background: rgba(245,158,11,0.18); }
+
+    /* Boutons d'action des cartes de liste : en sombre, les bleus fonces ci-dessus
+       devenaient illisibles sur les cartes (#273549) : on passe au bleu clair de l'app. */
+    body.theme-sombre .carte-action-lien, body.theme-sombre .carte-action-principale { color: #93c5fd; }
+    body.theme-sombre .carte-action-danger { color: #fca5a5; }

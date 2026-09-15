@@ -43,7 +43,7 @@
     }
     /* Pastilles : teal du theme */
     body.role-enseignant:not(.theme-sombre) .tag-avenir, body.role-surveillant:not(.theme-sombre) .tag-avenir,
-    body.role-directeur:not(.theme-sombre) .tag-avenir { color: var(--lot-secondaire); background: rgba(12, 130, 159, 0.12); }
+    body.role-directeur:not(.theme-sombre) .tag-avenir { color: #0A5C72; background: rgba(12, 130, 159, 0.16); }
     /* Cartes eleves de l'historique : degrade doux du theme */
     body.role-enseignant:not(.theme-sombre) .carte-eleve, body.role-surveillant:not(.theme-sombre) .carte-eleve,
     body.role-directeur:not(.theme-sombre) .carte-eleve {

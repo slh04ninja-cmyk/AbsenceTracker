@@ -16,6 +16,7 @@ vc.on('jsdomError', e => erreurs.push('jsdomError: ' + (e.message || e)));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true, virtualConsole: vc,
   beforeParse(win) {
+    win.localStorage.setItem('modeDemonstration', '1');   // ce banc teste l'application de DEMONSTRATION
     const V = win.Date;
     win.Date = class extends V { constructor(...a) { super(...(a.length ? a : [FIXE])); } static now() { return FIXE; } };
     win.localStorage.setItem('absenceTrackVersion', 'v3.0');
@@ -78,11 +79,12 @@ setTimeout(() => {
   win.switchDirPage('directeur');
   l = lignes('annul-liste');
   t('la liste du Dashboard contient les 2 sources', l.length === 1 + calculees.length, l.length);
-  t('les séances issues de l absence sont marquées',
-    l.some(x => x.indexOf('Absence prof') >= 0 && x.indexOf('Absence de سامية الحاضي') >= 0 && x.indexOf('Maladie') >= 0),
-    l.find(x => x.indexOf('Absence prof') >= 0) || 'aucune');
+  t('les séances issues de l absence sont reconnaissables (sous-titre)',
+    l.some(x => x.indexOf('Absence de سامية الحاضي') >= 0 && x.indexOf('Maladie') >= 0) &&
+    l.every(x => x.indexOf('Absence prof') < 0),
+    l.find(x => x.indexOf('Absence de ') >= 0) || 'aucune');
   t('pas de bouton Rétablir sur une séance issue d une absence',
-    l.filter(x => x.indexOf('Absence prof') >= 0).every(x => x.indexOf('Rétablir') < 0));
+    l.filter(x => x.indexOf('Absence de ') >= 0).every(x => x.indexOf('Rétablir') < 0));
 
   // ---------- 3. Tri : de la plus proche à la plus lointaine ----------
   const dates = l.map(x => x.slice(0, 10));

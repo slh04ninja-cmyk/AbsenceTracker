@@ -202,6 +202,13 @@ function majCreneauxAnnulation() {
     });
   }
 }
+// Teinte d'un bouton d'action de carte : une CLASSE, jamais une couleur en dur dans le JS.
+// Les regles existent en clair (00-base.css) et en sombre (02-theme-sombre.css).
+function classeTeinteCarte(couleur) {
+  if (couleur === '#dc2626') return 'carte-action-danger';
+  if (couleur === 'var(--primary)') return 'carte-action-principale';
+  return 'carte-action-lien';
+}
 // Carte de liste commune (meme rendu pour les seances annulees et les absences du personnel)
 function carteLigne(titre, sousTitre, action) {
   const item = document.createElement('div');
@@ -220,8 +227,10 @@ function carteLigne(titre, sousTitre, action) {
   if (action) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'btn-inline flex-shrink-0';
-    b.style = 'color: ' + (action.couleur || '#1d4ed8') + ';';
+    // La teinte vient d'une CLASSE (feuille claire ET feuille sombre) : un bleu fonce ecrit
+    // en dur devenait illisible sur la carte en mode sombre (defaut signale : « Modifier »,
+    // « Rétablir »).
+    b.className = 'btn-inline flex-shrink-0 ' + classeTeinteCarte(action.couleur);
     b.innerHTML = action.icone || false;
     if (action.texte) b.textContent = action.texte;
     b.onclick = action.onclick;
@@ -242,9 +251,19 @@ function seancesAnnuleesParAbsence() {
     const fin = ind.fin || ind.debut;
     if (!code || !debut) return;
     // creneaux hebdomadaires du prof (jour de la semaine -> creneaux)
+    // ATTENTION : dans les tableaux de service, « prof » porte tantot le CODE
+    // (math-prof1), tantot le NOM AFFICHE (أيوب الكمرة). Comparer au seul code
+    // faisait que les seances annulees par une absence n'apparaissaient JAMAIS
+    // chez le directeur ni chez le surveillant (defaut reellement signale).
+    const nomDuProf = (function () {
+      try { return nomProfCode(code); } catch (e) { return ''; }
+    })();
+    const nomsPossibles = [code, nomDuProf];
+    if (nomsProfs && nomsProfs[code]) nomsPossibles.push(nomsProfs[code]);
+    const estCeProf = c => nomsPossibles.some(n => n && String(c.prof || '') === String(n));
     const parJour = {};
     Object.keys(tableauxService).forEach(mail => (tableauxService[mail] || []).forEach(c => {
-      if (c.prof !== code) return;
+      if (!estCeProf(c)) return;
       parJour[c.jour] = parJour[c.jour] || [];
       if (!parJour[c.jour].some(x => x.classe === c.classe && x.debut === c.debut)) parJour[c.jour].push(c);
     }));
@@ -339,14 +358,26 @@ function absencesCompteesPeriode(debut, fin, classe) {
 }
 
 // Ordre : de la plus proche a la plus lointaine (les seances a venir d'abord, puis les passees recentes)
+// Ordre d'affichage : la seance la PLUS PROCHE d'aujourd'hui vient en premier
+// (hier ou demain d'abord, puis on s'eloigne). A egalite de distance, celle a venir
+// passe avant celle passee. Remarque de l'utilisateur : « ordre decroissant de plus
+// proche » — c'est-a-dire de la plus proche vers la plus lointaine.
 function trierSeancesAnnulees(liste) {
   const auj = fmtDateISO(new Date());
+  const distant = (d) => {
+    const j = new Date(String(d || auj) + 'T12:00:00').getTime();
+    const t = new Date(auj + 'T12:00:00').getTime();
+    return Math.abs(j - t);
+  };
   return (liste || seancesAnnulees).slice().sort((a, b) => {
     const da = String(a.dateISO || '');
     const db = String(b.dateISO || '');
+    const ea = distant(da);
+    const eb = distant(db);
+    if (ea !== eb) return ea - eb;                 // la plus proche d'abord
     const fa = da > auj;
     const fb = db > auj;
-    if (fa !== fb) return fa ? -1 : 1;
+    if (fa !== fb) return fa ? -1 : 1;             // meme distance : a venir d'abord
     if (da !== db) return fa ? da.localeCompare(db) : db.localeCompare(da);
     return String(a.debut || '').localeCompare(String(b.debut || ''));
   });
@@ -366,8 +397,10 @@ function afficherSeancesAnnulees() {
     liste.forEach(sn => {
       const jour = String(sn.dateISO || '');
       const parAbsence = sn.origine === 'absence';
+      // Plus de pastille « Absence prof » (retiree le 15/09 : elle ne s'affichait pas en mode
+      // clair). Une seance annulee par une absence reste reconnaissable a son sous-titre
+      // « Absence de ... ».
       const titre = dateAffichage(jour) + ' · ' + sn.classe + ' · ' + sn.debut + '–' + (sn.fin || '') +
-        (parAbsence ? ' <span class="tag-avenir">Absence prof</span>' : '') +
         (jour > auj ? ' <span class="tag-avenir">À venir</span>' : '');
       const sous = parAbsence
         ? 'Absence de ' + nomProfCode(sn.profCode) + (sn.motif ? ' · ' + sn.motif : '')

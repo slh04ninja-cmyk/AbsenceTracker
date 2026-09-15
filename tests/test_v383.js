@@ -20,6 +20,7 @@ vc.on('jsdomError', e => erreurs.push('jsdomError: ' + (e.message || e)));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously', url: 'https://localhost/', pretendToBeVisual: true, virtualConsole: vc,
   beforeParse(win) {
+    win.localStorage.setItem('modeDemonstration', '1');   // ce banc teste l'application de DEMONSTRATION
     win.localStorage.setItem('absenceTrackVersion', 'v3.0');
     win.localStorage.setItem('testHistoGenere_v6', '1');
     win.localStorage.setItem('classes', JSON.stringify(classes));
@@ -72,13 +73,19 @@ setTimeout(async () => {
     cs.transition);
 
   // ---------- 3. entree / disparition ----------
+  // duree d'affichage : on intercepte la minuterie pour la mesurer exactement
+  const delais = [];
+  const vraiSetTimeout = win.setTimeout;
+  win.setTimeout = function (fn, ms) { delais.push(ms); return vraiSetTimeout(fn, ms); };
   win.afficherToast('Bonjour', 'success');
+  win.setTimeout = vraiSetTimeout;
+  t('la notification reste 3,2 s (1 s de plus qu avant)', delais.indexOf(3200) >= 0, delais.join(', ') + ' ms');
   t('a l affichage : classe « show »', toast().classList.contains('show'));
   t('a l affichage : plus de « hidden »', !toast().classList.contains('hidden'));
   t('a l affichage : la classe d entree gagne (translate 0)',
     win.getComputedStyle(toast()).transform.indexOf('-160%') < 0, win.getComputedStyle(toast()).transform);
-  await attendre(2300);
-  t('apres ~2.2 s : la classe « show » est retiree (elle remonte)',
+  await attendre(3300);
+  t('apres ~3.2 s : la classe « show » est retiree (elle remonte)',
     !toast().classList.contains('show'), toast().className);
   t('elle est revenue au-dessus de l ecran',
     win.getComputedStyle(toast()).transform.indexOf('-160%') >= 0, win.getComputedStyle(toast()).transform);
