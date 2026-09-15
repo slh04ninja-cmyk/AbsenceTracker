@@ -652,6 +652,47 @@ const attendreQue = async (cond, tours) => {
   t('sans reseau : le compte de demonstration entre normalement',
     d3.getElementById('page-directeur').classList.contains('active'));
 
+  // ---------- 12-bis) RENOMMER LE DIRECTEUR : le nom part SUR LE SERVEUR ----------
+  // Sans cela, la lecture suivante ramene l'ancien nom (defaut reellement signale).
+  // Ce bloc est place EN DERNIER : il declenche un envoi complet, qui modifie l'etat
+  // du serveur simule et rendrait fausses les verifications precedentes.
+  // on se remet DANS l'etat serveur (le bloc 11b a ramene un compte de demonstration)
+  win.localStorage.setItem('espaceServeur', JSON.stringify({ fiche: 7, etablissementId: 3 }));
+  await essayerConnexion('directeur@taalim.ma', MDP2);
+  await attendreQue(() => ev('serveurActif()') === true);
+  t('de retour sur le compte du serveur pour ces verifications', ev('serveurActif()') === true);
+  const avantNom = appels.length;
+  doc.getElementById('mdpdir-nom').value = 'SaLaH Nouveau';
+  await ev('enregistrerProfilDir()');
+  await pause(); await pause();
+  t('renommer le directeur : le nouveau nom part sur le serveur (sa propre fiche)',
+    appels.slice(avantNom).some(function (a) {
+      return a.url.indexOf('/rest/v1/profils?id=eq.') >= 0 && a.options.method === 'PATCH' &&
+             JSON.parse(a.options.body).nom === 'SaLaH Nouveau';
+    }),
+    JSON.stringify(appels.slice(avantNom).filter(function (a) { return a.options.method !== 'GET'; })
+      .map(function (a) { return a.options.method + ' ' + a.url; }).slice(0, 3)));
+
+  // ---------- 12-ter) RECUPERER DES SAISIES RESTEES SUR LE TELEPHONE ----------
+  win.localStorage.setItem('seancesAnnuleesAvantServeur',
+    JSON.stringify([{ id: 9001, dateISO: '2026-10-07', classe: 'TCSF-1', debut: '08:00', fin: '10:00', motif: 'Retrouvee' }]));
+  win.localStorage.setItem('fermeturesEtabAvantServeur',
+    JSON.stringify([{ id: 9002, libelle: 'Fete retrouvee', debut: '2026-11-01', fin: '2026-11-02', portee: 'journee' }]));
+  const retrouvees = ev('saisiesRetrouvees()');
+  t('les saisies restees sur le telephone sont RETROUVEES',
+    retrouvees.length >= 2 && retrouvees[0].nombre >= 1,
+    JSON.stringify(retrouvees.map(function (x) { return x.nombre + ' ' + x.nom; })));
+  const avantRecup = appels.length;
+  await ev('installationRecuperer()');
+  await pause(); await pause();
+  t('elles sont remises dans les listes du telephone',
+    ev("seancesAnnulees.some(function (a) { return a.motif === 'Retrouvee'; })") === true &&
+    ev("fermeturesEtab.some(function (f) { return f.libelle === 'Fete retrouvee'; })") === true,
+    'annulations=' + ev('seancesAnnulees.length') + ' fermetures=' + ev('fermeturesEtab.length'));
+  t('et elles partent aussitot au serveur',
+    appels.length > avantRecup,
+    (appels.length - avantRecup) + ' appel(s)');
+
   console.log(ok ? '=== TOUT OK ===' : '=== DES ECHECS ===');
   process.exit(ok ? 0 : 1);
 })();

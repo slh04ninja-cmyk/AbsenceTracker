@@ -25,7 +25,22 @@ const Depot = {
     catch (e) { console.warn('Depot : ecriture impossible pour ' + cle, e); return false; }
   },
   ecrireJSON(cle, valeur) { return Depot.ecrire(cle, JSON.stringify(valeur)); },
-  effacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} }
+  effacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} },
+  // Toute la memoire rangee (pour une sauvegarde). `ecarter` : les cles a ne pas
+  // copier (les jetons de connexion, par exemple). Reste DANS cette porte : aucun
+  // module ne touche au stockage directement.
+  tout(ecarter) {
+    const exclus = ecarter || [];
+    const contenu = {};
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const cle = localStorage.key(i);
+        if (exclus.indexOf(cle) >= 0) continue;
+        contenu[cle] = localStorage.getItem(cle);
+      }
+    } catch (e) {}
+    return contenu;
+  }
 };
 // ========== CHARGEMENT DES CLASSES (persistees en localStorage) ==========
 let classes = [];

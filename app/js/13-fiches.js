@@ -217,6 +217,32 @@ function changerMotDePasse(prefixe) {
     errDiv.classList.remove('hidden');
     return;
   }
+  // Compte du SERVEUR : le mot de passe est garde par Supabase, pas par l'app. C'est
+  // donc le serveur qui le change (le jeton de connexion fait foi : l'ancien mot de
+  // passe garde son role pour les comptes de demonstration seulement).
+  if (serveurActif()) {
+    const erreurServeur = validerMotDePasse(nouveau);
+    if (erreurServeur) { errDiv.textContent = erreurServeur; errDiv.classList.remove('hidden'); return; }
+    if (nouveau !== confirmer) {
+      errDiv.textContent = 'Les deux mots de passe ne correspondent pas';
+      errDiv.classList.remove('hidden');
+      return;
+    }
+    sucDiv.textContent = 'Changement en cours...';
+    sucDiv.classList.remove('hidden');
+    serveurAppel('/auth/v1/user', { methode: 'PUT', corps: { password: nouveau } })
+      .then(function () {
+        sucDiv.textContent = 'Mot de passe change sur le serveur';
+        afficherToast('Mot de passe change', 'modif');
+      })
+      .catch(function (e) {
+        sucDiv.classList.add('hidden');
+        errDiv.textContent = 'Le serveur a refuse : ' + (e.message || '') +
+          ' (si le message parle de reconnexion recente, deconnecte-toi puis reconnecte-toi et recommence)';
+        errDiv.classList.remove('hidden');
+      });
+    return;
+  }
   if (ancien !== utilisateurConnecte.password) {
     errDiv.textContent = "L'ancien mot de passe est incorrect";
     errDiv.classList.remove('hidden');
@@ -291,6 +317,14 @@ function enregistrerProfilDir() {
     }
     const elNom = document.getElementById('profil-nom');
     if (elNom) elNom.textContent = nom;
+    // Sur le serveur, ce nom vit dans la FICHE du compte connecte : on la met a jour
+    // tout de suite, sinon la prochaine lecture ramene l'ancien nom (defaut signale).
+    if (serveurActif() && serveurIdFiche()) {
+      serveurAppel('/rest/v1/profils?id=eq.' + serveurIdFiche(), { methode: 'PATCH', corps: { nom: nom } })
+        .catch(function (e) {
+          afficherToast('Nom garde sur le telephone, pas encore sur le serveur (' + e.message + ')', 'warning');
+        });
+    }
   }
   // Mot de passe : uniquement si les champs sont remplis
   if (!motDePasseSaisi('mdpdir').vide) { changerMotDePasse('mdpdir'); return; }

@@ -76,7 +76,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.101 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.102 — Prototype</p>
     </div>
   </div>
 </div>
@@ -1033,6 +1033,14 @@
           <button type="button" id="inst-btn-envoyer" onclick="installationEnvoyer()" class="btn-primary btn-ripple w-full flex items-center justify-center gap-2 mt-2">
             <i class="fas fa-cloud-upload-alt"></i> Envoyer mes données au serveur
           </button>
+          <div id="inst-recuperation" style="display: none;">
+            <p class="sep-titre">Saisies retrouvées sur ce téléphone</p>
+            <p class="aide" id="inst-recuperation-etat"></p>
+            <button type="button" id="inst-btn-recuperer" onclick="installationRecuperer()" class="btn-primary btn-ripple w-full flex items-center justify-center gap-2 mt-2">
+              <i class="fas fa-life-ring"></i> Les remettre et les envoyer
+            </button>
+            <button type="button" class="lien-installation" onclick="installationSauvegarde()">Préparer une sauvegarde complète du téléphone</button>
+          </div>
           </div>
           <button type="button" class="lien-installation" id="inst-reconnecter" style="display: none;" onclick="installationDeconnexion()">Se reconnecter au serveur</button>
         <div id="inst-formulaire">

@@ -498,7 +498,7 @@ async function serveurChargerDonnees() {
 function serveurRafraichirEcrans() {
   const appels = ['mettreAJourDashboardDir', 'mettreAJourDashboardSurv', 'afficherSeancesAnnulees',
                   'afficherListeEleves', 'remplirListeClasses', 'afficherAbsencesPersonnel',
-                  'afficherSourceDonnees'];
+                  'afficherSourceDonnees', 'majBlocRecuperation'];
   for (let i = 0; i < appels.length; i++) {
     try { if (typeof window[appels[i]] === 'function') window[appels[i]](); } catch (e) {}
   }
@@ -511,6 +511,82 @@ function serveurApresEcritureAbsences() {
   serveurEnvoyerSignalements().catch(function (e) {
     instDire('ko', 'Enregistré sur le téléphone, mais pas encore sur le serveur (' + e.message + ').');
   });
+}
+
+// ========== SAUVEGARDE ET RECUPERATION DES SAISIES DU TELEPHONE ==========
+// Avant de remplacer une liste par celle du serveur, l'application garde une copie
+// de secours. Ces deux boutons permettent de la consulter et de remettre les
+// saisies : sans cela, une saisie faite avant la liaison au serveur disparaissait
+// sans bruit (defaut reellement signale).
+const SAUVEGARDES_SAISIES = [
+  { cle: 'fermeturesEtabAvantServeur',  liste: 'fermetures',  nom: 'fermeture(s) d\'établissement' },
+  { cle: 'indispoProfsAvantServeur',    liste: 'indispos',    nom: 'absence(s) d\'enseignant' },
+  { cle: 'seancesAnnuleesAvantServeur', liste: 'annulations', nom: 'annulation(s) de séance' }
+];
+
+function saisiesRetrouvees() {
+  const trouvees = [];
+  SAUVEGARDES_SAISIES.forEach(function (d) {
+    let l = null;
+    try { l = Depot.lireJSON(d.cle, null); } catch (e) { l = null; }
+    if (Array.isArray(l) && l.length) trouvees.push({ liste: d.liste, nom: d.nom, nombre: l.length, contenu: l });
+  });
+  return trouvees;
+}
+
+function majBlocRecuperation() {
+  const bloc = document.getElementById('inst-recuperation');
+  const etat = document.getElementById('inst-recuperation-etat');
+  const btn = document.getElementById('inst-btn-recuperer');
+  if (!bloc || !etat || !btn) return;
+  bloc.style.display = '';
+  const t = saisiesRetrouvees();
+  if (!t.length) {
+    etat.textContent = 'Rien à récupérer : la copie de secours ne contient plus de saisie.';
+    btn.style.display = 'none';
+    return;
+  }
+  etat.textContent = 'Retrouvé sur ce téléphone : ' +
+    t.map(function (x) { return x.nombre + ' ' + x.nom; }).join(' · ');
+  btn.style.display = '';
+}
+
+function installationRecuperer() {
+  const t = saisiesRetrouvees();
+  if (!t.length) { afficherToast('Rien à récupérer', 'warning'); return; }
+  t.forEach(function (x) {
+    if (x.liste === 'fermetures' && typeof fermeturesEtab !== 'undefined') {
+      fermeturesEtab = x.contenu; Depot.ecrireJSON('fermeturesEtab', fermeturesEtab);
+    }
+    if (x.liste === 'indispos' && typeof indispoProfs !== 'undefined') {
+      indispoProfs = x.contenu; Depot.ecrireJSON('indispoProfs', indispoProfs);
+    }
+    if (x.liste === 'annulations' && typeof seancesAnnulees !== 'undefined') {
+      seancesAnnulees = x.contenu; Depot.ecrireJSON('seancesAnnulees', seancesAnnulees);
+    }
+  });
+  afficherToast('Saisies remises : envoi au serveur...', 'modif');
+  serveurEnvoiArrierePlan();
+  setTimeout(function () { majBlocRecuperation(); serveurRafraichirEcrans(); }, 1500);
+}
+
+function telechargerTexte(texte, nom) {
+  const blob = new Blob([texte], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const lien = document.createElement('a');
+  lien.href = url; lien.download = nom;
+  document.body.appendChild(lien); lien.click(); document.body.removeChild(lien);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+}
+
+function installationSauvegarde() {
+  const contenu = Depot.tout(['sessionServeur']);   // jetons de connexion : jamais copies
+  const quand = new Date();
+  telechargerTexte(JSON.stringify({
+    application: 'AbsenceTrack', quand: quand.toISOString(),
+    source: serveurActif() ? 'serveur' : 'telephone', contenu: contenu
+  }, null, 1), 'sauvegarde-absencetrack-' + quand.toISOString().slice(0, 10) + '.json');
+  afficherToast('Sauvegarde préparée : regarde dans Téléchargements', 'modif');
 }
 
 // ---- LES ABSENCES DU PERSONNEL (indisponibilites d'un professeur ou d'un surveillant) ----
@@ -1101,6 +1177,7 @@ async function majEtapeInstallation() {
     reconnecter.style.display = '';
     majDonneesLocal();
     majDonneesServeur();
+    majBlocRecuperation();
   } else {
     document.getElementById('inst-aide-fiche').textContent =
       'Ce compte n\'a pas encore de fiche : cree ton etablissement ci-dessous.';
