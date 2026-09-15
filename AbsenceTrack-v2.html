@@ -2480,9 +2480,25 @@ let serveurARemonter = false;
 // Un seul envoi a la fois ; si un changement arrive pendant l'envoi, on refait
 // un tour a la fin. Sans cela, une modification restait sur le telephone et
 // disparaissait a la prochaine lecture du serveur (defaut reellement signale).
-let serveurEnvoiEnCours = false, serveurEnvoiARefaire = false;
+let serveurEnvoiEnCours = false, serveurEnvoiARefaire = false, serveurEnvoiMinuteur = null;
 
-function serveurEnvoiArrierePlan() {
+// Une rafale de modifications (creer une fermeture, puis une annulation, puis un
+// cours...) ne doit PAS declencher une rafale d'envois : on attend un court instant
+// de calme, puis on envoie UNE fois. Sur le reseau mobile, c'est la difference
+// entre une application fluide et une application qui « rame ».
+function serveurEnvoiArrierePlan(delai) {
+  // Pendant le CHARGEMENT de la page, les listes se reecrivent avant que ce module
+  // soit pret : ce n'est pas une erreur, il n'y a simplement rien a envoyer.
+  try {
+    if (serveurEnvoiMinuteur) clearTimeout(serveurEnvoiMinuteur);
+    serveurEnvoiMinuteur = setTimeout(function () {
+      serveurEnvoiMinuteur = null;
+      serveurEnvoiMaintenant();
+    }, delai === undefined ? 1200 : delai);
+  } catch (e) { return; }
+}
+
+function serveurEnvoiMaintenant() {
   // Pendant le CHARGEMENT de la page, les listes se reecrivent avant que la
   // session et l'utilisateur existent : ce n'est pas une erreur, il n'y a
   // simplement rien a envoyer.
@@ -2497,22 +2513,34 @@ function serveurEnvoiArrierePlan() {
   if (serveurLectureEnCours) return;            // simple rangement, pas un changement
   if (serveurEnvoiEnCours) { serveurEnvoiARefaire = true; return; }
   serveurEnvoiEnCours = true;
-  serveurEnvoyerDonnees()
-    .then(function () { return serveurEnvoyerFiches(); })
-    .then(function () { return serveurEnvoyerSeances(); })
-    .then(function () { return serveurEnvoyerFermetures(); })
-    .then(function () { return serveurEnvoyerAbsencesPersonnel(); })
-    .then(function () { return serveurEnvoyerAnnulations(); })
-    .then(function () { return serveurEnvoyerSignalements(); })
-    .then(function () { return serveurChargerDonnees(); })
-    .then(function () { serveurRafraichirEcrans(); })
-    .catch(function (e) {
-      afficherToast('Modification gardee sur le telephone, pas encore sur le serveur (' + e.message + ').', 'warning');
-    })
-    .then(function () {
-      serveurEnvoiEnCours = false;
-      if (serveurEnvoiARefaire) { serveurEnvoiARefaire = false; serveurEnvoiArrierePlan(); }
-    });
+  // Chaque famille de donnees part INDEPENDAMMENT. C'est capital : avant, la
+  // moindre erreur sur une fiche arretait toute la chaine, et les fermetures,
+  // annulations et absences du personnel n'arrivaient JAMAIS sur le serveur
+  // (defaut reellement constate sur le vrai serveur).
+  const etapes = [
+    ['les listes (classes, eleves)', serveurEnvoyerDonnees],
+    ['les personnes', serveurEnvoyerFiches],
+    ['les cours', serveurEnvoyerSeances],
+    ['les fermetures', serveurEnvoyerFermetures],
+    ['les absences du personnel', serveurEnvoyerAbsencesPersonnel],
+    ['les annulations de seance', serveurEnvoyerAnnulations],
+    ['les absences', serveurEnvoyerSignalements]
+  ];
+  const soucis = [];
+  (async function () {
+    for (let i = 0; i < etapes.length; i++) {
+      try { await etapes[i][1](); }
+      catch (e) { soucis.push(etapes[i][0] + ' : ' + (e.message || e)); }
+    }
+    try { await serveurChargerDonnees(); } catch (e) { soucis.push('relecture : ' + (e.message || e)); }
+    serveurRafraichirEcrans();
+    if (soucis.length) {
+      afficherToast('Garde sur le telephone (pas encore sur le serveur) — ' + soucis.join(' | '), 'warning');
+    }
+  })().then(function () {
+    serveurEnvoiEnCours = false;
+    if (serveurEnvoiARefaire) { serveurEnvoiARefaire = false; serveurEnvoiArrierePlan(0); }
+  });
 }
 
 function etabLocal() {
@@ -2644,6 +2672,17 @@ async function serveurChargerDonnees() {
         '&select=id,prof_id,role_absent,debut,fin,portee,motif,cree_par')) || [];
   const anServ = (await serveurAppel('/rest/v1/annulations_seances?etablissement_id=eq.' + idEtab +
         '&select=id,date_seance,classe_id,debut,fin,motif,cree_par')) || [];
+
+  // Les noms viennent du SERVEUR : on met a jour la liste locale des noms, sinon
+  // l'ecran continuerait d'afficher un ancien nom (ou un renommage « reviendrait »).
+  // MAIS PAS si un envoi est en attente : sinon la lecture ecraserait un renommage
+  // que l'utilisateur vient de faire, juste avant qu'il ne parte (course constatee).
+  try {
+    if (!serveurEnvoiMinuteur && !serveurEnvoiEnCours && !serveurEnvoiARefaire) {
+      pServ.forEach(function (p) { if (p.code && p.nom) nomsProfs[p.code] = p.nom; });
+      sauvegarderNomsProfs();        // sans envoi : la lecture est en cours (garde-fou)
+    }
+  } catch (e) {}
 
   const profParId = {}, classeParId = {}, eleveParId = {};
   pServ.forEach(function (p) { profParId[p.id] = p; });
@@ -3039,9 +3078,14 @@ function personnesAEtager() {
   for (let i = 0; i < comptes.length; i++) {
     const c = comptes[i];
     if (c.role === 'directeur') continue;            // sa fiche existe deja
+    // Le nom AFFICHE (celui qu'on a pu corriger dans l'application) fait foi :
+    // sans cette ligne, un renommage restait sur le telephone et la prochaine
+    // lecture ramenait l'ancien nom (defaut reellement signale).
+    let nomAffiche = c.nom;
+    try { if (c.code && nomsProfs[c.code]) nomAffiche = nomsProfs[c.code]; } catch (e) {}
     liste.push({
       code: c.code || null,
-      nom: c.nom,
+      nom: nomAffiche,
       role: c.role,
       matiere: c.role === 'enseignant' ? (c.matiere || null) : null,
       email: c.email || null
@@ -3051,15 +3095,19 @@ function personnesAEtager() {
   let tableaux = {};
   try { tableaux = (typeof tableauxService === 'object' && tableauxService) ? tableauxService : {}; } catch (e) { tableaux = {}; }
   for (const cle in tableaux) {
-    if (/@/.test(cle)) continue;                      // deja un compte
     const seances = tableaux[cle] || [];
     if (!seances.length) continue;
+    // Une cle qui est une adresse designe une personne connue par son e-mail : on
+    // la garde (le serveur la reconnait par son adresse), et on applique le nom
+    // affiche — sinon un renommage de cette personne ne partait jamais.
+    const estMail = /@/.test(cle);
+    const code = estMail ? cle.split('@')[0] : null;
     liste.push({
-      code: null,
-      nom: seances[0].prof || cle.replace(/^matiere:/, ''),
+      code: code,
+      nom: (code && nomsProfs[code]) || seances[0].prof || cle.replace(/^matiere:/, ''),
       role: 'enseignant',
       matiere: seances[0].matiere || cle.replace(/^matiere:/, ''),
-      email: null
+      email: estMail ? cle : null
     });
   }
   const vus = {}, uniques = [];
@@ -3078,31 +3126,57 @@ async function serveurEnvoyerFiches() {
   const rapport = { fiches: 0, maj: 0 };
   const fServ = (await serveurAppel('/rest/v1/profils?etablissement_id=eq.' + idEtab +
                                     '&select=id,code,nom,matiere,role,email,actif')) || [];
-  const parCode = {}, parNom = {};
+  const parCode = {}, parNom = {}, parMail = {};
   fServ.forEach(function (f) {
     if (f.code) parCode[f.code] = f;
-    parNom[f.nom] = f;
+    if (f.nom) parNom[f.nom] = f;
+    if (f.email) parMail[String(f.email).toLowerCase()] = f;
   });
   const liste = personnesAEtager();
   for (let i = 0; i < liste.length; i++) {
     const p = liste[i];
-    const existante = (p.code && parCode[p.code]) || parNom[p.nom] || null;
-    if (!existante) {
-      const cree = await serveurAppel('/rest/v1/profils', {
-        methode: 'POST', entetes: { 'Prefer': 'return=representation' },
-        corps: { etablissement_id: idEtab, code: p.code, nom: p.nom, role: p.role,
-                 matiere: p.matiere, email: p.email }
-      });
-      if (cree && cree[0]) { parCode[cree[0].code] = cree[0]; parNom[cree[0].nom] = cree[0]; rapport.fiches++; }
-    } else if (existante.nom !== p.nom) {
-      // ATTENTION : la base ne laisse modifier QUE la colonne « nom » sur une fiche
-      // (verrou de colonne voulu : impossible de changer role, matiere ou etablissement).
-      await serveurAppel('/rest/v1/profils?id=eq.' + existante.id, {
-        methode: 'PATCH', corps: { nom: p.nom }
-      });
-      rapport.maj++;
+    // L'adresse fait partie de l'identite d'une fiche : sans elle, on tentait de
+    // RECREER une fiche dont l'adresse existait deja, la base refusait, et l'envoi
+    // s'arretait la (defaut reellement constate sur le vrai serveur).
+    const existante = (p.code && parCode[p.code]) ||
+                      (p.email && parMail[String(p.email).toLowerCase()]) ||
+                      parNom[p.nom] || null;
+    try {
+      if (!existante) {
+        const cree = await serveurAppel('/rest/v1/profils', {
+          methode: 'POST', entetes: { 'Prefer': 'return=representation' },
+          corps: { etablissement_id: idEtab, code: p.code, nom: p.nom, role: p.role,
+                   matiere: p.matiere, email: p.email }
+        });
+        if (cree && cree[0]) {
+          if (cree[0].code) parCode[cree[0].code] = cree[0];
+          parNom[cree[0].nom] = cree[0];
+          if (cree[0].email) parMail[String(cree[0].email).toLowerCase()] = cree[0];
+          memoire[cree[0].id] = 1;              // c'est NOUS qui l'avons creee
+          Depot.ecrireJSON('fichesCreeesParApp', memoire);
+          rapport.fiches++;
+        }
+      } else if (existante.nom !== p.nom) {
+        // ATTENTION : la base ne laisse modifier QUE la colonne « nom » sur une fiche
+        // (verrou de colonne voulu : impossible de changer role, matiere ou etablissement).
+        await serveurAppel('/rest/v1/profils?id=eq.' + existante.id, {
+          methode: 'PATCH', corps: { nom: p.nom }
+        });
+        rapport.maj++;
+      }
+    } catch (e) {
+      // une fiche qui resiste ne doit PAS empecher les autres de partir
+      rapport.ignorees = (rapport.ignorees || 0) + 1;
+      rapport.raisons = rapport.raisons || [];
+      rapport.raisons.push('fiche non envoyee : ' + (p.nom || p.email || '?') + ' (' + (e.message || e) + ')');
     }
   }
+
+  // Les fiches que CETTE application a elle-meme creees : elle seule peut les
+  // retirer. Une fiche venue d'ailleurs (autre appareil, import, script) n'est
+  // JAMAIS touchee : sinon elle disparaissait des ecrans sans que personne ne
+  // comprenne pourquoi (defaut constate a l'essai sur le vrai serveur).
+  const memoire = Depot.lireJSON('fichesCreeesParApp', {}) || {};
 
   // Les personnes qui ne sont PLUS dans la liste du telephone sont marquees INACTIVES.
   // On ne les supprime JAMAIS : l'historique de ce qu'elles ont approuve doit rester lisible.
@@ -3120,10 +3194,12 @@ async function serveurEnvoyerFiches() {
     const f = fServ[k];
     if (f.role === 'directeur') continue;
     if (f.actif === false) continue;                       // deja inactive
+    if (!memoire[f.id]) continue;                          // venue d'ailleurs : intouchable
     const encore = (f.code && identifiants['code:' + f.code]) ||
                    (f.email && identifiants['mail:' + String(f.email).toLowerCase()]) ||
                    identifiants['nom:' + f.nom];
     if (encore) continue;
+    delete memoire[f.id];                                  // elle est retiree : on l'oublie
     await serveurAppel('/rest/v1/profils?id=eq.' + f.id, { methode: 'PATCH', corps: { actif: false } });
     rapport.desactivees++;
   }
