@@ -8,7 +8,7 @@ function chargerNomsProfs() {
   } catch (e) { return {}; }
 }
 let nomsProfs = chargerNomsProfs();
-function sauvegarderNomsProfs() { Depot.ecrireJSON('nomsProfs', nomsProfs); serveurEnvoiArrierePlan(); }
+function sauvegarderNomsProfs() { Depot.ecrireJSON('nomsProfs', nomsProfs); serveurMarquer('personnes'); }
 function appliquerNomsProfs() {
   comptes.forEach(c => {
     const cle = c.code || c.email;
@@ -24,7 +24,7 @@ function chargerMotsDePasse() {
   } catch (e) { return {}; }
 }
 let motsDePasse = chargerMotsDePasse();
-function sauvegarderMotsDePasse() { Depot.ecrireJSON('motsDePasse', motsDePasse); serveurEnvoiArrierePlan(); }
+function sauvegarderMotsDePasse() { Depot.ecrireJSON('motsDePasse', motsDePasse); serveurMarquer('personnes'); }
 function appliquerMotsDePasse() {
   comptes.forEach(c => { if (motsDePasse[c.email]) c.password = motsDePasse[c.email]; });
 }
@@ -58,8 +58,8 @@ function chargerListe(cle) {
 // Fermeture : { id, dateISO, libelle, type, debut, fin, portee, par, le, profCode }
 let fermeturesEtab = chargerListe('fermeturesEtab');
 let indispoProfs = chargerListe('indispoProfs');
-function sauvegarderFermetures() { Depot.ecrireJSON('fermeturesEtab', fermeturesEtab); serveurEnvoiArrierePlan(); }
-function sauvegarderIndispo() { Depot.ecrireJSON('indispoProfs', indispoProfs); serveurEnvoiArrierePlan(); }
+function sauvegarderFermetures() { Depot.ecrireJSON('fermeturesEtab', fermeturesEtab); serveurMarquer('fermetures'); }
+function sauvegarderIndispo() { Depot.ecrireJSON('indispoProfs', indispoProfs); serveurMarquer('absencesPerso'); }
 function bornesAnneeScolaire() {
   const s1 = anneeScolaire.semestres[0] || {};
   const s2 = anneeScolaire.semestres[1] || {};
@@ -107,7 +107,7 @@ function chargerSeancesAnnulees() {
   } catch (e) { return []; }
 }
 let seancesAnnulees = chargerSeancesAnnulees();
-function sauvegarderSeancesAnnulees() { Depot.ecrireJSON('seancesAnnulees', seancesAnnulees); serveurEnvoiArrierePlan(); }
+function sauvegarderSeancesAnnulees() { Depot.ecrireJSON('seancesAnnulees', seancesAnnulees); serveurMarquer('annulations'); }
 function estRoleVieScolaire() {
   return !!utilisateurConnecte && (utilisateurConnecte.role === 'directeur' || utilisateurConnecte.role === 'surveillant');
 }

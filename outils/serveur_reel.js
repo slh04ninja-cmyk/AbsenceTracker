@@ -235,6 +235,89 @@ async function seConnecter(dom, email, mdp) {
   // de 1,2 s) : on le verifie donc APRES reouverture, sur le serveur (bloc suivant).
   const noOk = true;
 
+  // ---------- 4-bis) LA SUPPRESSION (defaut signale : « la suppression ne marche pas ») ----------
+  win.eval("fermeturesEtab.push({ id: 90021, dateISO: '2026-12-20', libelle: 'ESSAI fermeture'," +
+           " type: 'etablissement', debut: '2026-12-20', fin: '2026-12-20', portee: 'journee' });" +
+           "sauvegarderFermetures();");
+  await attendre(async () => {
+    const f = await rest('/rest/v1/fermetures?etablissement_id=eq.' + idEtab + '&select=id', { jeton });
+    return f.donnees.length >= 1;
+  }, 60);
+  const avantSuppr = {
+    fermetures: (await rest('/rest/v1/fermetures?etablissement_id=eq.' + idEtab + '&select=id', { jeton })).donnees.length,
+    annulations: (await rest('/rest/v1/annulations_seances?etablissement_id=eq.' + idEtab + '&select=id', { jeton })).donnees.length,
+    absences: (await rest('/rest/v1/absences_personnel?etablissement_id=eq.' + idEtab + '&select=id', { jeton })).donnees.length
+  };
+  // on supprime par les MEMES fonctions que les boutons de l'application
+  win.eval("fermeturesEtab = fermeturesEtab.filter(function (f) { return f.libelle !== 'ESSAI fermeture'; }); sauvegarderFermetures();");
+  win.eval("seancesAnnulees = seancesAnnulees.filter(function (a) { return a.motif !== 'ESSAI annulation'; }); sauvegarderSeancesAnnulees();");
+  win.eval("indispoProfs = indispoProfs.filter(function (a) { return a.motif !== 'ESSAI absence prof'; }); sauvegarderIndispo();");
+
+  // diagnostic : on appelle l'envoi des fermetures DIRECTEMENT (comme le fait
+  // l'envoi au fil de l'eau), et on regarde ce qu'il repond.
+  const rapDirect = await win.eval('serveurEnvoyerFermetures()');
+  console.log('   (info) envoi direct des fermetures : ' + JSON.stringify(rapDirect));
+
+  const supprOk = await attendre(async () => {
+    const f = await rest('/rest/v1/fermetures?etablissement_id=eq.' + idEtab + '&select=id', { jeton });
+    const a = await rest('/rest/v1/annulations_seances?etablissement_id=eq.' + idEtab + '&select=id', { jeton });
+    const p = await rest('/rest/v1/absences_personnel?etablissement_id=eq.' + idEtab + '&select=id', { jeton });
+    return f.donnees.length === avantSuppr.fermetures - 1 &&
+           a.donnees.length === avantSuppr.annulations - 1 &&
+           p.donnees.length === avantSuppr.absences - 1;
+  }, 60);
+  const restant = {
+    fermetures: (await rest('/rest/v1/fermetures?etablissement_id=eq.' + idEtab + '&select=id', { jeton })).donnees.length,
+    annulations: (await rest('/rest/v1/annulations_seances?etablissement_id=eq.' + idEtab + '&select=id', { jeton })).donnees.length,
+    absences: (await rest('/rest/v1/absences_personnel?etablissement_id=eq.' + idEtab + '&select=id', { jeton })).donnees.length
+  };
+  t('SUPPRIMER une fermeture, une annulation et une absence de prof retire bien du serveur',
+    supprOk, 'avant ' + JSON.stringify(avantSuppr) + ' -> apres ' + JSON.stringify(restant) +
+    ' | messages : ' + messages.slice(-3).join(' / '));
+
+  // on les REMET : la suite du scenario verifie l'aller-retour fermeture/reouverture
+  win.eval("fermeturesEtab.push({ id: 90011, dateISO: '2026-12-10', libelle: 'ESSAI fermeture'," +
+           " type: 'etablissement', debut: '2026-12-10', fin: '2026-12-10', portee: 'journee' });" +
+           "sauvegarderFermetures();");
+  win.eval("seancesAnnulees.push({ id: 90012, dateISO: '2026-12-11', classe: '" + CLASSE_ESSAI + "'," +
+           " debut: '08:00', fin: '10:00', motif: 'ESSAI annulation' });" +
+           "sauvegarderSeancesAnnulees();");
+  win.eval("indispoProfs.push({ id: 90013, profCode: '" + CODE_PROF + "', role: 'enseignant'," +
+           " debut: '2026-12-12', fin: '2026-12-12', portee: 'journee', motif: 'ESSAI absence prof' });" +
+           "sauvegarderIndispo();");
+  await attendre(async () => {
+    const f = await rest('/rest/v1/fermetures?etablissement_id=eq.' + idEtab + '&select=id', { jeton });
+    return f.donnees.length >= avantSuppr.fermetures;
+  }, 60);
+
+  // ---------- 4-ter) UN ELEVE DEJA EN ABSENCE DOIT AVOIR SA CASE VERROUILLEE ----------
+  // (defaut signale : « les cases des eleves deja en absence doivent etre bloquees »)
+  const jourApp = win.eval('jourCourant()');
+  const seanceApp = win.eval('seanceCourante()');
+  const nomDir2 = win.eval('utilisateurConnecte.nom');
+  const idEleve1 = (await rest('/rest/v1/eleves?classe_id=eq.' + idClasse + '&select=id&order=id', { jeton })).donnees[0].id;
+  win.eval("absences.push({ id: 91000, eleveId: " + idEleve1 + ", nom: 'ELEVE Un', classe: '" + CLASSE_ESSAI + "'," +
+           " dateISO: '" + jourApp + "', date: '" + jourApp + "', heure: '08:05', seance: '" + seanceApp + "'," +
+           " type: 'absence', statut: 'absent', enseignant: '" + nomDir2 + "', matiere: 'Essai' });" +
+           "Depot.ecrireJSON('absences', absences); serveurApresEcritureAbsences();");
+  win.eval("absences.push({ id: 91001, eleveId: " + idEleve1 + ", nom: 'ELEVE Un', classe: '" + CLASSE_ESSAI + "'," +
+           " dateISO: '" + jourApp + "', date: '" + jourApp + "', heure: '08:05', seance: '" + seanceApp + "'," +
+           " type: 'absence', statut: 'absent', enseignant: 'ENSEMBLE AUTRE PROF', matiere: 'Essai' });" +
+           "Depot.ecrireJSON('absences', absences); serveurApresEcritureAbsences();");
+  win.eval('choisirClasse(' + idClasse + ')');
+  await pause(400);
+  const htmlAppel = win.eval("document.getElementById('liste-eleves-enseignant').innerHTML");
+  t('un eleve deja en absence a sa case VERROUILLEE dans l appel',
+    htmlAppel.indexOf('checkbox-locked') >= 0,
+    htmlAppel.indexOf('checkbox-locked') >= 0 ? 'case verrouillee presente'
+      : 'AUCUNE case verrouillee (' + htmlAppel.length + ' caracteres dessines)');
+  const absOk = await attendre(async () => {
+    const r = await rest('/rest/v1/signalements?etablissement_id=eq.' + idEtab + '&select=id', { jeton });
+    return Array.isArray(r.donnees) && r.donnees.length >= 1;
+  }, 60);
+  t("l absence cochee par le professeur arrive sur le serveur (visible du directeur)",
+    absOk, (await rest('/rest/v1/signalements?etablissement_id=eq.' + idEtab + '&select=id', { jeton })).donnees.length + ' signalement(s)');
+
   // ---------- 5) le vrai test : fermer l'application et la rouvrir ----------
   // on laisse les envois en attente (le regroupement attend 1,2 s de calme) se terminer
   await pause(3000);

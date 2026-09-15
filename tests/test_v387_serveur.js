@@ -710,9 +710,12 @@ const attendreQue = async (cond, tours) => {
 
   // ---------- 12-quater) LA FEUILLE D'IDENTIFIANTS NE DOIT PLUS IMPRIMER DE FAUX MOT DE PASSE ----------
   ev("utilisateurConnecte = { nom: 'SaLaH', role: 'directeur', serveur: true, fiche: 7, etablissementId: 3 };");
+  // La feuille d'identifiants imprime le mot de passe de la liste (celui que le
+  // directeur remet). Une premiere version imprimait « a remettre par le directeur »
+  // a la place : l'utilisateur l'a refuse, on est revenu au mot de passe.
   const quandRelie = ev("identifiantsMotDePasse({ email: 'x@taalim.ma', password: '12345' })");
-  t('feuille d identifiants : app RELIEE -> aucun mot de passe imprime (ligne a remplir)',
-    quandRelie.texte === '' && quandRelie.consigne.length > 0, JSON.stringify(quandRelie));
+  t('feuille d identifiants : le mot de passe de la liste est bien imprime',
+    quandRelie.texte === '12345' && quandRelie.consigne === '', JSON.stringify(quandRelie));
   ev("utilisateurConnecte = { nom: 'Directeur', role: 'directeur' };");
   win.localStorage.removeItem('espaceServeur');          // app NON reliee (hors ligne)
   const quandLocal = ev("identifiantsMotDePasse({ email: 'x@taalim.ma', password: 'MonMotDePasse1' })");

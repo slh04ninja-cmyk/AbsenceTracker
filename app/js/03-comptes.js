@@ -96,7 +96,7 @@ anneeScolaire.semestres.forEach((sem, i) => {
 function sauvegarderParametres() {
   Depot.ecrireJSON('etablissement', etablissement);
   Depot.ecrireJSON('anneeScolaire', anneeScolaire);
-  serveurEnvoiArrierePlan();
+  serveurMarquer('listes');
 }
 // Semestre auquel appartient une date (ou null hors semestres)
 function semestreDeDate(dateISO) {

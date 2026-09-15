@@ -198,6 +198,21 @@ let serveurARemonter = false;
 // disparaissait a la prochaine lecture du serveur (defaut reellement signale).
 let serveurEnvoiEnCours = false, serveurEnvoiARefaire = false, serveurEnvoiMinuteur = null;
 
+// Ce qui a CHANGE depuis le dernier envoi. Envoyer les sept familles a chaque
+// modification etait trop lourd (une vingtaine d'allers-retours vers le serveur) :
+// sur le reseau mobile, une suppression mettait une minute a partir — l'utilisateur
+// croyait que « la suppression ne marchait pas » (defaut reellement signale).
+const serveurAEnvoyer = {};
+
+function serveurMarquer(quoi) {
+  // Pendant le CHARGEMENT, les listes se reecrivent avant que ce module soit pret :
+  // ce n'est pas une erreur, il n'y a simplement rien a envoyer.
+  try {
+    serveurAEnvoyer[quoi] = true;
+    serveurEnvoiArrierePlan();
+  } catch (e) { return; }
+}
+
 // Une rafale de modifications (creer une fermeture, puis une annulation, puis un
 // cours...) ne doit PAS declencher une rafale d'envois : on attend un court instant
 // de calme, puis on envoie UNE fois. Sur le reseau mobile, c'est la difference
@@ -226,10 +241,11 @@ function serveurEnvoiMaintenant() {
   try { actif = serveurActif(); role = (utilisateurConnecte && utilisateurConnecte.role) || ''; }
   catch (e) { return; }
   if (!actif) return;
-  // Seul le directeur tient les listes (classes, eleves, personnel, fermetures,
-  // cours) : les envoyer depuis un autre role ne ferait que des refus. Le
-  // professeur, lui, a son propre envoi d'absences.
-  if (role !== 'directeur') return;
+  // Le directeur envoie TOUT. Le professeur et le surveillant n'envoient que leurs
+  // ABSENCES : sans cela, une absence cochee par un professeur ne partait jamais et
+  // n'apparaissait donc jamais chez le surveillant ni chez le directeur (defaut
+  // reellement signale).
+  const peutEnvoyer = (role === 'directeur');
   if (serveurLectureEnCours) return;            // simple rangement, pas un changement
   if (serveurEnvoiEnCours) { serveurEnvoiARefaire = true; return; }
   serveurEnvoiEnCours = true;
@@ -237,22 +253,35 @@ function serveurEnvoiMaintenant() {
   // moindre erreur sur une fiche arretait toute la chaine, et les fermetures,
   // annulations et absences du personnel n'arrivaient JAMAIS sur le serveur
   // (defaut reellement constate sur le vrai serveur).
-  const etapes = [
-    ['les listes (classes, eleves)', serveurEnvoyerDonnees],
-    ['les personnes', serveurEnvoyerFiches],
-    ['les cours', serveurEnvoyerSeances],
-    ['les fermetures', serveurEnvoyerFermetures],
-    ['les absences du personnel', serveurEnvoyerAbsencesPersonnel],
-    ['les annulations de seance', serveurEnvoyerAnnulations],
-    ['les absences', serveurEnvoyerSignalements]
+  const toutes = [
+    ['listes', 'les listes (classes, eleves)', serveurEnvoyerDonnees],
+    ['personnes', 'les personnes', serveurEnvoyerFiches],
+    ['cours', 'les cours', serveurEnvoyerSeances],
+    ['fermetures', 'les fermetures', serveurEnvoyerFermetures],
+    ['absencesPerso', 'les absences du personnel', serveurEnvoyerAbsencesPersonnel],
+    ['annulations', 'les annulations de seance', serveurEnvoyerAnnulations],
+    ['signalements', 'les absences', serveurEnvoyerSignalements]
   ];
+  // On n'envoie QUE ce qui a change, et on retire la marque AVANT d'envoyer : si
+  // une nouvelle modification arrive pendant l'envoi, elle sera re-marquee.
+  const aFaire = toutes.filter(function (x) {
+    if (!serveurAEnvoyer[x[0]]) return false;
+    if (peutEnvoyer) return true;
+    return x[0] === 'signalements';             // un professeur : ses absences, rien d'autre
+  });
+  aFaire.forEach(function (x) { delete serveurAEnvoyer[x[0]]; });
+  // Rien a envoyer ET rien a relire : on ne fait AUCUN aller-retour.
+  if (!aFaire.length) { serveurEnvoiEnCours = false;
+    if (serveurEnvoiARefaire) { serveurEnvoiARefaire = false; serveurEnvoiArrierePlan(0); }
+    return; }
   const soucis = [];
   (async function () {
-    for (let i = 0; i < etapes.length; i++) {
-      try { await etapes[i][1](); }
-      catch (e) { soucis.push(etapes[i][0] + ' : ' + (e.message || e)); }
+    for (let i = 0; i < aFaire.length; i++) {
+      try { await aFaire[i][2](); }
+      catch (e) { soucis.push(aFaire[i][1] + ' : ' + (e.message || e)); }
     }
-    try { await serveurChargerDonnees(); } catch (e) { soucis.push('relecture : ' + (e.message || e)); }
+    // PAS de relecture complete : les donnees du telephone sont la verite, le
+    // serveur les copie. Relire tout a chaque fois rendait chaque geste lent.
     serveurRafraichirEcrans();
     if (soucis.length) {
       afficherToast('Garde sur le telephone (pas encore sur le serveur) — ' + soucis.join(' | '), 'warning');
@@ -551,9 +580,7 @@ function serveurRafraichirEcrans() {
 // on reutilise l'envoi REJOUABLE deja teste (aucun doublon au second passage).
 function serveurApresEcritureAbsences() {
   if (!serveurActif()) return;
-  serveurEnvoyerSignalements().catch(function (e) {
-    instDire('ko', 'Enregistré sur le téléphone, mais pas encore sur le serveur (' + e.message + ').');
-  });
+  serveurMarquer('signalements');            // meme mecanisme groupe que le reste
 }
 
 // ========== SAUVEGARDE ET RECUPERATION DES SAISIES DU TELEPHONE ==========

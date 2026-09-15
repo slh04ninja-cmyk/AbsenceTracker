@@ -142,7 +142,7 @@ function sauvegarderSurveillantsRH(liste) {
   surveillantsRH = liste;
   Depot.ecrireJSON('surveillantsRH', liste);
   appliquerListeSurveillants();
-  serveurEnvoiArrierePlan();
+  serveurMarquer('personnes');
 }
 
 // Reconstruit les surveillants des comptes a partir de la liste conservee
@@ -590,9 +590,8 @@ async function construirePdfIdentifiants(PDFLib, PDFDocument, fontkit, octetsPol
 
   // --- pied ---
   besoin(10);
-  const pied = 'Document confidentiel - ' + T(i.date) + ' - ' + T(espaceServeurLie()
-    ? 'les mots de passe sont gardes par le serveur : ecris ici celui que tu remets, chaque personne peut le changer dans Profil.'
-    : 'chaque personne change son mot de passe dans Profil.');
+  const pied = 'Document confidentiel - ' + T(i.date) +
+               ' - chaque personne change son mot de passe dans Profil.';
   page.drawText(pied, { x: centrer(pied, fTexte, 9), y: _yBas(y, 4), size: 9,
                         font: fTexte, color: gris });
   return doc;
@@ -604,7 +603,8 @@ async function construirePdfIdentifiants(PDFLib, PDFDocument, fontkit, octetsPol
 //   (il est garde par Supabase) -> on imprime une ligne a remplir a la main.
 // - installation locale (demonstration) : on imprime celui de la liste.
 function identifiantsMotDePasse(ligne) {
-  if (espaceServeurLie()) return { texte: '', consigne: 'a remettre par le directeur' };
+  // Le mot de passe de la liste : c'est celui que le directeur a remis (ou celui
+  // qu'il vient de definir avec « Reinitialiser »). On l'imprime tel quel.
   return { texte: String((ligne && ligne.password) || ''), consigne: '' };
 }
 

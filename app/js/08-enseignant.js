@@ -112,7 +112,12 @@ function afficherListeEleves() {
     const id = eleve.id;
     const parAutre = Object.prototype.hasOwnProperty.call(typeAutre, id);
     const precedent = !parAutre && Object.prototype.hasOwnProperty.call(typePrecedent, id);
-    const verrouille = parAutre || precedent;
+    // Un eleve deja enregistre (par qui que ce soit, seance en cours comprise) a sa
+    // case VERROUILLEE : on ne saisit pas deux fois la meme absence (demande explicite
+    // de l'utilisateur ; le directeur ou le surveillant reste maitre des corrections).
+    const dejaEnregistre = Object.prototype.hasOwnProperty.call(typeMoi, id) &&
+                           !decochesManuellement.has(id);
+    const verrouille = parAutre || precedent || dejaEnregistre;
     let marque = null;
     if (parAutre) marque = typeAutre[id];
     else if (precedent) marque = typePrecedent[id];
