@@ -699,7 +699,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.08 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.09 — Prototype</p>
     </div>
   </div>
 </div>
@@ -1404,6 +1404,20 @@
     <div class="flex gap-3">
       <button onclick="annulerConfirmation()" class="btn-secondary flex-1">Annuler</button>
       <button onclick="validerConfirmation()" class="btn-success flex-1">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL SAISIE (un texte a demander)           -->
+<!-- ============================================ -->
+<div id="modal-texte" class="hidden fixed inset-0 modal-overlay z-50 flex items-end" style="z-index: 400;">
+  <div class="modal-content w-full bg-white p-6 rounded-t-3xl">
+    <h2 id="texte-titre" class="text-2xl font-bold text-gray-800 mb-2">Saisie</h2>
+    <input id="texte-champ" type="text" class="w-full border border-gray-300 rounded-xl px-4 py-3 mb-6 text-gray-800">
+    <div class="flex gap-3">
+      <button onclick="annulerTexte()" class="btn-secondary flex-1">Annuler</button>
+      <button onclick="validerTexte()" class="btn-primary flex-1">Valider</button>
     </div>
   </div>
 </div>
@@ -3121,9 +3135,13 @@ function afficherFichesDeLaBase(fiches) {
 // Renommer une fiche DU SERVEUR (le directeur en a le droit : c'est la seule colonne
 // qu'il peut modifier). Le telephone ne garde rien : tout se passe dans la base.
 async function ouvrirRenommageFicheBase(fiche) {
-  const nouveau = prompt('Nouveau nom pour « ' + (fiche.nom || '') + ' » ?', fiche.nom || '');
-  if (nouveau === null) return;
-  const nom = String(nouveau).trim();
+  demanderTexte('Nouveau nom pour « ' + (fiche.nom || '') + ' »', fiche.nom || '', function (saisie) {
+    enregistrerNomFicheBase(fiche, saisie);
+  });
+}
+
+async function enregistrerNomFicheBase(fiche, saisie) {
+  const nom = String(saisie || '').trim();
   if (!nom || nom === fiche.nom) return;
   try {
     const jeton = await atJeton();
@@ -4593,6 +4611,30 @@ function afficherConfirmationAbsences() {
 
 // Confirmation generique : demanderConfirmation(message, action) puis validerConfirmation()
 let actionConfirmation = null;
+
+// Demander un texte : la fenetre de l'APPLICATION (jamais une fenetre Android brute,
+// qui ne suit ni le theme clair/sombre ni les couleurs de l'application).
+let actionTexte = null;
+function demanderTexte(titre, valeur, action) {
+  actionTexte = action;
+  document.getElementById('texte-titre').textContent = titre || 'Saisie';
+  const champ = document.getElementById('texte-champ');
+  champ.value = valeur || '';
+  document.getElementById('modal-texte').classList.remove('hidden');
+  setTimeout(function () { try { champ.focus(); champ.select(); } catch (e) {} }, 60);
+}
+function validerTexte() {
+  const champ = document.getElementById('texte-champ');
+  const valeur = String(champ.value || '').trim();
+  const action = actionTexte;
+  actionTexte = null;
+  document.getElementById('modal-texte').classList.add('hidden');
+  if (typeof action === 'function') action(valeur);
+}
+function annulerTexte() {
+  actionTexte = null;
+  document.getElementById('modal-texte').classList.add('hidden');
+}
 
 function demanderConfirmation(message, action) {
   actionConfirmation = action;
@@ -7757,6 +7799,7 @@ async function envoyerMesDonnees() {
   const etab = moi.fiche.etablissement_id;
   const jeton = await atJeton();
   const ids = idsEcole();
+  const estDirecteur = String(moi.fiche.role || '') === 'directeur';
   const fait = { classes: 0, eleves: 0, seances: 0, signalements: 0, annulations: 0, fermetures: 0, absences_personnel: 0 };
   const nonEnvoyes = [];
   const noter = function (famille, raison) { nonEnvoyes.push(famille + ' : ' + raison); };
@@ -7795,9 +7838,10 @@ async function envoyerMesDonnees() {
       ids.eleves[nom + '|' + (e.code_massar || ('nom:' + (e.nom || '') + ' ' + (e.prenom || '')))] = e.id;
     });
 
-    // 1. les classes
+    // 1. les classes (le directeur seulement : un surveillant ou un enseignant
+    //    n'a pas a creer de classes ni d'eleves — la base le lui refuse d'ailleurs)
     try {
-      for (const c of classes) {
+      for (const c of (estDirecteur ? classes : [])) {
         const id = await envoyerLigne(ids, 'classes', String(c.nom), { etablissement_id: etab, nom: c.nom }, jeton);
         ids.classes[String(c.nom)] = id;
         fait.classes++;
@@ -7807,7 +7851,7 @@ async function envoyerMesDonnees() {
     // 2. les eleves. Un eleve sans code MASSAR est frequent (nouvelle inscription) :
     //    la base accepte plusieurs eleves sans code, a condition d'envoyer « vide » (null).
     try {
-      for (const c of classes) {
+      for (const c of (estDirecteur ? classes : [])) {
         for (const e of (c.eleves || [])) {
           const massar = String(e.massar || '').trim();
           const cleLigne = String(c.nom) + '|' + (massar || ('nom:' + (e.nom || '') + ' ' + (e.prenom || '')));
@@ -7824,7 +7868,7 @@ async function envoyerMesDonnees() {
 
     // 3. les emplois du temps (seances) — EN ATTENDANT chaque ligne (defaut v4.07 corrige)
     try {
-      for (const code of Object.keys(tableauxService || {})) {
+      for (const code of (estDirecteur ? Object.keys(tableauxService || {}) : [])) {
         for (const c of (tableauxService[code] || [])) {
           const cl = code + '|' + c.jour + '|' + c.debut + '|' + c.classe;
           const pid = profId(code);
@@ -7874,7 +7918,7 @@ async function envoyerMesDonnees() {
 
     // 5. les annulations de seances
     try {
-      for (const sn of seancesAnnulees) {
+      for (const sn of (estDirecteur ? seancesAnnulees : [])) {
         const cid = classeId(sn.classe);
         if (!cid) { noter('annulations de seance', String(sn.classe || '?') + ' ' + String(sn.dateISO || '?')); continue; }
         await envoyerLigne(ids, 'annulations_seances', sn.dateISO + '|' + sn.classe + '|' + sn.debut, {
@@ -7887,7 +7931,7 @@ async function envoyerMesDonnees() {
 
     // 6. les fermetures
     try {
-      for (const f of fermeturesEtab) {
+      for (const f of (estDirecteur ? fermeturesEtab : [])) {
         await envoyerLigne(ids, 'fermetures', f.debut + '|' + (f.fin || f.debut) + '|' + (f.libelle || f.type || ''), {
           etablissement_id: etab, type: f.type || 'Fermeture', libelle: f.libelle || '',
           debut: f.debut, fin: f.fin || f.debut, portee: f.portee || 'journee', cree_par: moi.fiche.id
@@ -7898,7 +7942,7 @@ async function envoyerMesDonnees() {
 
     // 7. les absences du personnel
     try {
-      for (const i of indispoProfs) {
+      for (const i of (estDirecteur ? indispoProfs : [])) {
         const pid = profId(i.profCode);
         if (!pid) { noter('absences du personnel', String(i.profCode || '?') + ' (professeur inconnu)'); continue; }
         await envoyerLigne(ids, 'absences_personnel', i.profCode + '|' + i.debut + '|' + (i.fin || i.debut), {
@@ -7932,9 +7976,10 @@ async function envoyerMesDonnees() {
       seances: fait.seances, signalements: fait.signalements,
       annulations: fait.annulations, fermetures: fait.fermetures, absences_personnel: fait.absences_personnel
     };
-    const noms = { classes: 'classes', eleves: 'eleves', seances: 'seances (emplois du temps)',
+    const tousNoms = { classes: 'classes', eleves: 'eleves', seances: 'seances (emplois du temps)',
                    signalements: 'absences / retards', annulations: 'annulations de seance',
                    fermetures: 'fermetures', absences_personnel: 'absences du personnel' };
+    const noms = estDirecteur ? tousNoms : { signalements: tousNoms.signalements };
     let rapport = 'DONNEES ENVOYEES AU SERVEUR\n\n';
     let tout = true;
     Object.keys(noms).forEach(function (k) {
@@ -8046,13 +8091,22 @@ function etiqueterSiVierge() {
 // A appeler au demarrage et apres chaque connexion : l'application ne garde alors en
 // memoire que les listes de l'ecole ouverte.
 function appliquerEcoleAuxListes() {
-  if (donneesDuTelephoneVisibles()) return;
-  classes = [];
-  try { absences = []; } catch (e) {}
-  ['absences', 'tableauxService_v2', 'seancesAnnulees', 'fermeturesEtab', 'indispoProfs',
-   'idsEcole', 'seancesAnnuleesAvantServeur', 'absencesAvantServeur',
-   'indispoProfsAvantServeur', 'fermeturesEtabAvantServeur',
-   'tableauxServiceAvantServeur'].forEach(function (cle) { Depot.effacer(cle); });
+  // IMPORTANT : on MASQUE, on n'EFFACE JAMAIS. Les donnees d'une autre ecole restent
+  // enregistrees sur le telephone ; elles disparaissent seulement de l'ecran. Une
+  // donnee de travail ne se supprime que sur une demande claire de l'utilisateur.
+  const visibles = donneesDuTelephoneVisibles();
+  const liste = function (cle, depart) {
+    if (typeof chargerListe !== 'function') return depart;
+    try { return chargerListe(cle) || depart; } catch (e) { return depart; }
+  };
+  try {
+    classes = visibles ? chargerClasses() : [];
+  } catch (e) { classes = visibles ? classes : []; }
+  try { absences = visibles ? liste('absences', []) : []; } catch (e) {}
+  try { indispoProfs = visibles ? liste('indispoProfs', []) : []; } catch (e) {}
+  try { seancesAnnulees = visibles ? liste('seancesAnnulees', []) : []; } catch (e) {}
+  try { fermeturesEtab = visibles ? liste('fermeturesEtab', []) : []; } catch (e) {}
+  try { tableauxService = visibles ? chargerTableauxService() : {}; } catch (e) {}
 }
 
 if (typeof window !== 'undefined') {

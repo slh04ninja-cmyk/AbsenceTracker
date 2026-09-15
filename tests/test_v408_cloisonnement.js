@@ -60,7 +60,8 @@ setTimeout(async () => {
   t('2. autre ecole : listes masquees', w2.eval('donneesDuTelephoneVisibles()') === false);
   t('2. autre ecole : AUCUNE classe affichee', w2.eval('classes.length') === 0, w2.eval('classes.length'));
   t('2. autre ecole : aucun eleve en memoire', w2.eval('classes.reduce(function(n,c){return n+(c.eleves||[]).length;},0)') === 0);
-  t('2. autre ecole : les eleves ne sont plus enregistres sur le telephone', w2.eval('Depot.lire("absences", null)') === null);
+  t('2. autre ecole : rien n\'est EFFACE sur le telephone (on masque seulement)', w2.eval('Depot.lire("absences", null)') !== null);
+  t('2. autre ecole : les absences ne sont pas envoyees non plus', w2.eval('absences.length') === 0, w2.eval('absences.length'));
 
   // ---------- 3. etiquete par le CODE de l'ecole (installation v4.06) ----------
   const w3 = ouvrir({ ouverte: { id: 4, code: '55300S08' }, etabDonnees: '55300S08' });

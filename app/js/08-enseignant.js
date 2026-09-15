@@ -231,6 +231,30 @@ function afficherConfirmationAbsences() {
 // Confirmation generique : demanderConfirmation(message, action) puis validerConfirmation()
 let actionConfirmation = null;
 
+// Demander un texte : la fenetre de l'APPLICATION (jamais une fenetre Android brute,
+// qui ne suit ni le theme clair/sombre ni les couleurs de l'application).
+let actionTexte = null;
+function demanderTexte(titre, valeur, action) {
+  actionTexte = action;
+  document.getElementById('texte-titre').textContent = titre || 'Saisie';
+  const champ = document.getElementById('texte-champ');
+  champ.value = valeur || '';
+  document.getElementById('modal-texte').classList.remove('hidden');
+  setTimeout(function () { try { champ.focus(); champ.select(); } catch (e) {} }, 60);
+}
+function validerTexte() {
+  const champ = document.getElementById('texte-champ');
+  const valeur = String(champ.value || '').trim();
+  const action = actionTexte;
+  actionTexte = null;
+  document.getElementById('modal-texte').classList.add('hidden');
+  if (typeof action === 'function') action(valeur);
+}
+function annulerTexte() {
+  actionTexte = null;
+  document.getElementById('modal-texte').classList.add('hidden');
+}
+
 function demanderConfirmation(message, action) {
   actionConfirmation = action;
   document.getElementById('message-confirmation').textContent = message;

@@ -73,13 +73,22 @@ function etiqueterSiVierge() {
 // A appeler au demarrage et apres chaque connexion : l'application ne garde alors en
 // memoire que les listes de l'ecole ouverte.
 function appliquerEcoleAuxListes() {
-  if (donneesDuTelephoneVisibles()) return;
-  classes = [];
-  try { absences = []; } catch (e) {}
-  ['absences', 'tableauxService_v2', 'seancesAnnulees', 'fermeturesEtab', 'indispoProfs',
-   'idsEcole', 'seancesAnnuleesAvantServeur', 'absencesAvantServeur',
-   'indispoProfsAvantServeur', 'fermeturesEtabAvantServeur',
-   'tableauxServiceAvantServeur'].forEach(function (cle) { Depot.effacer(cle); });
+  // IMPORTANT : on MASQUE, on n'EFFACE JAMAIS. Les donnees d'une autre ecole restent
+  // enregistrees sur le telephone ; elles disparaissent seulement de l'ecran. Une
+  // donnee de travail ne se supprime que sur une demande claire de l'utilisateur.
+  const visibles = donneesDuTelephoneVisibles();
+  const liste = function (cle, depart) {
+    if (typeof chargerListe !== 'function') return depart;
+    try { return chargerListe(cle) || depart; } catch (e) { return depart; }
+  };
+  try {
+    classes = visibles ? chargerClasses() : [];
+  } catch (e) { classes = visibles ? classes : []; }
+  try { absences = visibles ? liste('absences', []) : []; } catch (e) {}
+  try { indispoProfs = visibles ? liste('indispoProfs', []) : []; } catch (e) {}
+  try { seancesAnnulees = visibles ? liste('seancesAnnulees', []) : []; } catch (e) {}
+  try { fermeturesEtab = visibles ? liste('fermeturesEtab', []) : []; } catch (e) {}
+  try { tableauxService = visibles ? chargerTableauxService() : {}; } catch (e) {}
 }
 
 if (typeof window !== 'undefined') {

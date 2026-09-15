@@ -371,9 +371,13 @@ function afficherFichesDeLaBase(fiches) {
 // Renommer une fiche DU SERVEUR (le directeur en a le droit : c'est la seule colonne
 // qu'il peut modifier). Le telephone ne garde rien : tout se passe dans la base.
 async function ouvrirRenommageFicheBase(fiche) {
-  const nouveau = prompt('Nouveau nom pour « ' + (fiche.nom || '') + ' » ?', fiche.nom || '');
-  if (nouveau === null) return;
-  const nom = String(nouveau).trim();
+  demanderTexte('Nouveau nom pour « ' + (fiche.nom || '') + ' »', fiche.nom || '', function (saisie) {
+    enregistrerNomFicheBase(fiche, saisie);
+  });
+}
+
+async function enregistrerNomFicheBase(fiche, saisie) {
+  const nom = String(saisie || '').trim();
   if (!nom || nom === fiche.nom) return;
   try {
     const jeton = await atJeton();

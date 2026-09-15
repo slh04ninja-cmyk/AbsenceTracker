@@ -102,6 +102,7 @@ async function envoyerMesDonnees() {
   const etab = moi.fiche.etablissement_id;
   const jeton = await atJeton();
   const ids = idsEcole();
+  const estDirecteur = String(moi.fiche.role || '') === 'directeur';
   const fait = { classes: 0, eleves: 0, seances: 0, signalements: 0, annulations: 0, fermetures: 0, absences_personnel: 0 };
   const nonEnvoyes = [];
   const noter = function (famille, raison) { nonEnvoyes.push(famille + ' : ' + raison); };
@@ -140,9 +141,10 @@ async function envoyerMesDonnees() {
       ids.eleves[nom + '|' + (e.code_massar || ('nom:' + (e.nom || '') + ' ' + (e.prenom || '')))] = e.id;
     });
 
-    // 1. les classes
+    // 1. les classes (le directeur seulement : un surveillant ou un enseignant
+    //    n'a pas a creer de classes ni d'eleves — la base le lui refuse d'ailleurs)
     try {
-      for (const c of classes) {
+      for (const c of (estDirecteur ? classes : [])) {
         const id = await envoyerLigne(ids, 'classes', String(c.nom), { etablissement_id: etab, nom: c.nom }, jeton);
         ids.classes[String(c.nom)] = id;
         fait.classes++;
@@ -152,7 +154,7 @@ async function envoyerMesDonnees() {
     // 2. les eleves. Un eleve sans code MASSAR est frequent (nouvelle inscription) :
     //    la base accepte plusieurs eleves sans code, a condition d'envoyer « vide » (null).
     try {
-      for (const c of classes) {
+      for (const c of (estDirecteur ? classes : [])) {
         for (const e of (c.eleves || [])) {
           const massar = String(e.massar || '').trim();
           const cleLigne = String(c.nom) + '|' + (massar || ('nom:' + (e.nom || '') + ' ' + (e.prenom || '')));
@@ -169,7 +171,7 @@ async function envoyerMesDonnees() {
 
     // 3. les emplois du temps (seances) — EN ATTENDANT chaque ligne (defaut v4.07 corrige)
     try {
-      for (const code of Object.keys(tableauxService || {})) {
+      for (const code of (estDirecteur ? Object.keys(tableauxService || {}) : [])) {
         for (const c of (tableauxService[code] || [])) {
           const cl = code + '|' + c.jour + '|' + c.debut + '|' + c.classe;
           const pid = profId(code);
@@ -219,7 +221,7 @@ async function envoyerMesDonnees() {
 
     // 5. les annulations de seances
     try {
-      for (const sn of seancesAnnulees) {
+      for (const sn of (estDirecteur ? seancesAnnulees : [])) {
         const cid = classeId(sn.classe);
         if (!cid) { noter('annulations de seance', String(sn.classe || '?') + ' ' + String(sn.dateISO || '?')); continue; }
         await envoyerLigne(ids, 'annulations_seances', sn.dateISO + '|' + sn.classe + '|' + sn.debut, {
@@ -232,7 +234,7 @@ async function envoyerMesDonnees() {
 
     // 6. les fermetures
     try {
-      for (const f of fermeturesEtab) {
+      for (const f of (estDirecteur ? fermeturesEtab : [])) {
         await envoyerLigne(ids, 'fermetures', f.debut + '|' + (f.fin || f.debut) + '|' + (f.libelle || f.type || ''), {
           etablissement_id: etab, type: f.type || 'Fermeture', libelle: f.libelle || '',
           debut: f.debut, fin: f.fin || f.debut, portee: f.portee || 'journee', cree_par: moi.fiche.id
@@ -243,7 +245,7 @@ async function envoyerMesDonnees() {
 
     // 7. les absences du personnel
     try {
-      for (const i of indispoProfs) {
+      for (const i of (estDirecteur ? indispoProfs : [])) {
         const pid = profId(i.profCode);
         if (!pid) { noter('absences du personnel', String(i.profCode || '?') + ' (professeur inconnu)'); continue; }
         await envoyerLigne(ids, 'absences_personnel', i.profCode + '|' + i.debut + '|' + (i.fin || i.debut), {
@@ -277,9 +279,10 @@ async function envoyerMesDonnees() {
       seances: fait.seances, signalements: fait.signalements,
       annulations: fait.annulations, fermetures: fait.fermetures, absences_personnel: fait.absences_personnel
     };
-    const noms = { classes: 'classes', eleves: 'eleves', seances: 'seances (emplois du temps)',
+    const tousNoms = { classes: 'classes', eleves: 'eleves', seances: 'seances (emplois du temps)',
                    signalements: 'absences / retards', annulations: 'annulations de seance',
                    fermetures: 'fermetures', absences_personnel: 'absences du personnel' };
+    const noms = estDirecteur ? tousNoms : { signalements: tousNoms.signalements };
     let rapport = 'DONNEES ENVOYEES AU SERVEUR\n\n';
     let tout = true;
     Object.keys(noms).forEach(function (k) {

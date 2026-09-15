@@ -123,7 +123,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.08 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.09 — Prototype</p>
     </div>
   </div>
 </div>
@@ -828,6 +828,20 @@
     <div class="flex gap-3">
       <button onclick="annulerConfirmation()" class="btn-secondary flex-1">Annuler</button>
       <button onclick="validerConfirmation()" class="btn-success flex-1">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL SAISIE (un texte a demander)           -->
+<!-- ============================================ -->
+<div id="modal-texte" class="hidden fixed inset-0 modal-overlay z-50 flex items-end" style="z-index: 400;">
+  <div class="modal-content w-full bg-white p-6 rounded-t-3xl">
+    <h2 id="texte-titre" class="text-2xl font-bold text-gray-800 mb-2">Saisie</h2>
+    <input id="texte-champ" type="text" class="w-full border border-gray-300 rounded-xl px-4 py-3 mb-6 text-gray-800">
+    <div class="flex gap-3">
+      <button onclick="annulerTexte()" class="btn-secondary flex-1">Annuler</button>
+      <button onclick="validerTexte()" class="btn-primary flex-1">Valider</button>
     </div>
   </div>
 </div>

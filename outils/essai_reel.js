@@ -58,6 +58,15 @@ const dom = new JSDOM(html, {
     // (sur un vrai telephone, la session vient de la connexion au serveur).
     Object.keys(contenu).filter(k => k !== 'utilisateur' && k !== 'etablissement').forEach(k => win.localStorage.setItem(k, typeof contenu[k] === 'string' ? contenu[k] : JSON.stringify(contenu[k])));
     win.localStorage.setItem('etiquetteEcole', '');
+    // « les absences surveillant/enseignants » : une absence de personnel enseignant
+    // et une de personnel surveillant, telles que l'ecran RH les enregistre.
+    win.localStorage.setItem('indispoProfs', JSON.stringify([
+      { id: 1, profCode: 'math-prof1@taalim.ma', debut: '2026-09-14', fin: '2026-09-15', portee: 'journee', motif: 'Maladie' },
+      { id: 2, profCode: 'surv1@exemple.ma', debut: '2026-09-16', fin: '2026-09-16', portee: 'journee', motif: 'Maladie' }
+    ]));
+    win.localStorage.setItem('seancesAnnulees', JSON.stringify([
+      { id: 1, dateISO: '2026-09-17', classe: 'TCSF-1', debut: '08:00', fin: '10:00', motif: 'Reunion' }
+    ]));
     win.localStorage.setItem('installationServeur', '1');
   }
 });
@@ -119,7 +128,7 @@ setTimeout(async () => {
     console.log('--- erreurs de page :', erreurs.length ? erreurs.slice(0, 6) : 'aucune');
 
     const reste = {};
-    for (const t of ['classes', 'eleves', 'seances', 'signalements']) reste[t] = (await api('/rest/v1/' + t + '?select=id', jeton)).length;
+    for (const t of ['classes', 'eleves', 'seances', 'signalements', 'annulations_seances', 'absences_personnel']) reste[t] = (await api('/rest/v1/' + t + '?select=id', jeton)).length;
     console.log('--- relu du serveur :', JSON.stringify(reste));
     await win.envoyerMesDonnees();
     const apres = (await api('/rest/v1/classes?select=id', jeton)).length;
@@ -130,7 +139,8 @@ setTimeout(async () => {
     const attEleves = classes.reduce((n, c) => n + (c.eleves || []).length, 0);
     const attSeances = Object.keys(tableaux).reduce((n, k) => n + tableaux[k].length, 0);
     const ok = reste.classes === classes.length && reste.eleves === attEleves && reste.seances === attSeances &&
-               reste.signalements === absences.length && apres === classes.length && apresEl === attEleves;
+               reste.signalements === absences.length && reste.annulations_seances >= 1 &&
+               reste.absences_personnel >= 2 && apres === classes.length && apresEl === attEleves;
     console.log(ok ? 'TOUT OK — les vraies donnees montent, et ne doublent pas.' : 'ECHEC — voir les nombres ci-dessus.');
 
     // on efface l'ecole temoin
