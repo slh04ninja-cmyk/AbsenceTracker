@@ -226,6 +226,11 @@ function ouvrirSessionDeLaBase(moi) {
     nom: f.nom, serveur: true, fiche: f.id, etablissementId: f.etablissement_id
   };
   Depot.ecrireJSON('utilisateur', utilisateurConnecte);
+  // Quelle ecole est ouverte ? La reponse vient du SERVEUR (jamais du telephone, qui peut
+  // garder les parametres d'une autre ecole). C'est la reference du cloisonnement.
+  Depot.ecrire('ecoleOuverteId', String(f.etablissement_id || ''));
+  Depot.ecrire('ecoleOuverteCode', (e && e.code) ? String(e.code) : '');
+  if (typeof appliquerEcoleAuxListes === 'function') appliquerEcoleAuxListes();
   if (e && e.code) {
     etablissement = { code: e.code || '', nom: e.nom || '', academie: e.academie || '', direction: e.direction || '' };
     if (typeof sauvegarderParametres === 'function') sauvegarderParametres();
@@ -338,8 +343,11 @@ async function installerEcoleDepuisFormulaire() {
         "Vos donnees sur le serveur ne sont pas touchees.") !== true) return;
     ['classes', 'absences', 'tableauxService_v2', 'seancesAnnulees', 'fermeturesEtab',
      'indispoProfs', 'nomsProfs', 'motsDePasse', 'surveillantsRH', 'absenceTrackVersion',
+     'etiquetteEcole', 'etabDonnees', 'espaceServeur', 'idsEcole', 'ecoleOuverteId', 'ecoleOuverteCode',
      'testHistoGenere_v1', 'testHistoGenere_v2', 'testHistoGenere_v3', 'testHistoGenere_v4',
-     'testHistoGenere_v5', 'testHistoGenere_v6'].forEach(function (cle) { Depot.effacer(cle); });
+     'testHistoGenere_v5', 'testHistoGenere_v6', 'etabDonnees', 'etiquetteEcole',
+     'espaceServeur', 'idsEcole', 'ecoleOuverteId', 'ecoleOuverteCode',
+     'etiquetteEcole'].forEach(function (cle) { Depot.effacer(cle); });
 
     await atCreerCompte(infos.email, infos.mdp);
     await atInstallerEcole({

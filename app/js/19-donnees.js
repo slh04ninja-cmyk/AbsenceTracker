@@ -8,6 +8,18 @@
 //
 // Chaque ligne envoyee garde son identifiant de base dans la memoire du telephone
 // (`idsEcole`) : renvoyer deux fois met a jour au lieu de dupliquer.
+//
+// v4.08 — ce que la vraie ecole a appris (essai outils/essai_reel.js) :
+//   1. un eleve peut ne PAS avoir de code MASSAR : la base accepte plusieurs eleves
+//      sans code (on envoie « vide » et non une chaine vide, qui bloquait la 2eme ligne) ;
+//   2. les absences du telephone nomment le professeur par son NOM (« أيوب الكمرة »),
+//      pas par son adresse : on relie donc aussi par le nom ;
+//   3. une absence justifiee doit porter QUI a decide et QUAND (regle de la base) ;
+//   4. l'heure d'un signalement est obligatoire dans la base ;
+//   5. un emploi du temps s'envoie en ATTENDANT la reponse (avant, il partait sans
+//      attendre : le rapport annoncait 0 seance alors qu'elles montaient) ;
+//   6. une ligne qui ne peut pas partir (professeur inconnu, eleve absent de la base)
+//      ne doit PAS arreter tout l'envoi : elle est notee et l'envoi continue.
 
 function idsEcole() {
   try { return JSON.parse(Depot.lire('idsEcole', '{}')) || {}; } catch (e) { return {}; }
@@ -15,10 +27,8 @@ function idsEcole() {
 function sauverIdsEcole(ids) { Depot.ecrireJSON('idsEcole', ids); }
 
 async function atPost(table, corps, jeton) {
-  const rep = await fetch(AT_BASE + '/rest/v1/' + table, {
-    method: 'POST', headers: atEntetes(jeton, true) && Object.assign(atEntetes(jeton, true), { Prefer: 'return=representation' }),
-    body: JSON.stringify(corps)
-  });
+  const entetes = Object.assign(atEntetes(jeton, true), { Prefer: 'return=representation' });
+  const rep = await fetch(AT_BASE + '/rest/v1/' + table, { method: 'POST', headers: entetes, body: JSON.stringify(corps) });
   const d = await atReponse(rep);
   return Array.isArray(d) ? d[0] : d;
 }
@@ -51,7 +61,7 @@ async function envoyerLigne(ids, table, cle, corps, jeton) {
     // arreter tout l'envoi : on la note et on continue.
     if (e && (e.statut === 409 || /duplicate key/i.test(String(e.message)))) {
       if (!ids.conflits) ids.conflits = [];
-      ids.conflits.push(table + ' ' + cle);
+      ids.conflits.push(table + ' : deja sur le serveur (' + cle + ')');
       return null;
     }
     throw e;
@@ -62,9 +72,25 @@ const MOMENT_DE = function (seance) {
   const s = String(seance || '').toLowerCase();
   return (s.indexOf('apres') >= 0 || s.indexOf('après') >= 0 || s.indexOf('soir') >= 0) ? 'apres-midi' : 'matin';
 };
+
+// L'heure d'un signalement est OBLIGATOIRE dans la base ; le telephone ne l'a pas toujours.
+const HEURE_DE = function (a) {
+  const h = String(a.heure || '').trim();
+  if (/^\d{1,2}:\d{2}/.test(h)) return h.length === 4 ? '0' + h : h;
+  return MOMENT_DE(a.seance) === 'matin' ? '08:00' : '14:00';
+};
+
+// « justifie_s » (par un surveillant) et « justifie_d » (par le directeur) ne sont pas
+// des absences : la base exige alors QUI a decide et QUAND.
 const STATUT_DE = function (a) {
-  if (a.statut === 'justifie' || a.justifie) return 'justifie_s';
+  const s = String(a.statut || '');
+  if (s === 'justifie_s' || s === 'justifie_d' || a.justifie) return s === 'justifie_s' ? 'justifie_s' : 'justifie_d';
   return 'absent';
+};
+const HORODATAGE = function (v) {
+  const s = String(v || '').trim().replace(' ', 'T');
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return s.length === 16 ? s + ':00' : s;
+  return new Date().toISOString();
 };
 
 // ============================================================
@@ -72,23 +98,30 @@ const STATUT_DE = function (a) {
 // ============================================================
 async function envoyerMesDonnees() {
   const moi = await atQuiSuisJe();
-  if (!moi || !moi.fiche) { afficherToast('Connectez-vous au serveur d abord', 'error'); return; }
+  if (!moi || !moi.fiche) { afficherToast('Connectez-vous au serveur d abord', 'error'); return null; }
   const etab = moi.fiche.etablissement_id;
   const jeton = await atJeton();
   const ids = idsEcole();
   const fait = { classes: 0, eleves: 0, seances: 0, signalements: 0, annulations: 0, fermetures: 0, absences_personnel: 0 };
+  const nonEnvoyes = [];
+  const noter = function (famille, raison) { nonEnvoyes.push(famille + ' : ' + raison); };
 
   afficherToast('Envoi des donnees...', 'info');
   try {
-    // 0. les fiches du personnel (pour relier les seances et les absences a un professeur)
+    // 0. les fiches du personnel : on relie un professeur par son code, son adresse ou son NOM
+    //    (les emplois du temps et les absences du telephone le nomment par son nom).
     const fiches = await atFichesPersonnel();
     const fichePar = {};
+    const cle = function (v) { return String(v || '').toLowerCase().trim(); };
     fiches.forEach(function (f) {
-      if (f.code) fichePar[String(f.code).toLowerCase()] = f.id;
-      if (f.email) fichePar[String(f.email).toLowerCase()] = f.id;
+      if (f.code) fichePar[cle(f.code)] = f.id;
+      if (f.email) fichePar[cle(f.email)] = f.id;
+      if (f.email) fichePar[cle(String(f.email).split('@')[0])] = f.id;
+      if (f.nom) fichePar[cle(f.nom)] = f.id;
     });
-    const profId = function (code) {
-      const c = String(code || '').toLowerCase();
+    const profId = function (v) {
+      const c = cle(v);
+      if (!c) return null;
       return fichePar[c] || fichePar[c.split('@')[0]] || null;
     };
     const classeId = function (nom) { return ids.classes[String(nom)] || null; };
@@ -101,93 +134,133 @@ async function envoyerMesDonnees() {
     (await atLire('classes', jeton, 'id,nom')).forEach(function (c) { ids.classes[String(c.nom)] = c.id; });
     const classeParId = {};
     Object.keys(ids.classes).forEach(function (nom) { classeParId['' + ids.classes[nom]] = nom; });
-    (await atLire('eleves', jeton, 'id,classe_id,code_massar')).forEach(function (e) {
+    (await atLire('eleves', jeton, 'id,classe_id,code_massar,nom,prenom')).forEach(function (e) {
       const nom = classeParId['' + e.classe_id];
-      if (nom) ids.eleves[nom + '|' + e.code_massar] = e.id;
+      if (!nom) return;
+      ids.eleves[nom + '|' + (e.code_massar || ('nom:' + (e.nom || '') + ' ' + (e.prenom || '')))] = e.id;
     });
 
     // 1. les classes
-    for (const c of classes) {
-      const id = await envoyerLigne(ids, 'classes', String(c.nom), { etablissement_id: etab, nom: c.nom }, jeton);
-      ids.classes[String(c.nom)] = id;
-      fait.classes++;
-    }
-    // 2. les eleves
-    for (const c of classes) {
-      for (const e of (c.eleves || [])) {
-        const cle = String(c.nom) + '|' + String(e.massar || e.id);
-        const idBase = await envoyerLigne(ids, 'eleves', cle, {
-          classe_id: ids.classes[String(c.nom)], code_massar: String(e.massar || ''),
-          nom: e.nom || '', prenom: e.prenom || '', actif: e.actif !== false
-        }, jeton);
-        // correspondance identifiant du telephone -> identifiant du serveur (pour les absences)
-        if (!ids.elevesParId) ids.elevesParId = {};
-        ids.elevesParId['' + e.id] = idBase;
-        fait.eleves++;
+    try {
+      for (const c of classes) {
+        const id = await envoyerLigne(ids, 'classes', String(c.nom), { etablissement_id: etab, nom: c.nom }, jeton);
+        ids.classes[String(c.nom)] = id;
+        fait.classes++;
       }
-    }
-    // 3. les emplois du temps (seances)
-    Object.keys(tableauxService || {}).forEach(function (code) {
-      (tableauxService[code] || []).forEach(function (c) {
-        const cle = code + '|' + c.jour + '|' + c.debut + '|' + c.classe;
-        envoyerLigne(ids, 'seances', cle, {
-          etablissement_id: etab, prof_id: profId(code), classe_id: classeId(c.classe),
-          jour: c.jour, debut: c.debut, fin: c.fin || c.debut, salle: c.salle || '', matiere: c.matiere || ''
-        }, jeton);
-        fait.seances++;
-      });
-    });
-    await Promise.all([]);
-    // 4. les signalements (absences et retards)
-    for (const a of absences) {
-      const cle = String(a.eleveId) + '|' + a.dateISO + '|' + MOMENT_DE(a.seance) + '|' + (a.type || 'absence');
-      await envoyerLigne(ids, 'signalements', cle, {
-        etablissement_id: etab, eleve_id: (ids.elevesParId || {})['' + a.eleveId] || null,
-        classe_id: classeId(a.classe), prof_id: profId(a.enseignant),
-        date_abs: a.dateISO, moment: MOMENT_DE(a.seance), heure: a.heure || null,
-        type: (a.type === 'retard' ? 'retard' : 'absence'),
-        retard_minutes: (a.type === 'retard' ? parseInt(String(a.duree || '0'), 10) || null : null),
-        statut: STATUT_DE(a), motif: a.motif || null,
-        // La base n'accepte un signalement que s'il est signe par la personne connectee
-        // (regle d'integrite : on ne signale pas a la place d'un collegue). Ici, c'est le
-        // directeur qui fait la montee : c'est donc lui qui signe ; le professeur concerne
-        // reste porte par « prof_id ».
-        signale_par: moi.fiche.id
-      }, jeton);
-      fait.signalements++;
-    }
-    // 5. les annulations de seances
-    for (const sn of seancesAnnulees) {
-      const cle = sn.dateISO + '|' + sn.classe + '|' + sn.debut;
-      await envoyerLigne(ids, 'annulations_seances', cle, {
-        etablissement_id: etab, date_seance: sn.dateISO, classe_id: classeId(sn.classe),
-        debut: sn.debut, fin: sn.fin || sn.debut, motif: sn.motif || '', cree_par: moi.fiche.id
-      }, jeton);
-      fait.annulations++;
-    }
-    // 6. les fermetures
-    for (const f of fermeturesEtab) {
-      const cle = f.debut + '|' + (f.fin || f.debut) + '|' + (f.libelle || f.type || '');
-      await envoyerLigne(ids, 'fermetures', cle, {
-        etablissement_id: etab, type: f.type || 'Fermeture', libelle: f.libelle || '',
-        debut: f.debut, fin: f.fin || f.debut, portee: f.portee || 'journee', cree_par: moi.fiche.id
-      }, jeton);
-      fait.fermetures++;
-    }
-    // 7. les absences du personnel
-    for (const i of indispoProfs) {
-      const cle = String(i.profCode) + '|' + i.debut + '|' + (i.fin || i.debut);
-      await envoyerLigne(ids, 'absences_personnel', cle, {
-        etablissement_id: etab, prof_id: profId(i.profCode),
-        role_absent: (roleAbsence(i) === 'enseignant' ? 'enseignant' : 'surveillant'),
-        debut: i.debut, fin: i.fin || i.debut, portee: i.portee || 'journee',
-        motif: i.motif || '', cree_par: moi.fiche.id
-      }, jeton);
-      fait.absences_personnel++;
-    }
-    sauverIdsEcole(ids);
+    } catch (e) { noter('classes', (e && e.message) || e); }
 
-    // ---- CE QUI EST ENVOYE ----
+    // 2. les eleves. Un eleve sans code MASSAR est frequent (nouvelle inscription) :
+    //    la base accepte plusieurs eleves sans code, a condition d'envoyer « vide » (null).
+    try {
+      for (const c of classes) {
+        for (const e of (c.eleves || [])) {
+          const massar = String(e.massar || '').trim();
+          const cleLigne = String(c.nom) + '|' + (massar || ('nom:' + (e.nom || '') + ' ' + (e.prenom || '')));
+          const idBase = await envoyerLigne(ids, 'eleves', cleLigne, {
+            classe_id: ids.classes[String(c.nom)], code_massar: massar ? massar : null,
+            nom: e.nom || '', prenom: e.prenom || '', actif: e.actif !== false
+          }, jeton);
+          if (!ids.elevesParId) ids.elevesParId = {};
+          ids.elevesParId['' + e.id] = idBase;
+          fait.eleves++;
+        }
+      }
+    } catch (e) { noter('eleves', (e && e.message) || e); }
+
+    // 3. les emplois du temps (seances) — EN ATTENDANT chaque ligne (defaut v4.07 corrige)
+    try {
+      for (const code of Object.keys(tableauxService || {})) {
+        for (const c of (tableauxService[code] || [])) {
+          const cl = code + '|' + c.jour + '|' + c.debut + '|' + c.classe;
+          const pid = profId(code);
+          const cid = classeId(c.classe);
+          if (!pid || !cid) { noter('emploi du temps', (c.classe || '?') + ' ' + (c.jour || '?') + ' ' + (c.debut || '?') + (pid ? '' : ' (professeur inconnu)')); continue; }
+          await envoyerLigne(ids, 'seances', cl, {
+            etablissement_id: etab, prof_id: pid, classe_id: cid,
+            jour: c.jour, debut: c.debut, fin: c.fin || c.debut, salle: c.salle || '', matiere: c.matiere || ''
+          }, jeton);
+          fait.seances++;
+        }
+      }
+    } catch (e) { noter('emplois du temps', (e && e.message) || e); }
+
+    // 4. les signalements (absences et retards)
+    try {
+      for (const a of absences) {
+        const eleve = (ids.elevesParId || {})['' + a.eleveId] || null;
+        const pid = profId(a.enseignant);
+        const cid = classeId(a.classe);
+        if (!eleve || !pid || !cid) {
+          noter('absences / retards', (a.nom || '?') + ' ' + (a.date || '?') + (eleve ? '' : ' (eleve absent de la base)') + (pid ? '' : ' (professeur inconnu)'));
+          continue;
+        }
+        const cl = eleve + '|' + a.dateISO + '|' + MOMENT_DE(a.seance);
+        const statut = STATUT_DE(a);
+        const corps = {
+          etablissement_id: etab, eleve_id: eleve, classe_id: cid, prof_id: pid,
+          date_abs: a.dateISO, moment: MOMENT_DE(a.seance), heure: HEURE_DE(a),
+          type: (a.type === 'retard' ? 'retard' : 'absence'),
+          retard_minutes: (a.type === 'retard' ? (parseInt(String(a.duree || '0'), 10) || 5) : null),
+          statut: statut, motif: a.motif || null,
+          // La base n'accepte un signalement que s'il est signe par la personne connectee
+          // (regle d'integrite : on ne signale pas a la place d'un collegue). Ici, c'est le
+          // directeur qui fait la montee : c'est donc lui qui signe ; le professeur concerne
+          // reste porte par « prof_id ».
+          signale_par: moi.fiche.id
+        };
+        if (statut !== 'absent') {
+          corps.decide_par = profId(a.justifiePar) || moi.fiche.id;
+          corps.decide_le = HORODATAGE(a.justifieLe);
+        }
+        await envoyerLigne(ids, 'signalements', cl, corps, jeton);
+        fait.signalements++;
+      }
+    } catch (e) { noter('absences / retards', (e && e.message) || e); }
+
+    // 5. les annulations de seances
+    try {
+      for (const sn of seancesAnnulees) {
+        const cid = classeId(sn.classe);
+        if (!cid) { noter('annulations de seance', String(sn.classe || '?') + ' ' + String(sn.dateISO || '?')); continue; }
+        await envoyerLigne(ids, 'annulations_seances', sn.dateISO + '|' + sn.classe + '|' + sn.debut, {
+          etablissement_id: etab, date_seance: sn.dateISO, classe_id: cid,
+          debut: sn.debut, fin: sn.fin || sn.debut, motif: sn.motif || '', cree_par: moi.fiche.id
+        }, jeton);
+        fait.annulations++;
+      }
+    } catch (e) { noter('annulations de seance', (e && e.message) || e); }
+
+    // 6. les fermetures
+    try {
+      for (const f of fermeturesEtab) {
+        await envoyerLigne(ids, 'fermetures', f.debut + '|' + (f.fin || f.debut) + '|' + (f.libelle || f.type || ''), {
+          etablissement_id: etab, type: f.type || 'Fermeture', libelle: f.libelle || '',
+          debut: f.debut, fin: f.fin || f.debut, portee: f.portee || 'journee', cree_par: moi.fiche.id
+        }, jeton);
+        fait.fermetures++;
+      }
+    } catch (e) { noter('fermetures', (e && e.message) || e); }
+
+    // 7. les absences du personnel
+    try {
+      for (const i of indispoProfs) {
+        const pid = profId(i.profCode);
+        if (!pid) { noter('absences du personnel', String(i.profCode || '?') + ' (professeur inconnu)'); continue; }
+        await envoyerLigne(ids, 'absences_personnel', i.profCode + '|' + i.debut + '|' + (i.fin || i.debut), {
+          etablissement_id: etab, prof_id: pid,
+          role_absent: (roleAbsence(i) === 'enseignant' ? 'enseignant' : 'surveillant'),
+          debut: i.debut, fin: i.fin || i.debut, portee: i.portee || 'journee',
+          motif: i.motif || '', cree_par: moi.fiche.id
+        }, jeton);
+        fait.absences_personnel++;
+      }
+    } catch (e) { noter('absences du personnel', (e && e.message) || e); }
+
+    sauverIdsEcole(ids);
+    // Les donnees du telephone appartiennent desormais a CETTE ecole : une autre ecole
+    // ouverte sur le meme telephone ne les montrera jamais (voir 20-ecole.js).
+    if (typeof poserEtiquetteEcole === 'function') poserEtiquetteEcole(etab);
+
     // ---- CE QUI EST SUR LE SERVEUR (on relit, on ne suppose pas) ----
     const sur = {
       classes: (await atLire('classes', jeton, 'id')).length,
@@ -199,26 +272,40 @@ async function envoyerMesDonnees() {
       absences_personnel: (await atLire('absences_personnel', jeton, 'id')).length
     };
     const attendu = {
-      classes: classes.length,
-      eleves: classes.reduce((n, c) => n + (c.eleves || []).length, 0),
-      seances: Object.keys(tableauxService || {}).reduce((n, k) => n + (tableauxService[k] || []).length, 0),
-      signalements: absences.length, annulations: seancesAnnulees.length,
-      fermetures: fermeturesEtab.length, absences_personnel: (typeof indispoProfs !== 'undefined' ? indispoProfs.length : 0)
+      classes: fait.classes,
+      eleves: fait.eleves,
+      seances: fait.seances, signalements: fait.signalements,
+      annulations: fait.annulations, fermetures: fait.fermetures, absences_personnel: fait.absences_personnel
     };
-    let rapport = 'DONNEES ENVOYEES AU SERVEUR\n\n';
     const noms = { classes: 'classes', eleves: 'eleves', seances: 'seances (emplois du temps)',
                    signalements: 'absences / retards', annulations: 'annulations de seance',
                    fermetures: 'fermetures', absences_personnel: 'absences du personnel' };
+    let rapport = 'DONNEES ENVOYEES AU SERVEUR\n\n';
     let tout = true;
     Object.keys(noms).forEach(function (k) {
       const ok = sur[k] >= attendu[k];
       if (!ok) tout = false;
-      rapport += (ok ? 'OK  ' : 'ATTENTION ') + noms[k] + ' : telephone ' + attendu[k] + ' / serveur ' + sur[k] + '\n';
+      const deja = attendu[k] === 0 && sur[k] > 0;
+      rapport += (ok ? 'OK  ' : 'ATTENTION ') + noms[k] + ' : ' +
+                 (deja ? 'deja sur le serveur (' + sur[k] + ')' : 'telephone ' + attendu[k] + ' / serveur ' + sur[k]) + '\n';
     });
-    rapport += '\n' + (tout ? 'TOUT EST SUR LE SERVEUR.' : 'Certaines donnees manquent : renvoyez (rien ne sera double).');
-    afficherToast(tout ? 'Donnees envoyees et verifiees' : 'Envoi partiel : voir le detail', tout ? 'success' : 'warning');
+    const rienAEnvoyer = Object.keys(attendu).every(function (k) { return !attendu[k]; });
+    if (rienAEnvoyer) {
+      rapport = 'RIEN A ENVOYER\n\nCe telephone ne porte aucune donnee de travail pour cette ecole.\n' +
+                'Si vos listes sont sur ce telephone, c\'est qu\'elles appartiennent a une autre ecole :\n' +
+                'ouvrez le compte de cette ecole pour les envoyer (chaque ecole ne voit que ses listes).';
+      tout = false;
+    }
+    if (nonEnvoyes.length) {
+      rapport += '\nNON ENVOYE (' + nonEnvoyes.length + ') :\n- ' + nonEnvoyes.slice(0, 8).join('\n- ');
+      if (nonEnvoyes.length > 8) rapport += '\n- ... et ' + (nonEnvoyes.length - 8) + ' autre(s)';
+    }
+    rapport += '\n' + (tout && !nonEnvoyes.length ? 'TOUT EST SUR LE SERVEUR.' : 'Envoi termine avec des lignes a revoir (voir ci-dessus).');
+    afficherToast(rienAEnvoyer ? 'Rien a envoyer pour cette ecole'
+                  : (tout ? 'Donnees envoyees et verifiees' : 'Envoi partiel : voir le detail'),
+                  rienAEnvoyer ? 'warning' : (tout ? 'success' : 'warning'));
     window.alert(rapport);
-    return { sur: sur, attendu: attendu };
+    return { sur: sur, attendu: attendu, nonEnvoyes: nonEnvoyes };
   } catch (e) {
     sauverIdsEcole(ids);
     afficherToast('Envoi interrompu : ' + (e && e.message ? e.message : e), 'error');

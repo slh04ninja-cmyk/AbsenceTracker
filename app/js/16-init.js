@@ -2,6 +2,8 @@
 // ========== INIT ==========
 function init() {
   if (typeof appliquerModeEcole === 'function') appliquerModeEcole();
+  // Cloisonnement des ecoles : les listes de travail d'une AUTRE ecole ne s'affichent pas ici.
+  if (typeof appliquerEcoleAuxListes === 'function') appliquerEcoleAuxListes();
   // relecture de la liste des surveillants AVANT de la reinjecter dans les comptes
   // (sans cette ligne, un surveillant ajoute disparaissait au redemarrage)
   surveillantsRH = chargerSurveillantsRH();

@@ -68,6 +68,7 @@ function chargerClasses() {
 }
 
 function sauvegarderClasses(liste) {
+  if (typeof etiqueterSiVierge === 'function') etiqueterSiVierge();
   Depot.ecrireJSON('classes', liste || classes);
   Depot.ecrire('absenceTrackVersion', DEMO_VERSION);
 }
