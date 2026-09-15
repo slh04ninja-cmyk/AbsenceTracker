@@ -123,7 +123,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.06 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.07 — Prototype</p>
     </div>
   </div>
 </div>
@@ -980,6 +980,15 @@
         </ul>
 
         <hr class="my-3 border-gray-200">
+        <p class="text-sm font-bold text-gray-700 sep-titre">Données de l'école</p>
+        <p class="aide">Envoie sur le serveur les classes, les élèves, les emplois du temps, les absences,
+           les annulations, les fermetures et les absences du personnel — puis vérifie en relisant du serveur.
+           Renvoyer ne crée jamais de doublon.</p>
+        <button type="button" onclick="envoyerMesDonnees()" class="btn-primary w-full">
+          <i class="fas fa-cloud-upload-alt"></i> Envoyer mes données au serveur et vérifier
+        </button>
+
+        <hr class="my-3 border-gray-200">
         <p class="text-sm font-bold text-gray-700 sep-titre">Restaurer une sauvegarde</p>
         <p class="aide">Remet dans l'application tout ce que contient un fichier de sauvegarde
            (classes, élèves, absences, tableaux de service).</p>
@@ -1078,5 +1087,6 @@
   <script src="js/16-init.js"></script>
   <script src="js/17-listes-deroulantes.js"></script>
   <script src="js/18-connexion.js"></script>
+  <script src="js/19-donnees.js"></script>
 </body>
 </html>
