@@ -565,10 +565,23 @@ async function construirePdfIdentifiants(PDFLib, PDFDocument, fontkit, octetsPol
                            font: policeNom, color: noir });
       // email (latin, aligne a gauche)
       page.drawText(T(l.email), { x: x[1] + 6, y: milieu, size: 10.5, font: fTexte, color: noir });
-      // mot de passe (chasse fixe, centre)
-      const mdp = T(l.password);
-      page.drawText(mdp, { x: x[2] + (PDF_COLS[2] * PT - largeurTexte(mdp, fMono, 11.5)) / 2,
-                           y: milieu, size: 11.5, font: fMono, color: noir });
+      // Mot de passe. Sur une installation RELIEE au serveur, l'application ne connait
+      // PAS le mot de passe (il est garde par Supabase, jamais recopie dans le
+      // telephone) : imprimer celui des comptes de demonstration serait FAUX et
+      // ferait perdre du temps a tout le monde (defaut reellement signale).
+      const quoi = identifiantsMotDePasse(l);
+      if (quoi.consigne) {
+        const consigne = T(quoi.consigne);
+        page.drawText(consigne, { x: x[2] + (PDF_COLS[2] * PT - largeurTexte(consigne, fTexte, 8.5)) / 2,
+                                  y: milieu + 4, size: 8.5, font: fTexte, color: gris });
+        page.drawLine({ start: { x: x[2] + 12, y: milieu - 4 },
+                        end: { x: x[2] + PDF_COLS[2] * PT - 12, y: milieu - 4 },
+                        thickness: 0.5, color: bordure });
+      } else {
+        const mdp = T(quoi.texte);
+        page.drawText(mdp, { x: x[2] + (PDF_COLS[2] * PT - largeurTexte(mdp, fMono, 11.5)) / 2,
+                             y: milieu, size: 11.5, font: fMono, color: noir });
+      }
       y += PDF_LIGNE_MM;
     });
 
@@ -577,13 +590,23 @@ async function construirePdfIdentifiants(PDFLib, PDFDocument, fontkit, octetsPol
 
   // --- pied ---
   besoin(10);
-  const pied = 'Document confidentiel - ' + T(i.date) +
-               ' - chaque personne change son mot de passe dans Profil.';
+  const pied = 'Document confidentiel - ' + T(i.date) + ' - ' + T(espaceServeurLie()
+    ? 'les mots de passe sont gardes par le serveur : ecris ici celui que tu remets, chaque personne peut le changer dans Profil.'
+    : 'chaque personne change son mot de passe dans Profil.');
   page.drawText(pied, { x: centrer(pied, fTexte, 9), y: _yBas(y, 4), size: 9,
                         font: fTexte, color: gris });
   return doc;
 }
 
+
+// Quel mot de passe imprimer sur la feuille d'identifiants ?
+// - installation RELIEE au serveur : l'application ne connait PAS le mot de passe
+//   (il est garde par Supabase) -> on imprime une ligne a remplir a la main.
+// - installation locale (demonstration) : on imprime celui de la liste.
+function identifiantsMotDePasse(ligne) {
+  if (espaceServeurLie()) return { texte: '', consigne: 'a remettre par le directeur' };
+  return { texte: String((ligne && ligne.password) || ''), consigne: '' };
+}
 
 // ========== IDENTIFIANTS : emails, mots de passe et PDF ==========
 // Une bibliotheque PDF ecrit de gauche a droite et ne sait pas joindre les lettres

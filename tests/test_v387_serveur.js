@@ -693,6 +693,17 @@ const attendreQue = async (cond, tours) => {
     appels.length > avantRecup,
     (appels.length - avantRecup) + ' appel(s)');
 
+  // ---------- 12-quater) LA FEUILLE D'IDENTIFIANTS NE DOIT PLUS IMPRIMER DE FAUX MOT DE PASSE ----------
+  ev("utilisateurConnecte = { nom: 'SaLaH', role: 'directeur', serveur: true, fiche: 7, etablissementId: 3 };");
+  const quandRelie = ev("identifiantsMotDePasse({ email: 'x@taalim.ma', password: '12345' })");
+  t('feuille d identifiants : app RELIEE -> aucun mot de passe imprime (ligne a remplir)',
+    quandRelie.texte === '' && quandRelie.consigne.length > 0, JSON.stringify(quandRelie));
+  ev("utilisateurConnecte = { nom: 'Directeur', role: 'directeur' };");
+  win.localStorage.removeItem('espaceServeur');          // app NON reliee (hors ligne)
+  const quandLocal = ev("identifiantsMotDePasse({ email: 'x@taalim.ma', password: 'MonMotDePasse1' })");
+  t('feuille d identifiants : app NON reliee -> le mot de passe de la liste est imprime',
+    quandLocal.texte === 'MonMotDePasse1' && quandLocal.consigne === '', JSON.stringify(quandLocal));
+
   console.log(ok ? '=== TOUT OK ===' : '=== DES ECHECS ===');
   process.exit(ok ? 0 : 1);
 })();
