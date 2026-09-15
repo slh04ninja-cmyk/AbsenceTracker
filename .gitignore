@@ -34,3 +34,14 @@ _check*.js
 _jobid.txt
 _ci.log
 _msg_commit.txt
+
+# ---- application Android (coquille Capacitor) ----
+www/
+android/release-keystore.jks
+android/keystore.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.jks
+*.b64

@@ -1,6 +1,6 @@
 {
   "name": "absencetracker",
-  "version": "3.86.0",
+  "version": "4.4.0",
   "private": true,
   "description": "AbsenceTrack — gestion des absences et annulations (MASSAR) pour un établissement marocain",
   "scripts": {
@@ -11,7 +11,10 @@
   "devDependencies": {
     "@pdf-lib/fontkit": "1.1.1",
     "jsdom": "30.0.1",
-    "pdf-lib": "1.17.1"
+    "pdf-lib": "1.17.1",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
   },
   "engines": {
     "node": ">=22.22.2"

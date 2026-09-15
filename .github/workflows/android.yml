@@ -1,0 +1,57 @@
+name: android
+
+on:
+  push:
+    branches: [android-v4, main]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Construire l'application (fichier unique)
+        run: python3 outils/build.py
+
+      - name: Coquille Android (Capacitor)
+        run: |
+          mkdir -p www
+          cp AbsenceTrack-v2.html www/index.html
+          npm install --no-audit --no-fund
+          npx cap sync android
+
+      - name: Cle de signature (depuis les secrets, jamais dans le depot)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/release-keystore.jks
+          printf 'storeFile=../release-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+                 "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/keystore.properties
+
+      - name: Compiler l'APK signe
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Montrer l'APK produit
+        run: ls -l android/app/build/outputs/apk/release/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: absencetrack-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
