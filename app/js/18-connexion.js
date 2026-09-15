@@ -495,6 +495,30 @@ async function changerMotDePasseServeur(prefixe) {
   }
 }
 
+// ---------- 12 bis. RESTAURER UNE SAUVEGARDE DU TELEPHONE ----------
+// L'application n'efface jamais rien sans le dire : ici on REMET tout ce qu'une
+// sauvegarde contient (classes, eleves, absences, tableaux de service...).
+async function restaurerSauvegarde(input) {
+  const fichier = (input && input.files && input.files[0]) || null;
+  if (!fichier) return;
+  try {
+    const texte = await fichier.text();
+    const donnees = JSON.parse(texte);
+    const contenu = donnees && donnees.contenu ? donnees.contenu : donnees;
+    if (!contenu || typeof contenu !== 'object') throw new Error('format inattendu');
+    let n = 0;
+    Object.keys(contenu).forEach(function (cle) {
+      const valeur = contenu[cle];
+      Depot.ecrire(cle, typeof valeur === 'string' ? valeur : JSON.stringify(valeur));
+      n++;
+    });
+    afficherToast(n + ' element(s) restaure(s) — l application va se recharger', 'success');
+    setTimeout(function () { location.reload(); }, 1400);
+  } catch (e) {
+    afficherToast('Fichier illisible : ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
 // ---------- 13. REPARTIR DU SERVEUR (effacer le telephone) ----------
 // Efface TOUT ce qui est sur le telephone (listes, eleves, absences, comptes locaux) et
 // ne garde que le lien avec l'ecole + la memoire des mots de passe remis au personnel.
@@ -537,5 +561,7 @@ if (typeof window !== 'undefined') {
   window.changerAcademieEcole = changerAcademieEcole;
   window.changerMotDePasseServeur = changerMotDePasseServeur;
   window.repartirDuServeur = repartirDuServeur;
+  window.restaurerSauvegarde = restaurerSauvegarde;
+  window.ouvrirRenommageFicheBase = ouvrirRenommageFicheBase;
   window.rouvrirSessionSiBesoin = rouvrirSessionSiBesoin;
 }

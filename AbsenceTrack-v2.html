@@ -699,7 +699,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.04 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.05 — Prototype</p>
     </div>
   </div>
 </div>
@@ -1554,6 +1554,16 @@
           <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Au moins un chiffre (0-9)</li>
           <li><i class="fas fa-times-circle text-gray-400 mr-2"></i>Pas de caractères spéciaux</li>
         </ul>
+
+        <hr class="my-3 border-gray-200">
+        <p class="text-sm font-bold text-gray-700 sep-titre">Restaurer une sauvegarde</p>
+        <p class="aide">Remet dans l'application tout ce que contient un fichier de sauvegarde
+           (classes, élèves, absences, tableaux de service).</p>
+        <input type="file" id="fichier-sauvegarde" accept=".json,application/json" class="hidden"
+               onchange="restaurerSauvegarde(this)">
+        <button type="button" onclick="document.getElementById('fichier-sauvegarde').click()" class="btn-secondary w-full">
+          <i class="fas fa-upload"></i> Choisir un fichier de sauvegarde
+        </button>
 
         <hr class="my-3 border-gray-200">
         <p class="text-sm font-bold text-gray-700 sep-titre">Repartir du serveur</p>
@@ -3055,9 +3065,62 @@ function afficherComptes(idConteneur, role) {
   }
   liste.forEach(c => cont.appendChild(carteCompte(c)));
 }
-function afficherListeProfs() {
+async function afficherListeProfs() {
+  // ECOLE RELIEE A LA BASE : la liste du personnel vient du SERVEUR (ses fiches),
+  // et non plus de la liste ecrite dans le telephone.
+  if (typeof estModeEcole === 'function' && estModeEcole() && typeof atFichesPersonnel === 'function') {
+    try {
+      const fiches = await atFichesPersonnel();
+      if (fiches && fiches.length) { afficherFichesDeLaBase(fiches); return; }
+    } catch (e) { /* hors ligne : on retombe sur la liste du telephone */ }
+  }
   afficherComptes('dir-profs-list', 'enseignant');
   afficherComptes('dir-surveillants-list', 'surveillant');
+}
+
+// Une carte par fiche du serveur : nom, matiere, adresse (+ code MASSAR s'il existe).
+function afficherFichesDeLaBase(fiches) {
+  const poser = function (idConteneur, role) {
+    const cont = document.getElementById(idConteneur);
+    if (!cont) return;
+    cont.innerHTML = '';
+    const liste = fiches.filter(f => f.role === role);
+    if (!liste.length) {
+      cont.innerHTML = '<p class="text-xs text-gray-500 text-center py-1">Aucun ' +
+        (role === 'enseignant' ? 'enseignant' : 'surveillant') + ' dans la base.</p>';
+      return;
+    }
+    liste.forEach(f => {
+      const sousTitre = (f.matiere ? f.matiere + ' · ' : '') + (f.email || '');
+      cont.appendChild(carteLigne(f.nom || '', sousTitre, {
+        icone: '<i class="fas fa-pen mr-1"></i>Modifier',
+        couleur: 'var(--primary)',
+        onclick: () => ouvrirRenommageFicheBase(f)
+      }));
+    });
+  };
+  poser('dir-profs-list', 'enseignant');
+  poser('dir-surveillants-list', 'surveillant');
+}
+
+// Renommer une fiche DU SERVEUR (le directeur en a le droit : c'est la seule colonne
+// qu'il peut modifier). Le telephone ne garde rien : tout se passe dans la base.
+async function ouvrirRenommageFicheBase(fiche) {
+  const nouveau = prompt('Nouveau nom pour « ' + (fiche.nom || '') + ' » ?', fiche.nom || '');
+  if (nouveau === null) return;
+  const nom = String(nouveau).trim();
+  if (!nom || nom === fiche.nom) return;
+  try {
+    const jeton = await atJeton();
+    const rep = await fetch(AT_BASE + '/rest/v1/profils?id=eq.' + fiche.id, {
+      method: 'PATCH', headers: atEntetes(jeton, true), body: JSON.stringify({ nom: nom })
+    });
+    await atReponse(rep);
+    afficherToast('Nom change sur le serveur', 'success');
+    afficherListeProfs();
+  } catch (e) {
+    afficherToast('Changement impossible : ' + (e && e.message ? e.message : e), 'error');
+  }
 }
 
 // ========== SURVEILLANTS : ajout, modification, suppression ==========
@@ -7484,6 +7547,30 @@ async function changerMotDePasseServeur(prefixe) {
   }
 }
 
+// ---------- 12 bis. RESTAURER UNE SAUVEGARDE DU TELEPHONE ----------
+// L'application n'efface jamais rien sans le dire : ici on REMET tout ce qu'une
+// sauvegarde contient (classes, eleves, absences, tableaux de service...).
+async function restaurerSauvegarde(input) {
+  const fichier = (input && input.files && input.files[0]) || null;
+  if (!fichier) return;
+  try {
+    const texte = await fichier.text();
+    const donnees = JSON.parse(texte);
+    const contenu = donnees && donnees.contenu ? donnees.contenu : donnees;
+    if (!contenu || typeof contenu !== 'object') throw new Error('format inattendu');
+    let n = 0;
+    Object.keys(contenu).forEach(function (cle) {
+      const valeur = contenu[cle];
+      Depot.ecrire(cle, typeof valeur === 'string' ? valeur : JSON.stringify(valeur));
+      n++;
+    });
+    afficherToast(n + ' element(s) restaure(s) — l application va se recharger', 'success');
+    setTimeout(function () { location.reload(); }, 1400);
+  } catch (e) {
+    afficherToast('Fichier illisible : ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
 // ---------- 13. REPARTIR DU SERVEUR (effacer le telephone) ----------
 // Efface TOUT ce qui est sur le telephone (listes, eleves, absences, comptes locaux) et
 // ne garde que le lien avec l'ecole + la memoire des mots de passe remis au personnel.
@@ -7526,6 +7613,8 @@ if (typeof window !== 'undefined') {
   window.changerAcademieEcole = changerAcademieEcole;
   window.changerMotDePasseServeur = changerMotDePasseServeur;
   window.repartirDuServeur = repartirDuServeur;
+  window.restaurerSauvegarde = restaurerSauvegarde;
+  window.ouvrirRenommageFicheBase = ouvrirRenommageFicheBase;
   window.rouvrirSessionSiBesoin = rouvrirSessionSiBesoin;
 }
 </script>

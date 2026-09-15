@@ -123,7 +123,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.04 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.05 — Prototype</p>
     </div>
   </div>
 </div>
@@ -978,6 +978,16 @@
           <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Au moins un chiffre (0-9)</li>
           <li><i class="fas fa-times-circle text-gray-400 mr-2"></i>Pas de caractères spéciaux</li>
         </ul>
+
+        <hr class="my-3 border-gray-200">
+        <p class="text-sm font-bold text-gray-700 sep-titre">Restaurer une sauvegarde</p>
+        <p class="aide">Remet dans l'application tout ce que contient un fichier de sauvegarde
+           (classes, élèves, absences, tableaux de service).</p>
+        <input type="file" id="fichier-sauvegarde" accept=".json,application/json" class="hidden"
+               onchange="restaurerSauvegarde(this)">
+        <button type="button" onclick="document.getElementById('fichier-sauvegarde').click()" class="btn-secondary w-full">
+          <i class="fas fa-upload"></i> Choisir un fichier de sauvegarde
+        </button>
 
         <hr class="my-3 border-gray-200">
         <p class="text-sm font-bold text-gray-700 sep-titre">Repartir du serveur</p>

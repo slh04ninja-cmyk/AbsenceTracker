@@ -325,8 +325,61 @@ function afficherComptes(idConteneur, role) {
   }
   liste.forEach(c => cont.appendChild(carteCompte(c)));
 }
-function afficherListeProfs() {
+async function afficherListeProfs() {
+  // ECOLE RELIEE A LA BASE : la liste du personnel vient du SERVEUR (ses fiches),
+  // et non plus de la liste ecrite dans le telephone.
+  if (typeof estModeEcole === 'function' && estModeEcole() && typeof atFichesPersonnel === 'function') {
+    try {
+      const fiches = await atFichesPersonnel();
+      if (fiches && fiches.length) { afficherFichesDeLaBase(fiches); return; }
+    } catch (e) { /* hors ligne : on retombe sur la liste du telephone */ }
+  }
   afficherComptes('dir-profs-list', 'enseignant');
   afficherComptes('dir-surveillants-list', 'surveillant');
+}
+
+// Une carte par fiche du serveur : nom, matiere, adresse (+ code MASSAR s'il existe).
+function afficherFichesDeLaBase(fiches) {
+  const poser = function (idConteneur, role) {
+    const cont = document.getElementById(idConteneur);
+    if (!cont) return;
+    cont.innerHTML = '';
+    const liste = fiches.filter(f => f.role === role);
+    if (!liste.length) {
+      cont.innerHTML = '<p class="text-xs text-gray-500 text-center py-1">Aucun ' +
+        (role === 'enseignant' ? 'enseignant' : 'surveillant') + ' dans la base.</p>';
+      return;
+    }
+    liste.forEach(f => {
+      const sousTitre = (f.matiere ? f.matiere + ' · ' : '') + (f.email || '');
+      cont.appendChild(carteLigne(f.nom || '', sousTitre, {
+        icone: '<i class="fas fa-pen mr-1"></i>Modifier',
+        couleur: 'var(--primary)',
+        onclick: () => ouvrirRenommageFicheBase(f)
+      }));
+    });
+  };
+  poser('dir-profs-list', 'enseignant');
+  poser('dir-surveillants-list', 'surveillant');
+}
+
+// Renommer une fiche DU SERVEUR (le directeur en a le droit : c'est la seule colonne
+// qu'il peut modifier). Le telephone ne garde rien : tout se passe dans la base.
+async function ouvrirRenommageFicheBase(fiche) {
+  const nouveau = prompt('Nouveau nom pour « ' + (fiche.nom || '') + ' » ?', fiche.nom || '');
+  if (nouveau === null) return;
+  const nom = String(nouveau).trim();
+  if (!nom || nom === fiche.nom) return;
+  try {
+    const jeton = await atJeton();
+    const rep = await fetch(AT_BASE + '/rest/v1/profils?id=eq.' + fiche.id, {
+      method: 'PATCH', headers: atEntetes(jeton, true), body: JSON.stringify({ nom: nom })
+    });
+    await atReponse(rep);
+    afficherToast('Nom change sur le serveur', 'success');
+    afficherListeProfs();
+  } catch (e) {
+    afficherToast('Changement impossible : ' + (e && e.message ? e.message : e), 'error');
+  }
 }
 
