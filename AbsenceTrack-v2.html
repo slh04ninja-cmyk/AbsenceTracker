@@ -648,7 +648,7 @@ body.theme-sombre .inst-compte { background: #1e293b; border-color: #334155; col
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.103 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v3.104 — Prototype</p>
     </div>
   </div>
 </div>
@@ -2499,6 +2499,10 @@ function serveurEnvoiArrierePlan(delai) {
 }
 
 function serveurEnvoiMaintenant() {
+  // Etat propre au depart : si une lecture a echoue en route (reseau coupe, jeton
+  // perime), son drapeau pouvait rester leve et BLOQUER tous les envois suivants
+  // (defaut reellement constate : plus rien ne partait, sans le moindre message).
+  serveurLectureEnCours = false;
   // Pendant le CHARGEMENT de la page, les listes se reecrivent avant que la
   // session et l'utilisateur existent : ce n'est pas une erreur, il n'y a
   // simplement rien a envoyer.
@@ -3152,8 +3156,6 @@ async function serveurEnvoyerFiches() {
           if (cree[0].code) parCode[cree[0].code] = cree[0];
           parNom[cree[0].nom] = cree[0];
           if (cree[0].email) parMail[String(cree[0].email).toLowerCase()] = cree[0];
-          memoire[cree[0].id] = 1;              // c'est NOUS qui l'avons creee
-          Depot.ecrireJSON('fichesCreeesParApp', memoire);
           rapport.fiches++;
         }
       } else if (existante.nom !== p.nom) {
@@ -3176,8 +3178,6 @@ async function serveurEnvoyerFiches() {
   // retirer. Une fiche venue d'ailleurs (autre appareil, import, script) n'est
   // JAMAIS touchee : sinon elle disparaissait des ecrans sans que personne ne
   // comprenne pourquoi (defaut constate a l'essai sur le vrai serveur).
-  const memoire = Depot.lireJSON('fichesCreeesParApp', {}) || {};
-
   // Les personnes qui ne sont PLUS dans la liste du telephone sont marquees INACTIVES.
   // On ne les supprime JAMAIS : l'historique de ce qu'elles ont approuve doit rester lisible.
   // Une fiche est « encore la » si l'un de ses identifiants (code, email, nom) est dans la liste —
@@ -3189,17 +3189,29 @@ async function serveurEnvoyerFiches() {
     if (q.email) identifiants['mail:' + String(q.email).toLowerCase()] = 1;
     identifiants['nom:' + q.nom] = 1;
   }
+
+  // On ne retire QUE les personnes que l'application connaissait deja (celles de
+  // ses propres listes). Une fiche venue d'ailleurs — autre appareil, script,
+  // import — n'est JAMAIS touchee : sinon elle disparaissait des ecrans sans que
+  // personne ne comprenne pourquoi (defaut constate a l'essai sur le vrai serveur).
+  const connues = Depot.lireJSON('fichesConnues', {}) || {};
+  for (const kk in identifiants) connues[kk] = 1;
+  Depot.ecrireJSON('fichesConnues', connues);
+  const etaitConnue = function (f) {
+    return (f.code && connues['code:' + f.code]) ||
+           (f.email && connues['mail:' + String(f.email).toLowerCase()]) ||
+           connues['nom:' + f.nom];
+  };
   rapport.desactivees = 0;
   for (let k = 0; k < fServ.length; k++) {
     const f = fServ[k];
     if (f.role === 'directeur') continue;
     if (f.actif === false) continue;                       // deja inactive
-    if (!memoire[f.id]) continue;                          // venue d'ailleurs : intouchable
+    if (!etaitConnue(f)) continue;                         // venue d'ailleurs : intouchable
     const encore = (f.code && identifiants['code:' + f.code]) ||
                    (f.email && identifiants['mail:' + String(f.email).toLowerCase()]) ||
                    identifiants['nom:' + f.nom];
     if (encore) continue;
-    delete memoire[f.id];                                  // elle est retiree : on l'oublie
     await serveurAppel('/rest/v1/profils?id=eq.' + f.id, { methode: 'PATCH', corps: { actif: false } });
     rapport.desactivees++;
   }

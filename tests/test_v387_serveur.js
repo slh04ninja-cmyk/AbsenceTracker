@@ -373,15 +373,21 @@ const attendreQue = async (cond, tours) => {
 
   // ---------- 10d) LES PERSONNES (prealable) PUIS LES ABSENCES ----------
   const rf1 = await ev('serveurEnvoyerFiches()');
-  t('les personnes sont envoyees (professeurs + surveillants)', rf1.fiches >= 10, rf1.fiches);
+  // Depuis le correctif, une fiche deja presente est reconnue AUSSI par son adresse :
+  // elle est alors « mise a jour » et non « creee ». L'essentiel : toutes sur le serveur.
+  t('les personnes sont envoyees (professeurs + surveillants)',
+    rf1.fiches + rf1.maj >= 10 && base.fiches.length >= 10,
+    'creees=' + rf1.fiches + ' maj=' + rf1.maj + ' au total=' + base.fiches.length);
   t('le directeur n est pas recree', base.fiches.filter(function (f) { return f.role === 'directeur'; }).length === 0);
   t('un surveillant part SANS matiere',
     base.fiches.filter(function (f) { return f.role === 'surveillant'; }).every(function (f) { return !f.matiere; }));
   t('un enseignant part AVEC sa matiere',
     base.fiches.filter(function (f) { return f.role === 'enseignant'; }).every(function (f) { return !!f.matiere; }));
+  const nbFichesAvant2 = base.fiches.length;
   const rf2 = await ev('serveurEnvoyerFiches()');
   t('2e envoi des personnes : aucun doublon',
-    rf2.fiches === 0 && base.fiches.length === rf1.fiches, rf2.fiches + ' puis ' + base.fiches.length);
+    base.fiches.length === nbFichesAvant2 && rf2.fiches === 0,
+    rf2.fiches + ' creee(s), ' + base.fiches.length + ' au total');
 
   ev("absences = [" +
      "{ id: 1, eleveId: 1, nom: 'El Amrani Mehdi', classe: 'TCSF-1', dateISO: '2026-09-10', date: '10/09/2026'," +
@@ -656,7 +662,10 @@ const attendreQue = async (cond, tours) => {
   // Sans cela, la lecture suivante ramene l'ancien nom (defaut reellement signale).
   // Ce bloc est place EN DERNIER : il declenche un envoi complet, qui modifie l'etat
   // du serveur simule et rendrait fausses les verifications precedentes.
-  // on se remet DANS l'etat serveur (le bloc 11b a ramene un compte de demonstration)
+  // on se remet dans un etat SAIN : les blocs precedents ont eprouve les pannes
+  // (jeton perime, renouvellement refuse) et ont volontairement tue la session.
+  jetonsPerimes = 0;
+  refreshRefus = false;
   win.localStorage.setItem('espaceServeur', JSON.stringify({ fiche: 7, etablissementId: 3 }));
   await essayerConnexion('directeur@taalim.ma', MDP2);
   await attendreQue(() => ev('serveurActif()') === true);
@@ -684,14 +693,20 @@ const attendreQue = async (cond, tours) => {
     JSON.stringify(retrouvees.map(function (x) { return x.nombre + ' ' + x.nom; })));
   const avantRecup = appels.length;
   await ev('installationRecuperer()');
-  await pause(); await pause();
+  // l'envoi est desormais GROUPE (1,2 s de calme) : on attend vraiment ce delai
+  await new Promise(function (r) { setTimeout(r, 1800); });
   t('elles sont remises dans les listes du telephone',
     ev("seancesAnnulees.some(function (a) { return a.motif === 'Retrouvee'; })") === true &&
     ev("fermeturesEtab.some(function (f) { return f.libelle === 'Fete retrouvee'; })") === true,
     'annulations=' + ev('seancesAnnulees.length') + ' fermetures=' + ev('fermeturesEtab.length'));
   t('et elles partent aussitot au serveur',
     appels.length > avantRecup,
-    (appels.length - avantRecup) + ' appel(s)');
+    (appels.length - avantRecup) + ' appel(s) | actif=' + ev('serveurActif()') +
+      ' | minuteur=' + ev('serveurEnvoiMinuteur !== null') +
+      ' | enCours=' + ev('serveurEnvoiEnCours') +
+      ' | aRefaire=' + ev('serveurEnvoiARefaire') +
+      ' | role=' + ev('(utilisateurConnecte && utilisateurConnecte.role) || "-"') +
+      ' | session=' + !!JSON.parse(win.localStorage.getItem('sessionServeur') || 'null'));
 
   // ---------- 12-quater) LA FEUILLE D'IDENTIFIANTS NE DOIT PLUS IMPRIMER DE FAUX MOT DE PASSE ----------
   ev("utilisateurConnecte = { nom: 'SaLaH', role: 'directeur', serveur: true, fiche: 7, etablissementId: 3 };");
