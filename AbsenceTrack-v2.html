@@ -699,7 +699,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.05 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.06 — Prototype</p>
     </div>
   </div>
 </div>
@@ -3066,13 +3066,18 @@ function afficherComptes(idConteneur, role) {
   liste.forEach(c => cont.appendChild(carteCompte(c)));
 }
 async function afficherListeProfs() {
-  // ECOLE RELIEE A LA BASE : la liste du personnel vient du SERVEUR (ses fiches),
-  // et non plus de la liste ecrite dans le telephone.
+  // ECOLE RELIEE A LA BASE : la liste du personnel vient du SERVEUR, et de la SEULE.
+  // Une ecole neuve n'a PERSONNE : on affiche « aucun » (jamais la liste ecrite dans
+  // l'application — c'est elle qui faisait apparaitre le personnel d'une autre ecole).
   if (typeof estModeEcole === 'function' && estModeEcole() && typeof atFichesPersonnel === 'function') {
     try {
       const fiches = await atFichesPersonnel();
-      if (fiches && fiches.length) { afficherFichesDeLaBase(fiches); return; }
-    } catch (e) { /* hors ligne : on retombe sur la liste du telephone */ }
+      afficherFichesDeLaBase(fiches || []);
+      return;
+    } catch (e) {
+      // Serveur injoignable : on le DIT, et on montre la liste du telephone pour depanner.
+      afficherToast('Serveur injoignable : liste du telephone (provisoire)', 'warning');
+    }
   }
   afficherComptes('dir-profs-list', 'enseignant');
   afficherComptes('dir-surveillants-list', 'surveillant');
@@ -7382,6 +7387,17 @@ async function installerEcoleDepuisFormulaire() {
       afficherToast('Une installation a ete commencee pour ce code : contactez le support', 'warning');
       return;
     }
+    // Les donnees de travail (classes, eleves, absences, emplois du temps) appartiennent
+    // a UNE ecole : installer une nouvelle ecole, c'est repartir de zero sur ce telephone.
+    if (window.confirm("Installer « " + infos.nom + " » ?\n\n" +
+        "Les donnees de travail de ce telephone (classes, eleves, absences, emplois du temps) " +
+        "seront effacees : elles appartiennent a une autre ecole.\n\n" +
+        "Vos donnees sur le serveur ne sont pas touchees.") !== true) return;
+    ['classes', 'absences', 'tableauxService_v2', 'seancesAnnulees', 'fermeturesEtab',
+     'indispoProfs', 'nomsProfs', 'motsDePasse', 'surveillantsRH', 'absenceTrackVersion',
+     'testHistoGenere_v1', 'testHistoGenere_v2', 'testHistoGenere_v3', 'testHistoGenere_v4',
+     'testHistoGenere_v5', 'testHistoGenere_v6'].forEach(function (cle) { Depot.effacer(cle); });
+
     await atCreerCompte(infos.email, infos.mdp);
     await atInstallerEcole({
       code: infos.code, nom: infos.nom, directeur: infos.directeur,
@@ -7389,6 +7405,7 @@ async function installerEcoleDepuisFormulaire() {
       semestres: (typeof anneeScolaire !== 'undefined' && anneeScolaire.semestres) || []
     });
     passerEnModeEcole();
+    Depot.ecrire('etabDonnees', infos.code);      // a quelle ecole appartiennent les donnees du telephone
     etablissement = { code: infos.code, nom: infos.nom, academie: infos.academie, direction: infos.direction };
     if (typeof sauvegarderParametres === 'function') sauvegarderParametres();
     const moi = await atQuiSuisJe();

@@ -330,6 +330,17 @@ async function installerEcoleDepuisFormulaire() {
       afficherToast('Une installation a ete commencee pour ce code : contactez le support', 'warning');
       return;
     }
+    // Les donnees de travail (classes, eleves, absences, emplois du temps) appartiennent
+    // a UNE ecole : installer une nouvelle ecole, c'est repartir de zero sur ce telephone.
+    if (window.confirm("Installer « " + infos.nom + " » ?\n\n" +
+        "Les donnees de travail de ce telephone (classes, eleves, absences, emplois du temps) " +
+        "seront effacees : elles appartiennent a une autre ecole.\n\n" +
+        "Vos donnees sur le serveur ne sont pas touchees.") !== true) return;
+    ['classes', 'absences', 'tableauxService_v2', 'seancesAnnulees', 'fermeturesEtab',
+     'indispoProfs', 'nomsProfs', 'motsDePasse', 'surveillantsRH', 'absenceTrackVersion',
+     'testHistoGenere_v1', 'testHistoGenere_v2', 'testHistoGenere_v3', 'testHistoGenere_v4',
+     'testHistoGenere_v5', 'testHistoGenere_v6'].forEach(function (cle) { Depot.effacer(cle); });
+
     await atCreerCompte(infos.email, infos.mdp);
     await atInstallerEcole({
       code: infos.code, nom: infos.nom, directeur: infos.directeur,
@@ -337,6 +348,7 @@ async function installerEcoleDepuisFormulaire() {
       semestres: (typeof anneeScolaire !== 'undefined' && anneeScolaire.semestres) || []
     });
     passerEnModeEcole();
+    Depot.ecrire('etabDonnees', infos.code);      // a quelle ecole appartiennent les donnees du telephone
     etablissement = { code: infos.code, nom: infos.nom, academie: infos.academie, direction: infos.direction };
     if (typeof sauvegarderParametres === 'function') sauvegarderParametres();
     const moi = await atQuiSuisJe();

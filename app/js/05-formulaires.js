@@ -326,13 +326,18 @@ function afficherComptes(idConteneur, role) {
   liste.forEach(c => cont.appendChild(carteCompte(c)));
 }
 async function afficherListeProfs() {
-  // ECOLE RELIEE A LA BASE : la liste du personnel vient du SERVEUR (ses fiches),
-  // et non plus de la liste ecrite dans le telephone.
+  // ECOLE RELIEE A LA BASE : la liste du personnel vient du SERVEUR, et de la SEULE.
+  // Une ecole neuve n'a PERSONNE : on affiche « aucun » (jamais la liste ecrite dans
+  // l'application — c'est elle qui faisait apparaitre le personnel d'une autre ecole).
   if (typeof estModeEcole === 'function' && estModeEcole() && typeof atFichesPersonnel === 'function') {
     try {
       const fiches = await atFichesPersonnel();
-      if (fiches && fiches.length) { afficherFichesDeLaBase(fiches); return; }
-    } catch (e) { /* hors ligne : on retombe sur la liste du telephone */ }
+      afficherFichesDeLaBase(fiches || []);
+      return;
+    } catch (e) {
+      // Serveur injoignable : on le DIT, et on montre la liste du telephone pour depanner.
+      afficherToast('Serveur injoignable : liste du telephone (provisoire)', 'warning');
+    }
   }
   afficherComptes('dir-profs-list', 'enseignant');
   afficherComptes('dir-surveillants-list', 'surveillant');
