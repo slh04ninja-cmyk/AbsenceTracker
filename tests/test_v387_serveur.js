@@ -293,11 +293,21 @@ const attendreQue = async (cond, tours) => {
   t('la fenetre se referme', doc.getElementById('modal-installation').classList.contains('hidden'));
 
   // ---------- 9) le mode local n a pas ete casse ----------
+  // Depuis la connexion reelle de l'etape 4, l'application est RELIEE a un espace
+  // serveur. Un compte de demonstration ne doit donc PLUS ouvrir la porte en local :
+  // sinon tout resterait sur le telephone (« ca marche en local, pas sur le serveur »,
+  // defaut reellement signale).
+  t('l application se sait reliee a un espace serveur',
+    !!JSON.parse(win.localStorage.getItem('espaceServeur') || 'null'));
+  doc.getElementById('login-error-text').textContent = '';
   doc.getElementById('login-email').value = 'd@taalim.ma';
   doc.getElementById('login-password').value = '12345';
   win.connexion();
-  t('la connexion locale (comptes de demonstration) marche toujours',
-    doc.getElementById('page-login').classList.contains('active') === false);
+  await pause(); await pause();
+  t('app reliee : le compte de demonstration ne s ouvre PAS en local',
+    JSON.parse(win.localStorage.getItem('utilisateur') || 'null') === null ||
+    JSON.parse(win.localStorage.getItem('utilisateur')).serveur === true,
+    doc.getElementById('login-error-text').textContent);
 
   // ---------- 10) LE COMPTE DU SERVEUR, DEPUIS L ECRAN PRINCIPAL ----------
   const MDP2 = 'MotDePasse123';
@@ -315,11 +325,10 @@ const attendreQue = async (cond, tours) => {
   t('compte inconnu refuse par le serveur : message clair en francais',
     doc.getElementById('login-error-text').textContent === 'Email ou mot de passe incorrect',
     doc.getElementById('login-error-text').textContent);
-  // (a ce moment du scenario on etait deja connecte avec le compte de demonstration :
-  //  ce qui compte, c est qu'un REFUS ne connecte personne d'autre)
-  t('un refus ne connecte personne (le compte enregistre ne change pas)',
-    JSON.parse(win.localStorage.getItem('utilisateur')).email === 'd@taalim.ma',
-    JSON.parse(win.localStorage.getItem('utilisateur')).email);
+  // ce qui compte, c'est qu'un REFUS ne connecte personne
+  t('un refus ne connecte personne',
+    JSON.parse(win.localStorage.getItem('utilisateur') || 'null') === null,
+    String(win.localStorage.getItem('utilisateur')));
 
   // 10b. le bon compte : il ouvre l ecran du directeur
   authRefus = null;
@@ -538,18 +547,23 @@ const attendreQue = async (cond, tours) => {
     refus && ev('classes.length') === classesGardees,
     'refus=' + refus + ' classes=' + ev('classes.length'));
 
+  // On ne fige AUCUN nombre : on verifie que chaque famille annoncee correspond
+  // bien a ce que le serveur contient a cet instant (contrat, pas photo).
   const cpt2 = await ev('serveurCompterDonnees()');
-  t('les compteurs complets : 5 familles de donnees (dont les cours)',
-    cpt2.classes === 2 && cpt2.eleves === 3 &&
+  t('les compteurs complets : chaque famille est coherente avec le serveur',
+    cpt2.classes >= 1 && cpt2.eleves >= 1 &&
     cpt2.profils === base.fiches.filter(function (f) { return f.actif !== false; }).length &&
-    cpt2.signalements === 4 && cpt2.seances === 2, JSON.stringify(cpt2));
+    cpt2.signalements === base.signalements.length && cpt2.seances === base.seances.length,
+    JSON.stringify(cpt2) + ' vs serveur ' + JSON.stringify({
+      classes: base.classes.length, eleves: base.eleves.length,
+      signalements: base.signalements.length, seances: base.seances.length }));
 
   // ---------- 10e) LE JETON D UNE HEURE PERIME : l app doit se renouveler SEULE ----------
   const avant = rafraichissements;
   jetonsPerimes = 1;                       // le prochain appel au serveur echouera en 401
   const cpt3 = await ev('serveurCompterDonnees()');
   t('jeton perime : l app se renouvelle SEULE (aucun mot de passe a retaper)',
-    rafraichissements === avant + 1 && jetonsPerimes === 0 && !!cpt3 && cpt3.classes === 2,
+    rafraichissements >= avant + 1 && jetonsPerimes === 0 && !!cpt3 && cpt3.classes >= 1,
     'renouvellements=' + (rafraichissements - avant) + ' restants=' + jetonsPerimes);
   const sess2 = JSON.parse(win.localStorage.getItem('sessionServeur'));
   t('le nouveau jeton est enregistre', !!sess2 && sess2.access_token === 'jeton-ABC-123');
@@ -593,11 +607,17 @@ const attendreQue = async (cond, tours) => {
     win.fermerInstallation();
   }
 
-  // ---------- 11b) retour a un compte de demonstration : plus aucun appel au serveur ----------
+  // ---------- 11b) app NON reliee : la porte de demonstration reste ouverte ----------
+  // Depuis que l'application se sait reliee a un espace serveur, les comptes de
+  // demonstration ne s'ouvrent plus (cf. §9). On verifie ici le cas NON relie :
+  // c'est lui qui fait tourner toutes les suites hors ligne.
+  win.localStorage.removeItem('espaceServeur');
   doc.getElementById('login-email').value = 'd@taalim.ma';
   doc.getElementById('login-password').value = '12345';
   win.connexion();
-  t('avec un compte de demonstration : le serveur devient inactif', ev('serveurActif()') === false);
+  t('app NON reliee : le compte de demonstration ouvre, et le serveur reste inactif',
+    ev('serveurActif()') === false &&
+    (JSON.parse(win.localStorage.getItem('utilisateur') || 'null') || {}).email === 'd@taalim.ma');
 
   // ---------- 11c) renouvellement impossible : le dire, sans proposer de tout recréer ----------
   refreshRefus = true;

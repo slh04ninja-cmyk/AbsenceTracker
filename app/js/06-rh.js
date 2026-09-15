@@ -142,6 +142,7 @@ function sauvegarderSurveillantsRH(liste) {
   surveillantsRH = liste;
   Depot.ecrireJSON('surveillantsRH', liste);
   appliquerListeSurveillants();
+  serveurEnvoiArrierePlan();
 }
 
 // Reconstruit les surveillants des comptes a partir de la liste conservee

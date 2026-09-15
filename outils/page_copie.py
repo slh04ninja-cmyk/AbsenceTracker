@@ -48,6 +48,16 @@ GABARIT = u"""<!DOCTYPE html>
              border-radius: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
              line-height: 1.4; color: #334155; background: #f8fafc; resize: vertical; }
   .pied { margin: 14px 0 0; font-size: 13px; color: #94a3b8; text-align: center; }
+  .tableau { margin-top: 16px; }
+  .tableau table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tableau th { text-align: start; font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
+                color: #64748b; padding: 6px 8px; border-bottom: 2px solid #e2e8f0; }
+  .tableau td { padding: 8px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  .tableau tr:last-child td { border-bottom: 0; }
+  .tableau .id { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; color: #1e293b;
+                 word-break: break-all; }
+  .tableau .mdp { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; font-weight: 700;
+                  color: #1d4ed8; white-space: nowrap; }
   .attention { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #fef2f2;
                border: 1px solid #fecaca; color: #991b1b; font-size: 13px; line-height: 1.45; }
 </style>
@@ -58,6 +68,7 @@ GABARIT = u"""<!DOCTYPE html>
   <p class="sous" id="sous"></p>
 
   __ETAPES__
+  __TABLEAU__
   <button id="btn" onclick="return copier()">COPIER LE SCRIPT</button>
   <div class="message" id="message"></div>
 
@@ -112,10 +123,11 @@ document.getElementById("pied").textContent = texte.length.toLocaleString("fr-FR
 """
 
 
-def construire(sql, titre, lien, sous, attention, etapes):
+def construire(sql, titre, lien, sous, attention, etapes, tableau=""):
     b64 = base64.b64encode(sql.encode("utf-8")).decode("ascii")
     if base64.b64decode(b64).decode("utf-8") != sql:
         raise SystemExit("!! aller-retour du script different : rien n'est ecrit")
+    bloc_tableau = (u'\n  <div class="tableau">%s</div>' % tableau) if tableau else u""
     blocs = "".join(
         u'\n  <div class="etape"><span class="num">%d</span><div>%s</div></div>' % (i + 1, e)
         for i, e in enumerate(etapes))
@@ -124,7 +136,8 @@ def construire(sql, titre, lien, sous, attention, etapes):
                    .replace("__LIEN__", lien)
                    .replace("__SOUS__", json.dumps(sous))
                    .replace("__ATTENTION__", json.dumps(attention))
-                   .replace("__ETAPES__", blocs))
+                   .replace("__ETAPES__", blocs)
+                   .replace("__TABLEAU__", bloc_tableau))
 
 
 def main():

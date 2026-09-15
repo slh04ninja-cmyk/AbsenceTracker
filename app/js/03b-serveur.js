@@ -152,6 +152,85 @@ function serveurActif() {
   return !!(utilisateurConnecte && utilisateurConnecte.serveur === true && SERVEUR.session);
 }
 
+// L'application est-elle RELIEE a un espace serveur ? Ce drapeau survit a la
+// deconnexion (la session, elle, est effacee). Une fois relie, l'app ne doit PLUS
+// accepter les comptes de demonstration : ils feraient croire que tout marche
+// alors que rien ne part sur le serveur (defaut reellement signale).
+function espaceServeurLie() { return !!Depot.lireJSON('espaceServeur', null); }
+
+function marquerEspaceServeur(fiche) {
+  if (!fiche) return;
+  Depot.ecrireJSON('espaceServeur', {
+    fiche: fiche.id || null,
+    etablissementId: fiche.etablissement_id || etablissementServeurId || null,
+    le: new Date().toISOString()
+  });
+}
+
+// D'ou viennent les donnees affichees ? L'ecran doit le DIRE, sinon on ne peut
+// pas savoir si l'on regarde le telephone ou le serveur.
+function afficherSourceDonnees() {
+  const el = document.getElementById('dir-source');
+  if (!el) return;
+  if (!espaceServeurLie()) { el.style.display = 'none'; return; }
+  const h = new Date();
+  const heure = ('0' + h.getHours()).slice(-2) + ':' + ('0' + h.getMinutes()).slice(-2);
+  el.style.display = '';
+  if (serveurActif()) {
+    el.innerHTML = '<i class="fas fa-cloud"></i> Donnees du serveur — lues a ' + heure;
+  } else {
+    el.innerHTML = '<i class="fas fa-mobile-alt"></i> Donnees du telephone — serveur non joint';
+  }
+}
+
+// La lecture du serveur range ses donnees en passant par les memes fonctions
+// d'enregistrement que l'utilisateur. Sans ce drapeau, chacun de ces
+// enregistrements declencherait un nouvel envoi : la boucle ne s'arreterait plus.
+let serveurLectureEnCours = false;
+
+// Le telephone a-t-il des saisies que le serveur ignore encore ? On le note, puis
+// la lecture les REMONTE (une seule fois, a la fin).
+let serveurARemonter = false;
+
+// Envoi « au fil de l'eau » : chaque changement fait dans l'app part aussitot.
+// Un seul envoi a la fois ; si un changement arrive pendant l'envoi, on refait
+// un tour a la fin. Sans cela, une modification restait sur le telephone et
+// disparaissait a la prochaine lecture du serveur (defaut reellement signale).
+let serveurEnvoiEnCours = false, serveurEnvoiARefaire = false;
+
+function serveurEnvoiArrierePlan() {
+  // Pendant le CHARGEMENT de la page, les listes se reecrivent avant que la
+  // session et l'utilisateur existent : ce n'est pas une erreur, il n'y a
+  // simplement rien a envoyer.
+  let actif = false, role = '';
+  try { actif = serveurActif(); role = (utilisateurConnecte && utilisateurConnecte.role) || ''; }
+  catch (e) { return; }
+  if (!actif) return;
+  // Seul le directeur tient les listes (classes, eleves, personnel, fermetures,
+  // cours) : les envoyer depuis un autre role ne ferait que des refus. Le
+  // professeur, lui, a son propre envoi d'absences.
+  if (role !== 'directeur') return;
+  if (serveurLectureEnCours) return;            // simple rangement, pas un changement
+  if (serveurEnvoiEnCours) { serveurEnvoiARefaire = true; return; }
+  serveurEnvoiEnCours = true;
+  serveurEnvoyerDonnees()
+    .then(function () { return serveurEnvoyerFiches(); })
+    .then(function () { return serveurEnvoyerSeances(); })
+    .then(function () { return serveurEnvoyerFermetures(); })
+    .then(function () { return serveurEnvoyerAbsencesPersonnel(); })
+    .then(function () { return serveurEnvoyerAnnulations(); })
+    .then(function () { return serveurEnvoyerSignalements(); })
+    .then(function () { return serveurChargerDonnees(); })
+    .then(function () { serveurRafraichirEcrans(); })
+    .catch(function (e) {
+      afficherToast('Modification gardee sur le telephone, pas encore sur le serveur (' + e.message + ').', 'warning');
+    })
+    .then(function () {
+      serveurEnvoiEnCours = false;
+      if (serveurEnvoiARefaire) { serveurEnvoiARefaire = false; serveurEnvoiArrierePlan(); }
+    });
+}
+
 function etabLocal() {
   try { return (typeof etablissement === 'object' && etablissement) ? etablissement : {}; }
   catch (e) { return {}; }
@@ -261,11 +340,13 @@ async function serveurEnvoyerDonnees() {
 async function serveurChargerDonnees() {
   const idEtab = serveurIdEtablissement();
   if (!idEtab) throw new Error('aucun etablissement dans ce compte');
+  serveurLectureEnCours = true;
   const etabs = await serveurAppel('/rest/v1/etablissements?id=eq.' + idEtab + '&select=*');
   const et = (etabs && etabs[0]) || null;
   const cServ = (await serveurAppel('/rest/v1/classes?etablissement_id=eq.' + idEtab + '&select=id,nom&order=nom')) || [];
   if (!cServ.length && classes.length) {
-    throw new Error('lecture vide : on garde les donnees du telephone (rien n\'a ete remplace)');
+    serveurLectureEnCours = false;
+    throw new Error('lecture vide : on garde les donnees du telephone (rien\'a ete remplace)');
   }
   const eServ = (await serveurAppel('/rest/v1/eleves?select=id,classe_id,code_massar,nom,prenom,actif')) || [];
   const pServ = (await serveurAppel('/rest/v1/profils?etablissement_id=eq.' + idEtab + '&select=id,nom,code,role,matiere,email')) || [];
@@ -340,9 +421,17 @@ async function serveurChargerDonnees() {
              portee: f.portee || 'journee', par: pr.nom || '',
              le: f.cree_le ? String(f.cree_le).slice(0, 10) : '' };
   });
+  // GARDE-FOU (meme esprit que celui des classes) : si le serveur ne connait AUCUNE
+  // fermeture alors que le telephone en avait, on garde celles du telephone et on les
+  // remontera. Sans cela, une saisie faite avant la liaison au serveur disparaissait
+  // sans bruit a la premiere lecture (defaut reellement signale).
   Depot.ecrireJSON('fermeturesEtabAvantServeur', fermeturesEtab);
-  fermeturesEtab = nouvellesFermetures;
-  sauvegarderFermetures();
+  if (!nouvellesFermetures.length && fermeturesEtab && fermeturesEtab.length) {
+    serveurARemonter = true;
+  } else {
+    fermeturesEtab = nouvellesFermetures;
+    sauvegarderFermetures();
+  }
 
   // les absences du personnel : on retrouve la personne par son code (le champ local est profCode)
   const codeParProfId = {};
@@ -356,8 +445,12 @@ async function serveurChargerDonnees() {
              le: a.cree_le ? String(a.cree_le).slice(0, 10) : '' };
   });
   Depot.ecrireJSON('indispoProfsAvantServeur', indispoProfs);
-  indispoProfs = nouvellesIndispos;
-  sauvegarderIndispo();
+  if (!nouvellesIndispos.length && indispoProfs && indispoProfs.length) {
+    serveurARemonter = true;                    // meme garde-fou
+  } else {
+    indispoProfs = nouvellesIndispos;
+    sauvegarderIndispo();
+  }
 
   // les annulations de seance
   const nouvellesAnnulations = anServ.map(function (a) {
@@ -369,8 +462,12 @@ async function serveurChargerDonnees() {
                  String(a.cree_le ? a.cree_le.slice(11, 16) : '') };
   });
   Depot.ecrireJSON('seancesAnnuleesAvantServeur', seancesAnnulees);
-  seancesAnnulees = nouvellesAnnulations;
-  sauvegarderSeancesAnnulees();
+  if (!nouvellesAnnulations.length && seancesAnnulees && seancesAnnulees.length) {
+    serveurARemonter = true;                    // meme garde-fou
+  } else {
+    seancesAnnulees = nouvellesAnnulations;
+    sauvegarderSeancesAnnulees();
+  }
   sauvegarderClasses();
   Depot.ecrireJSON('absences', absences);
 
@@ -386,6 +483,12 @@ async function serveurChargerDonnees() {
     if (Array.isArray(et.semestres) && et.semestres.length) anneeScolaire.semestres = et.semestres;
     Depot.ecrireJSON('anneeScolaire', anneeScolaire);
   }
+  serveurLectureEnCours = false;
+
+  // Le telephone avait des saisies que le serveur ignore : on les remonte
+  // maintenant (une seule fois, a la fin de la lecture).
+  if (serveurARemonter) { serveurARemonter = false; serveurEnvoiArrierePlan(); }
+
   return { classes: nouvelles.length, eleves: eServ.length, absences: nouvellesAbsences.length,
            seances: seServ.length, fermetures: nouvellesFermetures.length,
            indispos: nouvellesIndispos.length, annulations: nouvellesAnnulations.length };
@@ -394,7 +497,8 @@ async function serveurChargerDonnees() {
 // Apres une lecture, on redessine les ecrans qui existent pour le role connecte.
 function serveurRafraichirEcrans() {
   const appels = ['mettreAJourDashboardDir', 'mettreAJourDashboardSurv', 'afficherSeancesAnnulees',
-                  'afficherListeEleves', 'remplirListeClasses', 'afficherAbsencesPersonnel'];
+                  'afficherListeEleves', 'remplirListeClasses', 'afficherAbsencesPersonnel',
+                  'afficherSourceDonnees'];
   for (let i = 0; i < appels.length; i++) {
     try { if (typeof window[appels[i]] === 'function') window[appels[i]](); } catch (e) {}
   }
@@ -826,6 +930,7 @@ async function connexionParLeServeur(email, motDePasse) {
     return;
   }
   etablissementServeurId = fiche.etablissement_id;
+  marquerEspaceServeur(fiche);
   connecterReussi({
     email: email,
     password: '',                        // jamais conservé
@@ -1024,6 +1129,7 @@ async function installationCreer() {
       annee: (document.getElementById('inst-annee').value || '').trim(),
       semestres: ANNEE_SCOLAIRE_DEFAUT.semestres
     });
+    marquerEspaceServeur({ id: id });
     instDire('ok', 'Etablissement cree (fiche n° ' + id + '). Tu es le directeur de « ' + nom + ' ».');
     await majEtapeInstallation();
   } catch (e) {

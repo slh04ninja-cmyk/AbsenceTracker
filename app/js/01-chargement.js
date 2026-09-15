@@ -59,6 +59,7 @@ function chargerClasses() {
 function sauvegarderClasses(liste) {
   Depot.ecrireJSON('classes', liste || classes);
   Depot.ecrire('absenceTrackVersion', DEMO_VERSION);
+  serveurEnvoiArrierePlan();
 }
 
 classes = chargerClasses();

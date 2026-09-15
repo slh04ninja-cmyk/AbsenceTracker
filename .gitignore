@@ -1,5 +1,7 @@
 # ---- dépendances de test (réinstallées par npm ci en CI) ----
 node_modules/
+__pycache__/
+*.pyc
 
 # ---- sauvegardes et artefacts de travail locaux ----
 _avant_*.html

@@ -266,11 +266,19 @@ function connexion() {
   }
 
   const compte = comptes.find(c => c.email === email && c.password === password);
+
+  // ORDRE IMPORTANT. Une application RELIEE a un espace serveur demande d'abord au
+  // serveur : sinon un compte de demonstration portant le meme identifiant ouvrirait
+  // la porte en local, et tout resterait sur le telephone (defaut reellement signale :
+  // « ca marche en local, pas sur le serveur »).
+  // Hors ligne (ou app non reliee), on garde le comportement d'avant, compte de
+  // demonstration compris : c'est ce qui fait tourner les suites de test sans reseau.
+  if (espaceServeurLie() && serveurConfigure() && typeof fetch === 'function') {
+    connexionParLeServeur(email, password);
+    return;
+  }
   if (compte) { connecterReussi(compte); return; }
 
-  // Ce n'est pas un compte de demonstration : c'est peut-etre un compte du SERVEUR.
-  // Cette voie est ASYNCHRONE, on ne l'emprunte donc que si la page sait vraiment
-  // joindre le reseau — sinon on garde le message d'erreur immediat d'avant.
   if (serveurConfigure() && typeof fetch === 'function') {
     connexionParLeServeur(email, password);
     return;
