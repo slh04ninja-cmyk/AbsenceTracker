@@ -270,8 +270,12 @@ function seancesAnnuleesParAbsence() {
     if (nomsProfs && nomsProfs[code]) nomsPossibles.push(nomsProfs[code]);
     const estCeProf = c => nomsPossibles.some(n => n && String(c.prof || '') === String(n));
     const parJour = {};
+    // l'absence peut nommer le prof par son code, son adresse ou son nom : on accepte les trois
+    const codeSansArobase = String(code || '').split('@')[0].toLowerCase();
     Object.keys(tableauxService).forEach(mail => (tableauxService[mail] || []).forEach(c => {
-      if (!estCeProf(c)) return;
+      const cleCorrespond = String(mail || '').toLowerCase() === String(code || '').toLowerCase() ||
+                            String(mail || '').split('@')[0].toLowerCase() === codeSansArobase;
+      if (!estCeProf(c) && !cleCorrespond) return;
       parJour[c.jour] = parJour[c.jour] || [];
       if (!parJour[c.jour].some(x => x.classe === c.classe && x.debut === c.debut)) parJour[c.jour].push(c);
     }));

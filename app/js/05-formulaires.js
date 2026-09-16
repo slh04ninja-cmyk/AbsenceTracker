@@ -224,7 +224,7 @@ function remplirProfsIndispo() {
 }
 // Absence d'un enseignant ou d'un surveillant (memes controles, listes separees)
 function roleAbsence(entree) { return entree && entree.role === 'surveillant' ? 'surveillant' : 'enseignant'; }
-async function enregistrerAbsence(prefixe, idCompte, role) {
+function enregistrerAbsence(prefixe, idCompte, role) {
   if (!utilisateurConnecte || utilisateurConnecte.role !== 'directeur') return;
   const val = id => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
   const compte = val(idCompte);
@@ -237,13 +237,8 @@ async function enregistrerAbsence(prefixe, idCompte, role) {
   if (fin < debut) { afficherToast('La date de fin doit suivre le début', 'error'); return; }
   const b = bornesAnneeScolaire();
   if (debut < b.debut || fin > b.fin) { afficherToast("Période en dehors de l'année scolaire", 'error'); return; }
-  // on range l'absence sous le CODE de la fiche (meme identite que l'emploi du temps)
-  let compteRange = compte;
-  if (typeof atCodeDeLaPersonne === 'function' && typeof estModeEcole === 'function' && estModeEcole()) {
-    try { compteRange = await atCodeDeLaPersonne(compte); } catch (e) { compteRange = compte; }
-  }
   indispoProfs.push({
-    id: Date.now() + Math.random(), profCode: compteRange || compte, role: role, debut: debut, fin: fin,
+    id: Date.now() + Math.random(), profCode: compte, role: role, debut: debut, fin: fin,
     portee: portee, motif: motif, par: nomApprobateur(), le: fmtDateISO(new Date()) + ' ' + heureMaintenant()
   });
   sauvegarderIndispo();
