@@ -209,14 +209,31 @@ function remplirComptesSelect(idSelect, role) {
   const sel = document.getElementById(idSelect);
   if (!sel) return;
   const courant = sel.value;
-  sel.innerHTML = '';
-  comptes.filter(c => c.role === role).forEach(c => {
-    const o = document.createElement('option');
-    o.value = c.code || c.email;
-    o.textContent = (c.nom || '') + (c.matiere ? ' · ' + c.matiere : '');
-    sel.appendChild(o);
-  });
-  if (courant && Array.prototype.some.call(sel.options, o => o.value === courant)) sel.value = courant;
+  const poser = function (liste) {
+    if (!liste || !liste.length) return;
+    sel.innerHTML = '';
+    liste.forEach(function (x) {
+      const o = document.createElement('option');
+      o.value = x.valeur;
+      o.textContent = x.texte;
+      sel.appendChild(o);
+    });
+    if (courant && Array.prototype.some.call(sel.options, o => o.value === courant)) sel.value = courant;
+  };
+  // 1. liste du telephone (mode libre)
+  poser(comptes.filter(c => c.role === role).map(c => ({
+    valeur: c.code || c.email, texte: (c.nom || '') + (c.matiere ? ' · ' + c.matiere : '')
+  })));
+  // 2. ECOLE RELIEE : la liste vient de la BASE — tous les surveillants / enseignants y sont
+  //    (le telephone pouvait n'en connaitre qu'une partie : defaut signale).
+  if (typeof estModeEcole === 'function' && estModeEcole() && typeof atFichesPersonnel === 'function') {
+    atFichesPersonnel().then(function (fiches) {
+      const de = (fiches || []).filter(function (f) { return String(f.role || '') === role; });
+      poser(de.map(function (f) {
+        return { valeur: f.code || f.email, texte: (f.nom || '') + (f.matiere ? ' · ' + f.matiere : '') };
+      }));
+    }).catch(function () {});
+  }
 }
 function remplirProfsIndispo() {
   remplirComptesSelect('indispo-prof', 'enseignant');
