@@ -99,9 +99,15 @@ async function chargerDonneesDuServeur(silencieux) {
   // ---- annulations de seance ----
   const ann = await atLignes('annulations_seances', 'id,date_seance,classe_id,debut,fin,motif', jeton);   // id inclus
   const annulationsServeur = ann.map(function (a) {
+    // Une annulation dont le motif dit « Absence de ... » est une seance annulee PAR une
+    // absence de personnel : elle appartient au Dashboard, PAS a la carte « Annulation de
+    // seances » (celle des saisies directes). Cette marque manquait a la relecture : les
+    // lignes venues de la base s'affichaient donc dans les deux endroits (defaut signale).
+    const deduit = /^\s*absence\s+de\s+/i.test(String(a.motif || ''));
     return {
       id: a.id, dateISO: a.date_seance, classe: nomClasse['' + a.classe_id] || '',
-      debut: heureCourte(a.debut), fin: heureCourte(a.fin), motif: a.motif || ''
+      debut: heureCourte(a.debut), fin: heureCourte(a.fin), motif: a.motif || '',
+      origine: deduit ? 'absence' : 'saisie', genere: deduit
     };
   });
 
