@@ -488,6 +488,7 @@ async function atUnTourDeRafraichissement() {
     if (typeof alignerAnnulationsDeduites === 'function') { try { await alignerAnnulationsDeduites(); } catch (e) {} }
     // 2. la base -> le telephone (et l'ecran se redessine)
     if (typeof chargerDonneesDuServeur === 'function') { try { await chargerDonneesDuServeur(true); } catch (e) {} }
+    if (typeof verifierBlocageAbsence === 'function') { try { verifierBlocageAbsence(); } catch (e) {} }
   } finally { atRafraichissementEnCours = false; }
 }
 

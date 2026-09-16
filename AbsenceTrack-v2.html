@@ -699,7 +699,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.28 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.29 — Prototype</p>
     </div>
   </div>
 </div>
@@ -3147,6 +3147,58 @@ function monAbsencePersonnelle(dateISO, moment) {
   });
   return trouve || null;
 }
+// ========== ECRAN DE BLOCAGE : UN ABSENT NE TRAVAILLE PAS ==========
+// Un personnel declare absent ne vient pas a l'etablissement et ne travaille pas de chez
+// lui : l'application se bloque entierement pour lui pendant son absence (jour par jour,
+// demi-journee par demi-journee). Le DIRECTEUR n'est jamais bloque.
+function momentDuMomentPresent() { return (new Date().getHours() < 13) ? 'matin' : 'apres-midi'; }
+
+function afficherBlocageAbsence(abs) {
+  let ov = document.getElementById('blocage-absence');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'blocage-absence';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0f172a;' +
+      'display:flex;align-items:center;justify-content:center;padding:22px;';
+    document.body.appendChild(ov);
+  }
+  const cartes = 'background:#ffffff;border-radius:20px;padding:22px;max-width:420px;width:100%;text-align:center;';
+  ov.innerHTML =
+    '<div style="' + cartes + '">' +
+      '<div style="font-size:34px;margin-bottom:8px;color:#ef4444;">&#10007;</div>' +
+      '<h2 style="font-weight:800;font-size:20px;color:#0f172a;margin-bottom:10px;">Vous etes declare(e) absent(e)</h2>' +
+      '<p style="font-size:15px;color:#334155;margin-bottom:6px;">' + String(abs.motif || 'Absence') + '</p>' +
+      '<p style="font-size:14px;color:#64748b;margin-bottom:14px;">Du ' + dateAffichage(abs.debut) +
+        ' au ' + dateAffichage(abs.fin || abs.debut) + '</p>' +
+      '<p style="font-size:13px;color:#64748b;margin-bottom:18px;">Un personnel absent ne vient pas a ' +
+        'l&#39;etablissement et ne travaille pas de chez lui : vous ne pouvez pas utiliser ' +
+        'l&#39;application pendant votre absence. Rapprochez-vous du directeur.</p>' +
+      '<button onclick="deconnexionBlocage()" class="btn-fermer" style="width:100%;">Se deconnecter</button>' +
+    '</div>';
+  ov.style.display = 'flex';
+}
+function retirerBlocageAbsence() {
+  const ov = document.getElementById('blocage-absence');
+  if (ov) ov.style.display = 'none';
+}
+function deconnexionBlocage() {
+  try { retirerBlocageAbsence(); } catch (e) {}
+  try { if (typeof atSeDeconnecter === 'function') atSeDeconnecter(); } catch (e) {}
+  try { utilisateurConnecte = null; } catch (e) {}
+  try { Depot.effacer('utilisateur'); } catch (e) {}
+  try { location.reload(); } catch (e) {}
+}
+// A appeler a la connexion, au demarrage et a chaque tour de rafraichissement.
+function verifierBlocageAbsence() {
+  const u = utilisateurConnecte || {};
+  if (!u.role || String(u.role) === 'directeur') { retirerBlocageAbsence(); return false; }
+  let abs = null;
+  try { abs = (typeof monAbsencePersonnelle === 'function') ? monAbsencePersonnelle(jourCourant(), momentDuMomentPresent()) : null; } catch (e) { abs = null; }
+  if (!abs) { retirerBlocageAbsence(); return false; }
+  afficherBlocageAbsence(abs);
+  return true;
+}
+
 function refuserSiAbsent(dateISO, moment) {
   const abs = monAbsencePersonnelle(dateISO, moment);
   if (!abs) return false;
@@ -7174,6 +7226,8 @@ function init() {
   if (typeof appliquerEcoleAuxListes === 'function') appliquerEcoleAuxListes();
   // nettoyage des restes des versions precedentes (seances deduites enregistrees a tort)
   if (typeof purgerAnnulationsDeduitesEnregistrees === 'function') purgerAnnulationsDeduitesEnregistrees();
+  // Un personnel declare absent ne travaille pas : l'application se bloque pour lui.
+  if (typeof verifierBlocageAbsence === 'function') verifierBlocageAbsence();
   // Rafraichissement automatique : telephone et base restent d'accord (toutes les 5 s).
   if (typeof demarrerRafraichissementAuto === 'function') demarrerRafraichissementAuto(5);
   // relecture de la liste des surveillants AVANT de la reinjecter dans les comptes
@@ -7582,6 +7636,7 @@ function ouvrirSessionDeLaBase(moi) {
   }
   appliquerRoleTheme();
   if (typeof majBadgeEtat === 'function') majBadgeEtat();
+  if (typeof verifierBlocageAbsence === 'function') { try { verifierBlocageAbsence(); } catch (e) {} }
   // L'application travaille sur la BASE : on charge le travail de l'ecole (classes,
   // eleves, emplois du temps, absences, annulations, fermetures, absences du personnel).
   if (typeof chargerDonneesDuServeur === 'function') chargerDonneesDuServeur().catch(function () {});
@@ -9210,6 +9265,7 @@ async function atUnTourDeRafraichissement() {
     if (typeof alignerAnnulationsDeduites === 'function') { try { await alignerAnnulationsDeduites(); } catch (e) {} }
     // 2. la base -> le telephone (et l'ecran se redessine)
     if (typeof chargerDonneesDuServeur === 'function') { try { await chargerDonneesDuServeur(true); } catch (e) {} }
+    if (typeof verifierBlocageAbsence === 'function') { try { verifierBlocageAbsence(); } catch (e) {} }
   } finally { atRafraichissementEnCours = false; }
 }
 

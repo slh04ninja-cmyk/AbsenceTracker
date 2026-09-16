@@ -238,6 +238,7 @@ function ouvrirSessionDeLaBase(moi) {
   }
   appliquerRoleTheme();
   if (typeof majBadgeEtat === 'function') majBadgeEtat();
+  if (typeof verifierBlocageAbsence === 'function') { try { verifierBlocageAbsence(); } catch (e) {} }
   // L'application travaille sur la BASE : on charge le travail de l'ecole (classes,
   // eleves, emplois du temps, absences, annulations, fermetures, absences du personnel).
   if (typeof chargerDonneesDuServeur === 'function') chargerDonneesDuServeur().catch(function () {});
