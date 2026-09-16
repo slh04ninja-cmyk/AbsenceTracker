@@ -300,7 +300,26 @@ function seancesAnnuleesParAbsence() {
 // voient sans avoir a recalculer quoi que ce soit.
 //   - appelee quand on enregistre une absence de personnel ;
 //   - appelee apres une lecture de la base (un telephone neuf les pose une fois).
+// PURGE : les seances deduites d'une absence ont ete enregistrees par erreur dans la
+// liste des saisies directes par des versions precedentes (motifs « Absence de ... » ou
+// « Absence du professeur », parfois avec un nom fabrique). On les retire : elles n'ont
+// pas a etre stockees — elles se recalculent a l'affichage, et la synchronisation les
+// aligne sur la base (y compris leur suppression).
+function purgerAnnulationsDeduitesEnregistrees() {
+  const estDeduite = function (sn) {
+    if (!sn) return false;
+    if (sn.origine === 'absence' || sn.genere === true) return true;
+    return /^\s*absence\s+d/i.test(String(sn.motif || ''));
+  };
+  const avant = seancesAnnulees.length;
+  seancesAnnulees = seancesAnnulees.filter(sn => !estDeduite(sn));
+  const retirees = avant - seancesAnnulees.length;
+  if (retirees) Depot.ecrireJSON('seancesAnnulees', seancesAnnulees);   // -> la base se met a jour
+  return retirees;
+}
+
 function materialiserAnnulationsParAbsence() {
+  if (typeof purgerAnnulationsDeduitesEnregistrees === 'function') purgerAnnulationsDeduitesEnregistrees();
   // MODELE DE LA v4.04 CONSERVE : les seances deduites d'une absence restent CALCULEES
   // (elles s'affichent dans le Dashboard) et ne sont PAS rangees dans la liste des
   // saisies directes — sinon les deux listes se melangeaient et les comptes devenaient
