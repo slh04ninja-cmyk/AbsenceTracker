@@ -197,7 +197,8 @@ async function chargerDonneesDuServeur(silencieux) {
     idsBase.annulations_seances[a.date_seance + '|' + (nomClasse['' + a.classe_id] || '') + '|' + heureCourte(a.debut)] = a.id;
   });
   ap.forEach(function (a) {
-    const cle = cleDe['' + a.prof_id] || '';
+    const f = ficheParId['' + a.prof_id] || {};
+    const cle = f.code || cleDe['' + a.prof_id] || '';
     if (cle) idsBase.absences_personnel[cle + '|' + a.debut + '|' + (a.fin || a.debut)] = a.id;
   });
   fer.forEach(function (f) {

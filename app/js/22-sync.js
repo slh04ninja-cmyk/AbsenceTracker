@@ -226,6 +226,16 @@ async function atSynchroFamille(famille) {
       try {
         const pid = await atProfilIdDe(i.profCode);
         if (!pid) { rates++; continue; }
+        // SECURITE ANTI-DOUBLON : si la base porte deja cette absence (meme personne, memes
+        // dates), on la retrouve et on la met a jour au lieu d'en creer une 2e.
+        if (!ids.absences_personnel[cle]) {
+          const deja = await atLignesServeur('absences_personnel', 'id,prof_id,debut,fin', jeton);
+          const trouve = deja.find(function (x) {
+            return '' + x.prof_id === '' + pid && String(x.debut) === String(i.debut) &&
+                   String(x.fin || x.debut) === String(i.fin || i.debut);
+          });
+          if (trouve) { if (!ids.absences_personnel) ids.absences_personnel = {}; ids.absences_personnel[cle] = trouve.id; }
+        }
         const id = await envoyerLigne(ids, 'absences_personnel', cle, {
           etablissement_id: etab, prof_id: pid,
           role_absent: (roleAbsence(i) === 'enseignant' ? 'enseignant' : 'surveillant'),
