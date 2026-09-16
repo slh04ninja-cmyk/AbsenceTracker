@@ -239,6 +239,8 @@ function rafraichirEcransApresChargement() {
     'afficherAnnulationsEnregistrees', 'appliquerTableauService', 'afficherInfosProf',
     'afficherListeEleves', 'afficherStatsDir'
   ];
+  // le bouton « Historique des absences du personnel » : espace directeur uniquement
+  try { if (typeof installerBoutonHistoriquePersonnel === 'function') installerBoutonHistoriquePersonnel(); } catch (e) {}
   essais.forEach(function (nom) {
     try { if (typeof window[nom] === 'function') window[nom](); } catch (e) {}
   });
