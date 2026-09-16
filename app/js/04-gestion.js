@@ -514,6 +514,10 @@ function afficherAnnulationsEnregistrees() {
 
 function confirmerAnnulationSeance() {
   if (!estRoleVieScolaire()) return;
+  if (typeof verifierBlocageAbsence === 'function' && verifierBlocageAbsence()) {
+    afficherToast('Vous etes declare(e) absent(e) aujourd hui : consultation seule.', 'error');
+    return;
+  }
   const dateEl = document.getElementById('annul-date');
   const classe = (document.getElementById('annul-classe') || {}).value || '';
   const parties = String((document.getElementById('annul-creneau') || {}).value || '').split('|');
@@ -548,6 +552,10 @@ function retablirSeance(id) {
     () => vraimentRetablirSeance(cible.id));
 }
 function vraimentRetablirSeance(id) {
+  if (typeof verifierBlocageAbsence === 'function' && verifierBlocageAbsence()) {
+    afficherToast('Vous etes declare(e) absent(e) aujourd hui : consultation seule.', 'error');
+    return;
+  }
   const retiree = seancesAnnulees.find(sn => sn.id === id);
   seancesAnnulees = seancesAnnulees.filter(sn => sn.id !== id);
   sauvegarderSeancesAnnulees();

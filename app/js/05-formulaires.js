@@ -277,29 +277,21 @@ function monAbsencePersonnelle(dateISO, moment) {
 // demi-journee par demi-journee). Le DIRECTEUR n'est jamais bloque.
 function momentDuMomentPresent() { return (new Date().getHours() < 13) ? 'matin' : 'apres-midi'; }
 
+// BANDEAU (et non ecran total) : un personnel absent peut CONSULTER (historique, profil),
+// mais ne peut RIEN MODIFIER. Le bandeau le lui rappelle en haut de l'ecran.
 function afficherBlocageAbsence(abs) {
   let ov = document.getElementById('blocage-absence');
   if (!ov) {
     ov = document.createElement('div');
     ov.id = 'blocage-absence';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0f172a;' +
-      'display:flex;align-items:center;justify-content:center;padding:22px;';
+    ov.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#fee2e2;' +
+      'border-bottom:2px solid #ef4444;padding:8px 12px;text-align:center;font-size:13px;color:#7f1d1d;';
     document.body.appendChild(ov);
   }
-  const cartes = 'background:#ffffff;border-radius:20px;padding:22px;max-width:420px;width:100%;text-align:center;';
-  ov.innerHTML =
-    '<div style="' + cartes + '">' +
-      '<div style="font-size:34px;margin-bottom:8px;color:#ef4444;">&#10007;</div>' +
-      '<h2 style="font-weight:800;font-size:20px;color:#0f172a;margin-bottom:10px;">Vous etes declare(e) absent(e)</h2>' +
-      '<p style="font-size:15px;color:#334155;margin-bottom:6px;">' + String(abs.motif || 'Absence') + '</p>' +
-      '<p style="font-size:14px;color:#64748b;margin-bottom:14px;">Du ' + dateAffichage(abs.debut) +
-        ' au ' + dateAffichage(abs.fin || abs.debut) + '</p>' +
-      '<p style="font-size:13px;color:#64748b;margin-bottom:18px;">Un personnel absent ne vient pas a ' +
-        'l&#39;etablissement et ne travaille pas de chez lui : vous ne pouvez pas utiliser ' +
-        'l&#39;application pendant votre absence. Rapprochez-vous du directeur.</p>' +
-      '<button onclick="deconnexionBlocage()" class="btn-fermer" style="width:100%;">Se deconnecter</button>' +
-    '</div>';
-  ov.style.display = 'flex';
+  ov.innerHTML = '<b>Vous etes declare(e) absent(e)</b> (' + String(abs.motif || 'Absence') + ') du ' +
+    dateAffichage(abs.debut) + ' au ' + dateAffichage(abs.fin || abs.debut) +
+    ' &middot; consultation seule : les modifications sont refusees.';
+  ov.style.display = 'block';
 }
 function retirerBlocageAbsence() {
   const ov = document.getElementById('blocage-absence');

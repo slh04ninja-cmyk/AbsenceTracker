@@ -89,6 +89,7 @@ function appliquerEcoleAuxListes() {
   try { seancesAnnulees = visibles ? liste('seancesAnnulees', []) : []; } catch (e) {}
   try { fermeturesEtab = visibles ? liste('fermeturesEtab', []) : []; } catch (e) {}
   try { tableauxService = visibles ? chargerTableauxService() : {}; } catch (e) {}
+  try { if (typeof verifierBlocageAbsence === 'function') verifierBlocageAbsence(); } catch (e) {}
 }
 
 if (typeof window !== 'undefined') {
