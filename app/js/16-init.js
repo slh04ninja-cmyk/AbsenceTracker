@@ -6,6 +6,8 @@ function init() {
   if (typeof appliquerEcoleAuxListes === 'function') appliquerEcoleAuxListes();
   // nettoyage des restes des versions precedentes (seances deduites enregistrees a tort)
   if (typeof purgerAnnulationsDeduitesEnregistrees === 'function') purgerAnnulationsDeduitesEnregistrees();
+  // Rafraichissement automatique : telephone et base restent d'accord (toutes les 5 s).
+  if (typeof demarrerRafraichissementAuto === 'function') demarrerRafraichissementAuto(5);
   // relecture de la liste des surveillants AVANT de la reinjecter dans les comptes
   // (sans cette ligne, un surveillant ajoute disparaissait au redemarrage)
   surveillantsRH = chargerSurveillantsRH();

@@ -464,7 +464,43 @@ async function atLignesServeur(table, champs, jeton) {
   return Array.isArray(d) ? d : [];
 }
 
+// ============================================================
+// RAFRAICHISSEMENT AUTOMATIQUE (toutes les 5 secondes)
+// ============================================================
+// But : que le telephone et la base ne se separent JAMAIS. A chaque tour :
+//   1. ce qui a change sur le telephone part dans la base (ajout, modification, suppression)
+//   2. la base est relue et l'ecran est redessine
+// Le tour ne se lance QUE si l'application est ouverte et connectee, et jamais deux tours
+// en meme temps. Rien n'est envoye s'il n'y a rien de nouveau (les empreintes evitent
+// les ecritures inutiles).
+let atRafraichissementOrdre = null;
+let atRafraichissementEnCours = false;
+
+async function atUnTourDeRafraichissement() {
+  if (atRafraichissementEnCours) return;                                     // un tour a la fois
+  if (typeof estModeEcole !== 'function' || !estModeEcole()) return;         // telephone libre
+  if (typeof document !== 'undefined' && document.hidden) return;            // application en arriere-plan
+  try { if (!atChargerSession || !atChargerSession() || !atChargerSession().access_token) return; } catch (e) { return; }
+  atRafraichissementEnCours = true;
+  try {
+    // 1. le telephone -> la base
+    if (typeof atSynchroTout === 'function') { try { await atSynchroTout(); } catch (e) {} }
+    if (typeof alignerAnnulationsDeduites === 'function') { try { await alignerAnnulationsDeduites(); } catch (e) {} }
+    // 2. la base -> le telephone (et l'ecran se redessine)
+    if (typeof chargerDonneesDuServeur === 'function') { try { await chargerDonneesDuServeur(true); } catch (e) {} }
+  } finally { atRafraichissementEnCours = false; }
+}
+
+function demarrerRafraichissementAuto(secondes) {
+  const delai = Math.max(5, parseInt(secondes || 5, 10) || 5) * 1000;
+  if (atRafraichissementOrdre) clearInterval(atRafraichissementOrdre);
+  atRafraichissementOrdre = setInterval(function () { atUnTourDeRafraichissement(); }, delai);
+  return delai;
+}
+
 if (typeof window !== 'undefined') {
+  window.atUnTourDeRafraichissement = atUnTourDeRafraichissement;
+  window.demarrerRafraichissementAuto = demarrerRafraichissementAuto;
   window.alignerAnnulationsDeduites = alignerAnnulationsDeduites;
   window.atSynchroFamille = atSynchroFamille;
   window.atSynchroNoterTout = atSynchroNoterTout;
