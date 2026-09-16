@@ -699,7 +699,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.34 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.35 — Prototype</p>
     </div>
   </div>
 </div>
@@ -9350,28 +9350,21 @@ function histoPorteeLibelle(p) {
 // ---- la fenetre (meme style que les autres fenetres de l'application) ----
 function ouvrirHistoriquePersonnel(roleDemande) {
   if (!histoEstDirecteur()) { afficherToast('Écran réservé au directeur', 'error'); return; }
-  let ov = document.getElementById('modal-histo-personnel');
-  if (!ov) {
-    ov = document.createElement('div');
-    ov.id = 'modal-histo-personnel';
-    ov.className = 'hidden fixed inset-0 modal-overlay z-50 flex items-end';
-    ov.style.zIndex = '400';
-    ov.innerHTML =
-      '<div class="modal-content w-full bg-white p-6 rounded-t-3xl" style="max-height:92vh;overflow-y:auto;">' +
-        '<div class="flex items-center justify-between mb-3">' +
-          '<h2 class="text-2xl font-bold text-gray-800" id="histo-titre">Historique des absences</h2>' +
-          '<button onclick="fermerHistoriquePersonnel()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>' +
-        '</div>' +
-        '<div id="histo-filtres" class="flex flex-wrap gap-2 mb-3"></div>' +
-        '<div id="histo-totaux" class="mb-3"></div>' +
-        '<div id="histo-liste"></div>' +
-        '<div class="flex gap-3 mt-4">' +
-          '<button onclick="fermerHistoriquePersonnel()" class="btn-fermer flex-1">Fermer</button>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(ov);
-  }
-  // les listes deroulantes : memes classes que partout dans l'application
+  // MEME FENETRE QUE « Declarer une absence » (modal-form) : titre, corps defilant,
+  // bouton Fermer — le style de l'application, rien d'autre.
+  const ov = document.getElementById('modal-form');
+  const titreForm = document.getElementById('form-titre');
+  const corps = document.getElementById('form-corps');
+  if (!ov || !corps) return;
+  const valider = ov.querySelector('.btn-primary');
+  if (valider) valider.style.display = 'none';            // un historique ne se valide pas
+  if (titreForm) titreForm.textContent = 'Historique des absences — ' +
+    (roleDemande === 'surveillant' ? 'surveillants' : 'enseignants');
+  corps.innerHTML =
+    '<div id="histo-filtres" class="flex flex-wrap gap-2 mb-3"></div>' +
+    '<div id="histo-totaux" class="mb-3"></div>' +
+    '<div id="histo-liste"></div>';
+  ov.dataset.histo = '1';
   const f = document.getElementById('histo-filtres');
   f.innerHTML =
     '<select id="histo-personne" class="w-full flex-1 min-w-[140px]" onchange="afficherHistoriquePersonnel()"></select>' +
@@ -9382,20 +9375,21 @@ function ouvrirHistoriquePersonnel(roleDemande) {
       '<option value="">Toute la période</option><option value="mois">Ce mois</option>' +
       '<option value="semestre">Ce semestre</option></select>';
   ov.dataset.role = (roleDemande === 'surveillant') ? 'surveillant' : 'enseignant';
-  const titre = document.getElementById('histo-titre');
-  if (titre) titre.textContent = 'Historique des absences — ' +
-    (ov.dataset.role === 'surveillant' ? 'surveillants' : 'enseignants');
   ov.classList.remove('hidden');
   ov.style.display = 'flex';
   remplirFiltrePersonnesHistorique();
   afficherHistoriquePersonnel();
 }
 function fermerHistoriquePersonnel() {
-  const ov = document.getElementById('modal-histo-personnel');
-  if (ov) { ov.classList.add('hidden'); ov.style.display = 'none'; }
+  const ov = document.getElementById('modal-form');
+  if (!ov) return;
+  const valider = ov.querySelector('.btn-primary');
+  if (valider) valider.style.display = '';               // le bouton Valider revient
+  if (typeof fermerFormulaire === 'function') { fermerFormulaire(); return; }
+  ov.classList.add('hidden'); ov.style.display = 'none';
 }
 function remplirFiltrePersonnesHistorique() {
-  const ov = document.getElementById('modal-histo-personnel');
+  const ov = document.getElementById('modal-form');
   const sel = document.getElementById('histo-personne');
   if (!ov || !sel) return;
   const role = ov.dataset.role;
@@ -9416,7 +9410,7 @@ function remplirFiltrePersonnesHistorique() {
 
 function afficherHistoriquePersonnel() {
   if (!histoEstDirecteur()) return;
-  const ov = document.getElementById('modal-histo-personnel');
+  const ov = document.getElementById('modal-form');
   const role = ov ? ov.dataset.role : 'enseignant';
   const lire = function (id, def) { const e = document.getElementById(id); return e ? e.value : def; };
   const personne = lire('histo-personne', '');
