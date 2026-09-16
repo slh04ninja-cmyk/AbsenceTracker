@@ -67,9 +67,10 @@ async function chargerDonneesDuServeur(silencieux) {
     tableaux[k].push({
       jour: s.jour, debut: heureCourte(s.debut), fin: heureCourte(s.fin || s.debut),
       classe: nomClasse['' + s.classe_id] || '', matiere: s.matiere || '',
-      // « prof » porte le CODE de la fiche : c'est ce qui relie une seance a la personne,
-      // y compris pour retrouver les seances annulees par une absence de ce professeur.
-      prof: fiche.code || fiche.email || fiche.nom || '', salle: s.salle || ''
+      // « prof » porte l'ADRESSE de la fiche (la meme valeur que la liste deroulante des
+      // absences du personnel) : c'est ce qui relie une seance a la personne, y compris
+      // pour retrouver les seances annulees par une absence de ce professeur.
+      prof: fiche.email || fiche.code || fiche.nom || '', salle: s.salle || ''
     });
     if (fiche.nom && !nomsProfs[k]) { nomsProfs[k] = fiche.nom; }
   });
@@ -92,7 +93,9 @@ async function chargerDonneesDuServeur(silencieux) {
       type: s.type,
       duree: s.retard_minutes ? String(s.retard_minutes) : '',
       statut: s.statut, motif: s.motif || '',
-      enseignant: cleDe['' + s.prof_id] || '', matiere: fiche.matiere || ''
+      // le CODE de la fiche (pas l'adresse) : c'est l'identifiant que porte l'emploi du
+      // temps, donc celui qui permet de retrouver les seances annulees par une absence.
+      enseignant: fiche.code || fiche.email || fiche.nom || '', matiere: fiche.matiere || ''
     };
   });
 
@@ -103,7 +106,7 @@ async function chargerDonneesDuServeur(silencieux) {
     // absence de personnel : elle appartient au Dashboard, PAS a la carte « Annulation de
     // seances » (celle des saisies directes). Cette marque manquait a la relecture : les
     // lignes venues de la base s'affichaient donc dans les deux endroits (defaut signale).
-    const deduit = /^\s*absence\s+de\s+/i.test(String(a.motif || ''));
+    const deduit = /^\s*absence\s+d/i.test(String(a.motif || ''));   // « Absence de ... » / « Absence du professeur »
     return {
       id: a.id, dateISO: a.date_seance, classe: nomClasse['' + a.classe_id] || '',
       debut: heureCourte(a.debut), fin: heureCourte(a.fin), motif: a.motif || '',
@@ -121,7 +124,8 @@ async function chargerDonneesDuServeur(silencieux) {
   const ap = await atLignes('absences_personnel', 'id,prof_id,role_absent,debut,fin,portee,motif', jeton);
   const absencesPersonnelServeur = ap.map(function (a) {
     return {
-      id: a.id, profCode: cleDe['' + a.prof_id] || '', role: a.role_absent,
+      id: a.id, profCode: (ficheParId['' + a.prof_id] || {}).code || cleDe['' + a.prof_id] || '',
+      role: a.role_absent,
       debut: a.debut, fin: a.fin, portee: a.portee || 'journee', motif: a.motif || ''
     };
   });

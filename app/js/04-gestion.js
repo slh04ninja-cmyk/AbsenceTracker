@@ -89,6 +89,9 @@ function dansPeriode(entree, dateISO) {
   return dateISO >= entree.debut && dateISO <= (entree.fin || entree.debut);
 }
 function nomProfCode(code) {
+  // Une cle vide ne doit PAS etre comparee : `x.code === undefined` etait vrai pour le
+  // premier compte sans code (Surveillant 1) et fabriquait « Absence de Surveillant 1 ».
+  if (code === undefined || code === null || String(code).trim() === '') return '';
   const c = comptes.find(x => x.code === code);
   return c ? c.nom : (code || '');
 }
