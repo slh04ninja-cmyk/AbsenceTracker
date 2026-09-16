@@ -318,15 +318,16 @@ function materialiserAnnulationsParAbsence() {
     });
     connues[cle(sn)] = true; ajoutees++;
   });
-  // REGLE SIMPLE ET SANS PIEGE : une seance « deduite d'une absence » ne reste que si
-  // une absence la produit ENCORE. Tout le reste (y compris les restes laisses par les
-  // versions precedentes, qui n'avaient pas garde le lien avec l'absence) est retire.
-  const attendues = {};
-  calculees.forEach(sn => { attendues[cle(sn)] = true; });
+  // PRUDENCE (defaut corrige) : on ne retire une seance « deduite d'une absence » QUE si
+  // l'absence qui l'avait produite n'existe PLUS (lien garde dans « idAbsence »).
+  // Ne JAMAIS retirer en comparant au calcul du moment : quand le calcul ne retrouve pas
+  // les seances (emploi du temps pas encore charge), les bonnes lignes disparaissaient
+  // du Dashboard — c'etait pire que le defaut d'origine.
   const avant = seancesAnnulees.length;
   seancesAnnulees = seancesAnnulees.filter(sn => {
-    if (sn.origine !== 'absence') return true;          // saisie directe : intouchable
-    return !!attendues[cle(sn)];
+    if (sn.origine !== 'absence') return true;                 // saisie directe : intouchable
+    if (!sn.idAbsence) return true;                            // ligne ancienne sans lien : on garde
+    return !!absencesEncore['' + sn.idAbsence];                // l'absence existe encore ?
   });
   retirees = avant - seancesAnnulees.length;
   if (ajoutees || retirees) Depot.ecrireJSON('seancesAnnulees', seancesAnnulees);   // -> part dans la base
