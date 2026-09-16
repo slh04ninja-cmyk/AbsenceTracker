@@ -42,7 +42,7 @@ async function chargerDonneesDuServeur(silencieux) {
 
   // ---- classes et eleves ----
   const cls = await atLignes('classes', 'id,nom', jeton);
-  const els = await atLignes('eleves', 'id,classe_id,code_massar,nom,prenom,actif', jeton);
+  const els = await atLignes('eleves', 'id,classe_id,code_massar,nom,prenom,actif', jeton);   // id inclus
   const classesServeur = cls.map(function (c) {
     return {
       id: c.id, nom: c.nom,
@@ -57,7 +57,7 @@ async function chargerDonneesDuServeur(silencieux) {
   classesServeur.forEach(function (c) { c.eleves.forEach(function (e) { eleveParId['' + e.id] = { eleve: e, classe: c }; }); });
 
   // ---- emplois du temps (seances) ----
-  const sc = await atLignes('seances', 'prof_id,classe_id,jour,debut,fin,salle,matiere', jeton);
+  const sc = await atLignes('seances', 'id,prof_id,classe_id,jour,debut,fin,salle,matiere', jeton);
   const tableaux = {};
   sc.forEach(function (s) {
     const fiche = ficheParId['' + s.prof_id] || {};
@@ -92,7 +92,7 @@ async function chargerDonneesDuServeur(silencieux) {
   });
 
   // ---- annulations de seance ----
-  const ann = await atLignes('annulations_seances', 'id,date_seance,classe_id,debut,fin,motif', jeton);
+  const ann = await atLignes('annulations_seances', 'id,date_seance,classe_id,debut,fin,motif', jeton);   // id inclus
   const annulationsServeur = ann.map(function (a) {
     return {
       id: a.id, dateISO: a.date_seance, classe: nomClasse['' + a.classe_id] || '',
@@ -151,6 +151,45 @@ async function chargerDonneesDuServeur(silencieux) {
     Depot.ecrire('etiquetteEcole', String(etab));
   } catch (e) {}
 
+  // ---- LES IDENTIFIANTS DE LA BASE (indispensable pour MODIFIER une ligne) ----
+  // Ils sont reconstruits ICI a partir de ce que la base vient de rendre : un telephone
+  // qui gardait les identifiants d'une AUTRE ecole ne peut plus viser a cote (c'etait la
+  // cause des modifications « perdues »).
+  const anciens = idsEcole();
+  const idsBase = { etablissement: etab, classes: {}, eleves: {}, seances: {}, signalements: {},
+                    annulations_seances: {}, absences_personnel: {}, fermetures: {}, conflits: [],
+                    elevesParId: anciens.elevesParId || {} };
+  classesServeur.forEach(function (c) {
+    idsBase.classes[String(c.nom)] = c.id;
+    c.eleves.forEach(function (e) {
+      const massar = String(e.massar || '').trim();
+      idsBase.eleves[String(c.nom) + '|' + (massar || ('nom:' + (e.nom || '') + ' ' + (e.prenom || '')))] = e.id;
+    });
+  });
+  sc.forEach(function (s) {
+    const code = cleDe['' + s.prof_id] || ('prof-' + s.prof_id);
+    idsBase.seances[code + '|' + s.jour + '|' + heureCourte(s.debut) + '|' + (nomClasse['' + s.classe_id] || '')] = s.id;
+  });
+  sig.forEach(function (s) {
+    if (!s.eleve_id) return;
+    idsBase.signalements[String(s.eleve_id) + '|' + s.date_abs + '|' + s.moment] = s.id;
+  });
+  ann.forEach(function (a) {
+    idsBase.annulations_seances[a.date_seance + '|' + (nomClasse['' + a.classe_id] || '') + '|' + heureCourte(a.debut)] = a.id;
+  });
+  ap.forEach(function (a) {
+    const cle = cleDe['' + a.prof_id] || '';
+    if (cle) idsBase.absences_personnel[cle + '|' + a.debut + '|' + (a.fin || a.debut)] = a.id;
+  });
+  fer.forEach(function (f) {
+    idsBase.fermetures[f.debut + '|' + (f.fin || f.debut) + '|' + (f.libelle || f.type || '')] = f.id;
+  });
+  sauverIdsEcole(idsBase);
+
+  // Ce qui vient de la base est deja dans la base : on note les empreintes (sinon la
+  // synchronisation renverrait tout a chaque connexion).
+  if (typeof window !== 'undefined') window.atDonneesPretes = true;     // la base a parle
+  if (typeof atSynchroNoterTout === 'function') atSynchroNoterTout();
   rafraichirEcransApresChargement();
   const totalAbs = absencesServeur.length;
   if (!silencieux) {

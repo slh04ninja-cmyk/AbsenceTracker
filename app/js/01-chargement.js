@@ -3,29 +3,56 @@
 // Toutes les lectures et ecritures de donnees passent par ici : aucun `localStorage` ailleurs
 // dans l'application (verifie par les tests). C'est CETTE porte qu'on remplacera par Supabase,
 // sans toucher au reste du code : les modules continueront d'appeler Depot.lire/ecrire.
+// DEUX ESPACES SEPARES : le PROTOTYPE (page ouverte seule) garde ses donnees dans
+// l'espace d'origine ; l'APPLICATION ANDROID reliee a la base ecrit dans SON espace
+// (prefixe « app: »). L'application ne modifie donc jamais les donnees du prototype,
+// et le prototype ne touche jamais aux siennes. En lecture, l'application retombe une
+// fois sur l'ancien emplacement (rien ne disparait en passant).
+function atPrefixeStockage() {
+  try { return localStorage.getItem('installationServeur') === '1' ? 'app:' : ''; } catch (e) { return ''; }
+}
 const Depot = {
   // valeur brute (chaine) ou `defaut` si absente / impossible a lire
   lire(cle, defaut) {
+    const rien = (defaut === undefined ? null : defaut);
     try {
-      const v = localStorage.getItem(cle);
-      return v === null ? (defaut === undefined ? null : defaut) : v;
-    } catch (e) { return defaut === undefined ? null : defaut; }
+      const pre = atPrefixeStockage();
+      if (pre) {
+        const v = localStorage.getItem(pre + cle);
+        if (v !== null) return v;
+        const ancien = localStorage.getItem(cle);        // reprise unique de l'ancien emplacement
+        return ancien !== null ? ancien : rien;
+      }
+      const v0 = localStorage.getItem(cle);
+      return v0 === null ? rien : v0;
+    } catch (e) { return rien; }
   },
   // objet ou tableau ; `defaut` si absent ou illisible (jamais d'exception)
   lireJSON(cle, defaut) {
+    const v = Depot.lire(cle, null);
+    if (v === null) return defaut;
     try {
-      const v = localStorage.getItem(cle);
-      if (v === null) return defaut;
       const obj = JSON.parse(v);
       return obj === null ? defaut : obj;
     } catch (e) { return defaut; }
   },
   ecrire(cle, valeur) {
+    try { localStorage.setItem(atPrefixeStockage() + cle, valeur); return true; }
+    catch (e) { console.warn('Depot : ecriture impossible pour ' + cle, e); return false; }
+  },
+  ecrireAncien(cle, valeur) {
     try { localStorage.setItem(cle, valeur); return true; }
     catch (e) { console.warn('Depot : ecriture impossible pour ' + cle, e); return false; }
   },
-  ecrireJSON(cle, valeur) { return Depot.ecrire(cle, JSON.stringify(valeur)); },
-  effacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} },
+  ecrireJSON(cle, valeur) {
+    const r = Depot.ecrire(cle, JSON.stringify(valeur));
+    // Toute liste de TRAVAIL qui change sur le telephone part dans la base (22-sync.js).
+    if (['absences', 'classes', 'indispoProfs', 'seancesAnnulees', 'fermeturesEtab', 'tableauxService_v2'].indexOf(cle) >= 0) {
+      if (typeof atSynchroAuto === 'function') atSynchroAuto(cle === 'tableauxService_v2' ? 'seances' : cle);
+    }
+    return r;
+  },
+  effacer(cle) { try { localStorage.removeItem(atPrefixeStockage() + cle); localStorage.removeItem(cle); } catch (e) {} },
   effacerTout() { try { localStorage.clear(); } catch (e) {} }     // « repartir du serveur »
 };
 // ========== CHARGEMENT DES CLASSES (persistees en localStorage) ==========
