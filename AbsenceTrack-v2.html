@@ -699,7 +699,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.22 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.23 — Prototype</p>
     </div>
   </div>
 </div>
@@ -3096,7 +3096,7 @@ function remplirProfsIndispo() {
 }
 // Absence d'un enseignant ou d'un surveillant (memes controles, listes separees)
 function roleAbsence(entree) { return entree && entree.role === 'surveillant' ? 'surveillant' : 'enseignant'; }
-function enregistrerAbsence(prefixe, idCompte, role) {
+async function enregistrerAbsence(prefixe, idCompte, role) {
   if (!utilisateurConnecte || utilisateurConnecte.role !== 'directeur') return;
   const val = id => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
   const compte = val(idCompte);
@@ -3109,8 +3109,13 @@ function enregistrerAbsence(prefixe, idCompte, role) {
   if (fin < debut) { afficherToast('La date de fin doit suivre le début', 'error'); return; }
   const b = bornesAnneeScolaire();
   if (debut < b.debut || fin > b.fin) { afficherToast("Période en dehors de l'année scolaire", 'error'); return; }
+  // on range l'absence sous le CODE de la fiche (meme identite que l'emploi du temps)
+  let compteRange = compte;
+  if (typeof atCodeDeLaPersonne === 'function' && typeof estModeEcole === 'function' && estModeEcole()) {
+    try { compteRange = await atCodeDeLaPersonne(compte); } catch (e) { compteRange = compte; }
+  }
   indispoProfs.push({
-    id: Date.now() + Math.random(), profCode: compte, role: role, debut: debut, fin: fin,
+    id: Date.now() + Math.random(), profCode: compteRange || compte, role: role, debut: debut, fin: fin,
     portee: portee, motif: motif, par: nomApprobateur(), le: fmtDateISO(new Date()) + ' ' + heureMaintenant()
   });
   sauvegarderIndispo();
@@ -8207,6 +8212,23 @@ async function atClasseIdParNom(nom, jeton) {
   return ids.classes[String(nom)] || null;
 }
 
+// L'identifiant d'une personne peut arriver sous trois formes (code, adresse, nom).
+// Pour que les seances deduites d'une absence soient toujours retrouvees, on range
+// l'absence sous le CODE de la fiche.
+async function atCodeDeLaPersonne(valeur) {
+  const f = String(valeur || '').toLowerCase().trim();
+  if (!f) return '';
+  try {
+    const fiches = await atFichesPersonnel();
+    const cle = function (v) { return String(v || '').toLowerCase().trim(); };
+    const trouve = fiches.find(function (x) {
+      return cle(x.code) === f || cle(x.email) === f || cle(String(x.email || '').split('@')[0]) === f || cle(x.nom) === f;
+    });
+    if (trouve && trouve.code) return String(trouve.code);
+  } catch (e) {}
+  return String(valeur || '');
+}
+
 async function atProfilIdDe(code) {
   const f = String(code || '').toLowerCase().trim();
   if (!f) return null;
@@ -8458,9 +8480,13 @@ async function chargerDonneesDuServeur(silencieux) {
       // « prof » porte l'ADRESSE de la fiche (la meme valeur que la liste deroulante des
       // absences du personnel) : c'est ce qui relie une seance a la personne, y compris
       // pour retrouver les seances annulees par une absence de ce professeur.
-      prof: fiche.email || fiche.code || fiche.nom || '', salle: s.salle || ''
+      prof: fiche.code || fiche.email || fiche.nom || '', salle: s.salle || ''
     });
-    if (fiche.nom && !nomsProfs[k]) { nomsProfs[k] = fiche.nom; }
+    if (fiche.nom) {
+      nomsProfs[k] = nomsProfs[k] || fiche.nom;
+      if (fiche.code) nomsProfs[String(fiche.code)] = nomsProfs[String(fiche.code)] || fiche.nom;
+      if (fiche.email) nomsProfs[String(fiche.email).split('@')[0]] = nomsProfs[String(fiche.email).split('@')[0]] || fiche.nom;
+    }
   });
 
   // ---- absences et retards ----

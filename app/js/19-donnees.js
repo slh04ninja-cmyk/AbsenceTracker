@@ -342,6 +342,23 @@ async function atClasseIdParNom(nom, jeton) {
   return ids.classes[String(nom)] || null;
 }
 
+// L'identifiant d'une personne peut arriver sous trois formes (code, adresse, nom).
+// Pour que les seances deduites d'une absence soient toujours retrouvees, on range
+// l'absence sous le CODE de la fiche.
+async function atCodeDeLaPersonne(valeur) {
+  const f = String(valeur || '').toLowerCase().trim();
+  if (!f) return '';
+  try {
+    const fiches = await atFichesPersonnel();
+    const cle = function (v) { return String(v || '').toLowerCase().trim(); };
+    const trouve = fiches.find(function (x) {
+      return cle(x.code) === f || cle(x.email) === f || cle(String(x.email || '').split('@')[0]) === f || cle(x.nom) === f;
+    });
+    if (trouve && trouve.code) return String(trouve.code);
+  } catch (e) {}
+  return String(valeur || '');
+}
+
 async function atProfilIdDe(code) {
   const f = String(code || '').toLowerCase().trim();
   if (!f) return null;

@@ -70,9 +70,13 @@ async function chargerDonneesDuServeur(silencieux) {
       // « prof » porte l'ADRESSE de la fiche (la meme valeur que la liste deroulante des
       // absences du personnel) : c'est ce qui relie une seance a la personne, y compris
       // pour retrouver les seances annulees par une absence de ce professeur.
-      prof: fiche.email || fiche.code || fiche.nom || '', salle: s.salle || ''
+      prof: fiche.code || fiche.email || fiche.nom || '', salle: s.salle || ''
     });
-    if (fiche.nom && !nomsProfs[k]) { nomsProfs[k] = fiche.nom; }
+    if (fiche.nom) {
+      nomsProfs[k] = nomsProfs[k] || fiche.nom;
+      if (fiche.code) nomsProfs[String(fiche.code)] = nomsProfs[String(fiche.code)] || fiche.nom;
+      if (fiche.email) nomsProfs[String(fiche.email).split('@')[0]] = nomsProfs[String(fiche.email).split('@')[0]] || fiche.nom;
+    }
   });
 
   // ---- absences et retards ----
