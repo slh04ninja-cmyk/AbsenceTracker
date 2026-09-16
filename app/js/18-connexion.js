@@ -238,6 +238,9 @@ function ouvrirSessionDeLaBase(moi) {
   }
   appliquerRoleTheme();
   if (typeof majBadgeEtat === 'function') majBadgeEtat();
+  // L'application travaille sur la BASE : on charge le travail de l'ecole (classes,
+  // eleves, emplois du temps, absences, annulations, fermetures, absences du personnel).
+  if (typeof chargerDonneesDuServeur === 'function') chargerDonneesDuServeur().catch(function () {});
   if (f.role === 'enseignant') {
     afficherEcran('enseignant'); remplirListeClasses(); choisirClasse(''); afficherInfosProf(); appliquerTableauService();
   } else if (f.role === 'surveillant') {

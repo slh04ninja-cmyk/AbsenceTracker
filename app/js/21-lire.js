@@ -1,0 +1,179 @@
+// fichier: app/js/21-lire.js
+// ========== LIRE LES DONNEES DEPUIS LA BASE (etape 2) ==========
+// L'application ne travaille plus sur les listes du telephone : a la connexion, elle
+// CHARGE de la base tout le travail de l'ecole — classes, eleves, emplois du temps,
+// absences et retards, annulations de seance, fermetures, absences du personnel — et
+// les range dans la memoire du telephone dans la forme habituelle de l'application.
+// Ainsi TOUS les ecrans continuent de fonctionner sans changement ; ils lisent
+// simplement des donnees qui viennent du serveur.
+//
+// Le telephone garde une copie (pour travailler hors ligne), mais la reference est la
+// base : chaque connexion recharge ce qui s'y trouve.
+
+function heureCourte(v) {
+  const s = String(v || '');
+  return s.length >= 5 ? s.slice(0, 5) : s;
+}
+function dateCourteFr(iso) {
+  const p = String(iso || '').split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : String(iso || '');
+}
+async function atLignes(table, champs, jeton) {
+  const rep = await fetch(AT_BASE + '/rest/v1/' + table + '?select=' + champs, { headers: atEntetes(jeton) });
+  const d = await atReponse(rep);
+  return Array.isArray(d) ? d : [];
+}
+
+async function chargerDonneesDuServeur(silencieux) {
+  if (typeof estModeEcole !== 'function' || !estModeEcole()) return false;
+  const moi = await atQuiSuisJe();
+  if (!moi || !moi.fiche) return false;
+  const jeton = await atJeton();
+  const etab = moi.fiche.etablissement_id;
+
+  // ---- le personnel (pour relier les seances et les absences a une personne) ----
+  const fiches = await atFichesPersonnel();
+  const ficheParId = {};
+  const cleDe = {};
+  fiches.forEach(function (f) {
+    ficheParId['' + f.id] = f;
+    cleDe['' + f.id] = f.email || f.code || String(f.id);
+  });
+
+  // ---- classes et eleves ----
+  const cls = await atLignes('classes', 'id,nom', jeton);
+  const els = await atLignes('eleves', 'id,classe_id,code_massar,nom,prenom,actif', jeton);
+  const classesServeur = cls.map(function (c) {
+    return {
+      id: c.id, nom: c.nom,
+      eleves: els.filter(function (e) { return String(e.classe_id) === String(c.id); }).map(function (e) {
+        return { id: e.id, massar: e.code_massar || '', nom: e.nom || '', prenom: e.prenom || '', actif: e.actif !== false };
+      })
+    };
+  });
+  const nomClasse = {};
+  classesServeur.forEach(function (c) { nomClasse['' + c.id] = c.nom; });
+  const eleveParId = {};
+  classesServeur.forEach(function (c) { c.eleves.forEach(function (e) { eleveParId['' + e.id] = { eleve: e, classe: c }; }); });
+
+  // ---- emplois du temps (seances) ----
+  const sc = await atLignes('seances', 'prof_id,classe_id,jour,debut,fin,salle,matiere', jeton);
+  const tableaux = {};
+  sc.forEach(function (s) {
+    const fiche = ficheParId['' + s.prof_id] || {};
+    const k = cleDe['' + s.prof_id] || ('prof-' + s.prof_id);
+    if (!tableaux[k]) tableaux[k] = [];
+    tableaux[k].push({
+      jour: s.jour, debut: heureCourte(s.debut), fin: heureCourte(s.fin || s.debut),
+      classe: nomClasse['' + s.classe_id] || '', matiere: s.matiere || '', prof: fiche.nom || '', salle: s.salle || ''
+    });
+  });
+
+  // ---- absences et retards ----
+  const sig = await atLignes('signalements',
+    'id,eleve_id,classe_id,prof_id,date_abs,moment,heure,type,retard_minutes,statut,motif', jeton);
+  const absencesServeur = sig.map(function (s) {
+    const e = eleveParId['' + s.eleve_id];
+    const fiche = ficheParId['' + s.prof_id] || {};
+    return {
+      id: s.id,
+      eleveId: s.eleve_id,
+      nom: e ? (e.eleve.nom + (e.eleve.prenom ? ' ' + e.eleve.prenom : '')) : '',
+      classe: nomClasse['' + s.classe_id] || (e ? e.classe.nom : ''),
+      heure: heureCourte(s.heure),
+      date: dateCourteFr(s.date_abs),
+      dateISO: s.date_abs,
+      seance: s.moment,
+      type: s.type,
+      duree: s.retard_minutes ? String(s.retard_minutes) : '',
+      statut: s.statut, motif: s.motif || '',
+      enseignant: cleDe['' + s.prof_id] || '', matiere: fiche.matiere || ''
+    };
+  });
+
+  // ---- annulations de seance ----
+  const ann = await atLignes('annulations_seances', 'id,date_seance,classe_id,debut,fin,motif', jeton);
+  const annulationsServeur = ann.map(function (a) {
+    return {
+      id: a.id, dateISO: a.date_seance, classe: nomClasse['' + a.classe_id] || '',
+      debut: heureCourte(a.debut), fin: heureCourte(a.fin), motif: a.motif || ''
+    };
+  });
+
+  // ---- fermetures ----
+  const fer = await atLignes('fermetures', 'id,type,libelle,debut,fin,portee', jeton);
+  const fermeturesServeur = fer.map(function (f) {
+    return { id: f.id, type: f.type || 'Fermeture', libelle: f.libelle || '', debut: f.debut, fin: f.fin, portee: f.portee || 'journee' };
+  });
+
+  // ---- absences du personnel ----
+  const ap = await atLignes('absences_personnel', 'id,prof_id,role_absent,debut,fin,portee,motif', jeton);
+  const absencesPersonnelServeur = ap.map(function (a) {
+    return {
+      id: a.id, profCode: cleDe['' + a.prof_id] || '', role: a.role_absent,
+      debut: a.debut, fin: a.fin, portee: a.portee || 'journee', motif: a.motif || ''
+    };
+  });
+
+  // ---- on range dans la memoire du telephone (forme habituelle de l'application) ----
+  // REGLE DE SECURITE : la base ne remplace une liste QUE si elle en a une. Si la base
+  // est vide pour une famille, le travail du telephone est GARDE (il n'a pas encore ete
+  // envoye) : rien ne doit jamais disparaitre a la connexion.
+  const prendre = function (listeServeur, lireLocal, poser) {
+    if (listeServeur && listeServeur.length) { poser(listeServeur); return listeServeur; }
+    const local = lireLocal();
+    return (local && local.length) ? local : [];
+  };
+  // Les eleves font partie de la famille « classes » : une base qui a des classes mais
+  // AUCUN eleve (envoi interrompu) ne doit pas faire disparaitre les eleves du telephone.
+  const localClasses = (function () { try { return chargerClasses(); } catch (e) { return []; } })();
+  const totalElevesLocal = localClasses.reduce(function (n, c) { return n + (c.eleves || []).length; }, 0);
+  if (classesServeur.length && (els.length > 0 || totalElevesLocal === 0)) {
+    classes = classesServeur;
+    Depot.ecrireJSON('classes', classesServeur);
+    Depot.ecrire('absenceTrackVersion', DEMO_VERSION);
+  } else {
+    classes = localClasses;
+  }
+  tableauxService = (Object.keys(tableaux).length) ? tableaux
+    : (function () { try { return chargerTableauxService(); } catch (e) { return {}; } })();
+  if (Object.keys(tableaux).length) Depot.ecrireJSON('tableauxService_v2', tableaux);
+  absences = prendre(absencesServeur, function () { return chargerListe('absences'); }, function (v) { Depot.ecrireJSON('absences', v); });
+  seancesAnnulees = prendre(annulationsServeur, function () { return chargerListe('seancesAnnulees'); }, function (v) { Depot.ecrireJSON('seancesAnnulees', v); });
+  fermeturesEtab = prendre(fermeturesServeur, function () { return chargerListe('fermeturesEtab'); }, function (v) { Depot.ecrireJSON('fermeturesEtab', v); });
+  indispoProfs = prendre(absencesPersonnelServeur, function () { return chargerListe('indispoProfs'); }, function (v) { Depot.ecrireJSON('indispoProfs', v); });
+
+  // Les donnees du telephone sont celles de CETTE ecole : l'etiquette suit.
+  Depot.ecrire('etablissementDonnees', Depot.lire('etablissementDonnees', ''));
+  try {
+    const code = Depot.lire('ecoleOuverteCode', '');
+    if (code) Depot.ecrire('etabDonnees', code);
+    Depot.ecrire('etiquetteEcole', String(etab));
+  } catch (e) {}
+
+  rafraichirEcransApresChargement();
+  const totalAbs = absencesServeur.length;
+  if (!silencieux) {
+    afficherToast('Donnees de la base : ' + classesServeur.length + ' classe(s), ' +
+      els.length + ' eleve(s), ' + sc.length + ' seance(s), ' + totalAbs + ' absence(s)', 'success');
+  }
+  return true;
+}
+
+// Redessine les ecrans ouverts avec les donnees qui viennent d'arriver.
+function rafraichirEcransApresChargement() {
+  const essais = [
+    'remplirListeClasses', 'mettreAJourDashboardDir', 'mettreAJourDashboardSurv',
+    'afficherListeProfs', 'afficherIndispos', 'afficherSeancesAnnulees',
+    'afficherAnnulationsEnregistrees', 'appliquerTableauService', 'afficherInfosProf',
+    'afficherListeEleves', 'afficherStatsDir'
+  ];
+  essais.forEach(function (nom) {
+    try { if (typeof window[nom] === 'function') window[nom](); } catch (e) {}
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.chargerDonneesDuServeur = chargerDonneesDuServeur;
+  window.rafraichirEcransApresChargement = rafraichirEcransApresChargement;
+}

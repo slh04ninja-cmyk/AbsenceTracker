@@ -304,6 +304,7 @@ async function envoyerMesDonnees() {
       if (nonEnvoyes.length > 8) rapport += '\n- ... et ' + (nonEnvoyes.length - 8) + ' autre(s)';
     }
     rapport += '\n' + (tout && !nonEnvoyes.length ? 'TOUT EST SUR LE SERVEUR.' : 'Envoi termine avec des lignes a revoir (voir ci-dessus).');
+    if (typeof chargerDonneesDuServeur === 'function' && !rienAEnvoyer) { try { await chargerDonneesDuServeur(true); } catch (e) {} }
     afficherToast(rienAEnvoyer ? 'Rien a envoyer pour cette ecole'
                   : (tout ? 'Donnees envoyees et verifiees' : 'Envoi partiel : voir le detail'),
                   rienAEnvoyer ? 'warning' : (tout ? 'success' : 'warning'));
