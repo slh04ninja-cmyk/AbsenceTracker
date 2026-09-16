@@ -264,6 +264,9 @@ function vraimentSupprimerIndispo(id) {
   indispoProfs = indispoProfs.filter(i => i.id !== id);
   sauvegarderIndispo();
   if (retiree && typeof atRetirerAbsencePersonnel === 'function') atRetirerAbsencePersonnel(retiree);
+  // les seances annulees par cette absence sont RETABLIES automatiquement (elles quittent
+  // le telephone ET la base) : c'est la suite logique de la suppression.
+  if (typeof materialiserAnnulationsParAbsence === 'function') materialiserAnnulationsParAbsence();
   rafraichirListeAnnulations();
   afficherIndispos();
   afficherToast('Absence supprimée', 'suppression');

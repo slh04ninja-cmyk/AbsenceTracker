@@ -280,7 +280,12 @@ function seancesAnnuleesParAbsence() {
         resultat.push({
           genere: true, origine: 'absence', idAbsence: ind.id, profCode: code,
           dateISO: dateISO, classe: c.classe, debut: c.debut, fin: c.fin,
-          motif: ind.motif || 'Absence', par: ind.par || ''
+          // le motif nomme LA PERSONNE absente (avant, la fiche du prof portait le motif
+          // de saisie, ce qui affichait « Surveillant 1 absent » pour un enseignant).
+          motif: 'Absence de ' + (function () {
+            try { return nomProfCode(code) || nomsProfs[code] || code; } catch (e) { return code; }
+          })(),
+          par: ind.par || ''
         });
       });
     }
@@ -450,7 +455,10 @@ function afficherAnnulationsEnregistrees() {
   const cont = document.getElementById('annulations-liste');
   if (!cont) return;
   cont.innerHTML = '';
-  const liste = trierSeancesAnnulees(seancesAnnulees);
+  // Les seances annulees « deduites d'une absence de prof » ne figurent PAS ici : elles
+  // appartiennent au Dashboard, ou elles suivent l'absence (elles disparaissent d'elles-memes
+  // quand l'absence est supprimee). Les melanger ici faisait doublon (defaut signale).
+  const liste = trierSeancesAnnulees(seancesAnnulees.filter(sn => sn.origine !== 'absence'));
   if (liste.length === 0) {
     cont.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">Aucune annulation enregistrée.</p>';
     return;
