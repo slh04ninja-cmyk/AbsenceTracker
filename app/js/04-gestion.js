@@ -59,7 +59,12 @@ function chargerListe(cle) {
 let fermeturesEtab = chargerListe('fermeturesEtab');
 let indispoProfs = chargerListe('indispoProfs');
 function sauvegarderFermetures() { Depot.ecrireJSON('fermeturesEtab', fermeturesEtab); }
-function sauvegarderIndispo() { Depot.ecrireJSON('indispoProfs', indispoProfs); }
+function sauvegarderIndispo() {
+  Depot.ecrireJSON('indispoProfs', indispoProfs);
+  // AJOUT / MODIFICATION / SUPPRESSION d'une absence de personnel : les seances deduites
+  // sont (re)calculees et la base est alignee (creation, mise a jour, retrait).
+  if (typeof alignerAnnulationsDeduites === 'function') alignerAnnulationsDeduites().catch(function () {});
+}
 function bornesAnneeScolaire() {
   const s1 = anneeScolaire.semestres[0] || {};
   const s2 = anneeScolaire.semestres[1] || {};

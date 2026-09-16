@@ -203,10 +203,19 @@ async function chargerDonneesDuServeur(silencieux) {
 
   // Ce qui vient de la base est deja dans la base : on note les empreintes (sinon la
   // synchronisation renverrait tout a chaque connexion).
-  try { Depot.ecrireJSON('nomsProfs', nomsProfs); } catch (e) {}         // les noms des professeurs
+  try {
+    Depot.ecrireJSON('nomsProfs', nomsProfs);            // les noms des professeurs (disque)
+    if (typeof nomsProfsGlobal === 'undefined') { window.nomsProfsGlobal = nomsProfs; }
+    Object.keys(nomsProfs).forEach(function (k) { if (!nomsProfs[k]) return; });
+    // la memoire vive doit connaitre ces noms (sinon le motif d'une seance deduite
+    // afficherait l'adresse du professeur au lieu de son nom)
+    seancesAnnuleesParAbsence();                          // (aucun effet : simple lecture)
+    if (typeof window !== 'undefined') { window.nomsProfs = nomsProfs; }
+  } catch (e) {}
   if (typeof window !== 'undefined') window.atDonneesPretes = true;     // la base a parle
   // les seances annulees « deduites d'une absence » deviennent de vraies lignes (base)
-  try { if (typeof materialiserAnnulationsParAbsence === 'function') materialiserAnnulationsParAbsence(); } catch (e) {}
+  try { if (typeof purgerAnnulationsDeduitesEnregistrees === 'function') purgerAnnulationsDeduitesEnregistrees(); } catch (e) {}
+  try { if (typeof alignerAnnulationsDeduites === 'function') alignerAnnulationsDeduites().catch(function () {}); } catch (e) {}
   if (typeof atSynchroNoterTout === 'function') atSynchroNoterTout();
   rafraichirEcransApresChargement();
   const totalAbs = absencesServeur.length;

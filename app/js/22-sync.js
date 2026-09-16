@@ -384,7 +384,88 @@ function atSynchroNoterTout() {
   Object.keys(S).forEach(function (k) { synchroEcrire(k, S[k]); });
 }
 
+// ============================================================
+// LES SEANCES DEDUITES D'UNE ABSENCE DE PROF : ecrites dans la base
+// ============================================================
+// Une seule regle, la meme pour les trois gestes du directeur :
+//   - il AJOUTE une absence      -> les seances deduites sont CREEES dans la base
+//   - il MODIFIE (duree, motif)  -> les seances deduites sont MISE A JOUR
+//   - il SUPPRIME l'absence      -> les seances deduites sont SUPPRIMEES de la base
+// A chaque fois on recalcule ce qui est SOUHAITE, puis on aligne la base sur ce souhait.
+// L'identite d'une seance deduite est : date + classe + heure de debut. C'est ce qui
+// permet de la retrouver pour la mettre a jour ou la retirer (et d'eviter les doublons).
+async function alignerAnnulationsDeduites() {
+  const pret = await atPretPourEcriture();
+  if (!pret) return null;
+  try {
+    if (!pret.moi || String(pret.moi.fiche.role || '') !== 'directeur') return null;   // seul le directeur ecrit
+    const jeton = pret.jeton;
+    const etab = pret.moi.fiche.etablissement_id;
+    const ids = idsEcole();
+
+    // 1. ce qui est SOUHAITE (le calcul de l'application, comme dans le Dashboard)
+    const souhaite = {};
+    let calculees = [];
+    try { calculees = (typeof seancesAnnuleesParAbsence === 'function') ? seancesAnnuleesParAbsence() : []; } catch (e) { calculees = []; }
+    calculees.forEach(function (sn) {
+      const cle = String(sn.dateISO) + '|' + String(sn.classe) + '|' + String(sn.debut);
+      souhaite[cle] = sn;
+    });
+
+    // 2. ce que la base porte deja pour les seances deduites (motif « Absence de ... »)
+    const lignes = await atLignesServeur('annulations_seances', 'id,date_seance,classe_id,debut,fin,motif', jeton);
+    const nomClasse = {};
+    (classes || []).forEach(function (c) { nomClasse['' + c.id] = c.nom; });
+    const enBase = {};
+    lignes.forEach(function (a) {
+      if (!/^\s*absence\s+d/i.test(String(a.motif || ''))) return;      // saisie directe : intouchable
+      const cle = String(a.date_seance) + '|' + (nomClasse['' + a.classe_id] || '') + '|' + heureDeTexte(a.debut);
+      enBase[cle] = a;
+    });
+
+    // 3. on aligne : creer ce qui manque, mettre a jour ce qui a change
+    let crees = 0, majs = 0, supprimes = 0;
+    for (const cle of Object.keys(souhaite)) {
+      const sn = souhaite[cle];
+      const motif = (typeof motifAbsencePersonne === 'function')
+        ? motifAbsencePersonne(sn.profCode, 'Absence du professeur') : 'Absence du professeur';
+      const cid = await atClasseIdParNom(sn.classe, jeton);
+      if (!cid) continue;
+      const corps = { etablissement_id: etab, date_seance: sn.dateISO, classe_id: cid,
+                      debut: sn.debut, fin: sn.fin || sn.debut, motif: motif, cree_par: pret.moi.fiche.id };
+      const deja = enBase[cle];
+      if (deja) {
+        if (String(deja.motif || '') !== motif || String(heureDeTexte(deja.debut)) !== String(sn.debut)) {
+          await atPatch('annulations_seances', deja.id, corps, jeton); majs++;
+        }
+      } else {
+        const cree = await atPost('annulations_seances', corps, jeton);
+        if (cree && cree.id) { if (!ids.annulations_seances) ids.annulations_seances = {}; ids.annulations_seances[cle] = cree.id; crees++; }
+      }
+    }
+
+    // 4. ce qui n'est PLUS souhaite (absence supprimee ou raccourcie) quitte la base
+    for (const cle of Object.keys(enBase)) {
+      if (souhaite[cle]) continue;
+      try { await atSupprimer('annulations_seances', enBase[cle].id, jeton); supprimes++; } catch (e) {}
+    }
+    sauverIdsEcole(ids);
+    if (crees || majs || supprimes) {
+      afficherToast('Seances annulees par absence : base mise a jour (' + crees + ' ajout, ' + majs + ' modif, ' + supprimes + ' retrait)', 'success');
+    }
+    return { crees: crees, majs: majs, supprimes: supprimes };
+  } catch (e) { return null; }
+}
+
+function heureDeTexte(v) { const s = String(v || ''); return s.length >= 5 ? s.slice(0, 5) : s; }
+async function atLignesServeur(table, champs, jeton) {
+  const rep = await fetch(AT_BASE + '/rest/v1/' + table + '?select=' + champs, { headers: atEntetes(jeton) });
+  const d = await atReponse(rep);
+  return Array.isArray(d) ? d : [];
+}
+
 if (typeof window !== 'undefined') {
+  window.alignerAnnulationsDeduites = alignerAnnulationsDeduites;
   window.atSynchroFamille = atSynchroFamille;
   window.atSynchroNoterTout = atSynchroNoterTout;
   window.atSynchroAuto = atSynchroAuto;
