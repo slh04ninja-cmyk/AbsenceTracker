@@ -241,6 +241,43 @@ function remplirProfsIndispo() {
 }
 // Absence d'un enseignant ou d'un surveillant (memes controles, listes separees)
 function roleAbsence(entree) { return entree && entree.role === 'surveillant' ? 'surveillant' : 'enseignant'; }
+
+// ========== UN PERSONNEL DECLARE ABSENT NE PEUT PAS TRAVAILLER CE JOUR-LA ==========
+// Regle voulue par le directeur : un enseignant (ou surveillant) declare absent ne peut ni
+// saisir ni lever une absence d'eleve pendant son absence. Le DIRECTEUR n'est JAMAIS
+// bloque (il doit pouvoir corriger une erreur). Le blocage vaut jour par jour et
+// demi-journee : une absence peut ne concerner que le matin.
+function identifiantsDeLaPersonne() {
+  const u = utilisateurConnecte || {};
+  const liste = [];
+  const ajouter = v => { const s = String(v || '').toLowerCase().trim(); if (s && liste.indexOf(s) < 0) liste.push(s); };
+  ajouter(u.code); ajouter(u.email); ajouter(String(u.email || '').split('@')[0]); ajouter(u.nom);
+  return liste;
+}
+function monAbsencePersonnelle(dateISO, moment) {
+  if (!utilisateurConnecte) return null;
+  if (String(utilisateurConnecte.role || '') === 'directeur') return null;      // jamais bloque
+  const moi = identifiantsDeLaPersonne();
+  if (!moi.length) return null;
+  const trouve = (indispoProfs || []).find(function (i) {
+    const id = String(i.profCode || '').toLowerCase().trim();
+    const correspond = moi.indexOf(id) >= 0 || moi.indexOf(id.split('@')[0]) >= 0 ||
+                       (nomsProfs && nomsProfs[id] && moi.indexOf(String(nomsProfs[id]).toLowerCase().trim()) >= 0);
+    if (!correspond) return false;
+    if (!(dateISO >= i.debut && dateISO <= (i.fin || i.debut))) return false;
+    const portee = String(i.portee || 'journee');
+    if (portee === 'matin' || portee === 'apres-midi') return portee === (moment || 'matin');
+    return true;
+  });
+  return trouve || null;
+}
+function refuserSiAbsent(dateISO, moment) {
+  const abs = monAbsencePersonnelle(dateISO, moment);
+  if (!abs) return false;
+  afficherToast('Vous etes declare(e) absent(e) ce jour-la (' + (abs.motif || 'absence') +
+    ') : cette action est reservee au directeur.', 'error');
+  return true;
+}
 function enregistrerAbsence(prefixe, idCompte, role) {
   if (!utilisateurConnecte || utilisateurConnecte.role !== 'directeur') return;
   const val = id => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };

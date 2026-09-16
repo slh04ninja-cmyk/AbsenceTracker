@@ -699,7 +699,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.27 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.28 — Prototype</p>
     </div>
   </div>
 </div>
@@ -3117,6 +3117,43 @@ function remplirProfsIndispo() {
 }
 // Absence d'un enseignant ou d'un surveillant (memes controles, listes separees)
 function roleAbsence(entree) { return entree && entree.role === 'surveillant' ? 'surveillant' : 'enseignant'; }
+
+// ========== UN PERSONNEL DECLARE ABSENT NE PEUT PAS TRAVAILLER CE JOUR-LA ==========
+// Regle voulue par le directeur : un enseignant (ou surveillant) declare absent ne peut ni
+// saisir ni lever une absence d'eleve pendant son absence. Le DIRECTEUR n'est JAMAIS
+// bloque (il doit pouvoir corriger une erreur). Le blocage vaut jour par jour et
+// demi-journee : une absence peut ne concerner que le matin.
+function identifiantsDeLaPersonne() {
+  const u = utilisateurConnecte || {};
+  const liste = [];
+  const ajouter = v => { const s = String(v || '').toLowerCase().trim(); if (s && liste.indexOf(s) < 0) liste.push(s); };
+  ajouter(u.code); ajouter(u.email); ajouter(String(u.email || '').split('@')[0]); ajouter(u.nom);
+  return liste;
+}
+function monAbsencePersonnelle(dateISO, moment) {
+  if (!utilisateurConnecte) return null;
+  if (String(utilisateurConnecte.role || '') === 'directeur') return null;      // jamais bloque
+  const moi = identifiantsDeLaPersonne();
+  if (!moi.length) return null;
+  const trouve = (indispoProfs || []).find(function (i) {
+    const id = String(i.profCode || '').toLowerCase().trim();
+    const correspond = moi.indexOf(id) >= 0 || moi.indexOf(id.split('@')[0]) >= 0 ||
+                       (nomsProfs && nomsProfs[id] && moi.indexOf(String(nomsProfs[id]).toLowerCase().trim()) >= 0);
+    if (!correspond) return false;
+    if (!(dateISO >= i.debut && dateISO <= (i.fin || i.debut))) return false;
+    const portee = String(i.portee || 'journee');
+    if (portee === 'matin' || portee === 'apres-midi') return portee === (moment || 'matin');
+    return true;
+  });
+  return trouve || null;
+}
+function refuserSiAbsent(dateISO, moment) {
+  const abs = monAbsencePersonnelle(dateISO, moment);
+  if (!abs) return false;
+  afficherToast('Vous etes declare(e) absent(e) ce jour-la (' + (abs.motif || 'absence') +
+    ') : cette action est reservee au directeur.', 'error');
+  return true;
+}
 function enregistrerAbsence(prefixe, idCompte, role) {
   if (!utilisateurConnecte || utilisateurConnecte.role !== 'directeur') return;
   const val = id => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
@@ -4840,6 +4877,10 @@ function annulerConfirmation() {
 }
 
 function confirmerAbsences() {
+  // Un enseignant declare absent ce jour / cette demi-journee ne saisit rien.
+  if (typeof refuserSiAbsent === 'function') {
+    try { if (refuserSiAbsent(jourCourant(), seanceCourante())) return; } catch (e) {}
+  }
   const now = new Date();
   const heure = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
   const jour = jourCourant();
@@ -5337,6 +5378,10 @@ function afficherHistoriqueRegles(idConteneur) {
 function justifierAbsence(id, source) {
   const abs = absences.find(a => a.id === id);
   if (!abs) return;
+  // Un surveillant (ou un enseignant) declare absent ne justifie rien pendant son absence.
+  if (String((utilisateurConnecte || {}).role || '') !== 'directeur' && typeof refuserSiAbsent === 'function') {
+    try { if (refuserSiAbsent(abs.dateISO, abs.seance)) return; } catch (e) {}
+  }
   abs.statut = source === 'surv' ? 'justifie_s' : 'justifie_d';
   const sel = document.getElementById('select-motif');
   abs.motif = (sel && sel.value) ? sel.value : (abs.motif || 'Non justifié');

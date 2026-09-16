@@ -275,6 +275,10 @@ function annulerConfirmation() {
 }
 
 function confirmerAbsences() {
+  // Un enseignant declare absent ce jour / cette demi-journee ne saisit rien.
+  if (typeof refuserSiAbsent === 'function') {
+    try { if (refuserSiAbsent(jourCourant(), seanceCourante())) return; } catch (e) {}
+  }
   const now = new Date();
   const heure = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
   const jour = jourCourant();
