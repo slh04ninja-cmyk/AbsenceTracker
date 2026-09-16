@@ -65,8 +65,33 @@ function atLignesIndispo() {
 }
 function atLignesAnnulations() {
   const out = {};
+  // les saisies directes (la liste enregistree)
   (seancesAnnulees || []).forEach(function (sn) { out[sn.dateISO + '|' + sn.classe + '|' + sn.debut] = sn; });
+  // + les seances annulees PAR une absence de personnel : calculees (modele v4.04) mais
+  // elles doivent aussi aller dans la base — c'est leur seul chemin.
+  try {
+    if (typeof seancesAnnuleesParAbsence === 'function') {
+      seancesAnnuleesParAbsence().forEach(function (sn) {
+        const cle = sn.dateISO + '|' + sn.classe + '|' + sn.debut;
+        if (out[cle]) return;                      // une saisie directe prime
+        out[cle] = { dateISO: sn.dateISO, classe: sn.classe, debut: sn.debut, fin: sn.fin || '',
+                     motif: motifAbsencePersonne(sn.profCode, sn.motif), origine: 'absence',
+                     idAbsence: sn.idAbsence };
+      });
+    }
+  } catch (e) {}
   return out;
+}
+
+// Le motif d'une seance annulee par une absence nomme LA PERSONNE (jamais un compte
+// sans identifiant : plus de « Absence de Surveillant 1 »).
+function motifAbsencePersonne(profCode, secours) {
+  let nom = '';
+  try { nom = nomProfCode(profCode) || ''; } catch (e) { nom = ''; }
+  if (!nom) { try { nom = (nomsProfs || {})[profCode] || ''; } catch (e) { nom = ''; } }
+  nom = String(nom || '').trim();
+  if (!nom || /surveillant/i.test(nom) === false && nom === profCode) nom = String(nom || '').trim();
+  return nom ? ('Absence de ' + nom) : (secours || 'Absence du professeur');
 }
 function atLignesFermetures() {
   const out = {};

@@ -285,9 +285,7 @@ function seancesAnnuleesParAbsence() {
           dateISO: dateISO, classe: c.classe, debut: c.debut, fin: c.fin,
           // le motif nomme LA PERSONNE absente (avant, la fiche du prof portait le motif
           // de saisie, ce qui affichait « Surveillant 1 absent » pour un enseignant).
-          motif: 'Absence de ' + (function () {
-            try { return nomProfCode(code) || nomsProfs[code] || code; } catch (e) { return code; }
-          })(),
+          motif: ind.motif || 'Absence',
           par: ind.par || ''
         });
       });
@@ -303,8 +301,11 @@ function seancesAnnuleesParAbsence() {
 //   - appelee quand on enregistre une absence de personnel ;
 //   - appelee apres une lecture de la base (un telephone neuf les pose une fois).
 function materialiserAnnulationsParAbsence() {
-  if (typeof estModeEcole === 'function' && estModeEcole() &&
-      !(utilisateurConnecte && utilisateurConnecte.role === 'directeur')) return 0;   // seul le directeur ecrit
+  // MODELE DE LA v4.04 CONSERVE : les seances deduites d'une absence restent CALCULEES
+  // (elles s'affichent dans le Dashboard) et ne sont PAS rangees dans la liste des
+  // saisies directes — sinon les deux listes se melangeaient et les comptes devenaient
+  // faux. C'est la SYNCHRONISATION (22-sync.js) qui les envoie dans la base.
+  if (true) return 0;
   const calculees = seancesAnnuleesParAbsence();
   const cle = sn => String(sn.dateISO) + '|' + String(sn.classe) + '|' + String(sn.debut);
   const connues = {};
