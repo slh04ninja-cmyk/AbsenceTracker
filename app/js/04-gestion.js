@@ -453,6 +453,8 @@ function confirmerAnnulationSeance() {
     le: dateISO + ' ' + heureMaintenant()
   });
   sauvegarderSeancesAnnulees();
+  // la base est mise a jour tout de suite (si l'ecole est reliee)
+  if (typeof atEnvoyerAnnulationSeance === 'function') atEnvoyerAnnulationSeance(seancesAnnulees[seancesAnnulees.length - 1]);
   afficherSeancesAnnulees();
   afficherAnnulationsEnregistrees();
   afficherToast('Séance annulée', 'modif');
@@ -465,8 +467,10 @@ function retablirSeance(id) {
     () => vraimentRetablirSeance(cible.id));
 }
 function vraimentRetablirSeance(id) {
+  const retiree = seancesAnnulees.find(sn => sn.id === id);
   seancesAnnulees = seancesAnnulees.filter(sn => sn.id !== id);
   sauvegarderSeancesAnnulees();
+  if (retiree && typeof atRetirerAnnulationSeance === 'function') atRetirerAnnulationSeance(retiree);
   rafraichirListeAnnulations();
   afficherAnnulationsEnregistrees();
   afficherToast('Séance rétablie', 'modif');

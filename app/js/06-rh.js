@@ -37,23 +37,32 @@ function reinitialiserMotDePasse() {
   const cle = profARenommer;
   if (!cle) return;
   const prof = comptes.find(c => c.code === cle || c.email === cle);
-  if (!prof) return;
-  demanderConfirmation('Réinitialiser le mot de passe de « ' + (prof.nom || '') + ' » ? Le nouveau s\'affichera ici, à lui remettre.',
+  // Cas d'une fiche DE LA BASE : elle n'existe pas dans les comptes du telephone.
+  const fiche = (typeof ficheBaseCourante !== 'undefined' && ficheBaseCourante) ? ficheBaseCourante : null;
+  if (!prof && !fiche) return;
+  const nomFiche = fiche ? (fiche.nom || '') : (prof.nom || '');
+  demanderConfirmation('Réinitialiser le mot de passe de « ' + nomFiche + ' » ? Le nouveau s\'affichera ici, à lui remettre.',
     function () {
       const mdp = genererMotDePasse(8);
-      prof.password = mdp;
-      if (prof.email) { motsDePasse[prof.email] = mdp; sauvegarderMotsDePasse(); }
+      if (prof) prof.password = mdp;
+      const courriel = fiche ? (fiche.email || '') : (prof.email || '');
+      if (courriel) {
+        motsDePasse[courriel] = mdp; sauvegarderMotsDePasse();
+        // Le mot de passe que l'application remettra (fiche PDF / identifiants) est celui-ci.
+        if (typeof retenirMotDePasseEcole === 'function') retenirMotDePasseEcole(courriel, mdp);
+      }
       const dates = chargerDatesMdp();
-      dates[cle] = jourCourant();
+      const cleDates = prof ? cle : (courriel || cle);   // compte du telephone : par code
+      dates[cleDates] = jourCourant();
       sauvegarderDatesMdp(dates);
-      dernierReset = { cle: cle, nom: prof.nom, email: prof.email || '', mdp: mdp, role: prof.role };
+      dernierReset = { cle: cle, cleDates: cleDates, nom: nomFiche, email: courriel, mdp: mdp, role: fiche ? fiche.role : prof.role };
 
       // affichage en grand (la fenêtre de modification est restée ouverte)
       const champ = document.getElementById('reset-mdp'); if (champ) champ.value = mdp;
       const mail = document.getElementById('reset-email');
-      if (mail) mail.textContent = prof.email || '(compte non encore créé)';
+      if (mail) mail.textContent = courriel || '(compte non encore créé)';
       const dt = document.getElementById('reset-date');
-      if (dt) dt.textContent = 'Modifié le ' + dateAffichage(dates[cle]);
+      if (dt) dt.textContent = 'Modifié le ' + dateAffichage(dates[cleDates]);
       const mdpSaisi = document.getElementById('renommer-mdp'); if (mdpSaisi) mdpSaisi.value = '';
       const bloc = document.getElementById('renommer-reset'); if (bloc) bloc.classList.remove('hidden');
       afficherListeProfs();
@@ -780,12 +789,29 @@ function ouvrirRenommageProf(code) {
 }
 function fermerRenommageProf() {
   profARenommer = null;
+  if (typeof ficheBaseCourante !== 'undefined') ficheBaseCourante = null;
   document.getElementById('modal-renommer').classList.add('hidden');
 }
 function confirmerRenommageProf() {
   const champ = document.getElementById('renommer-nom');
   const nouveau = champ ? String(champ.value || '').replace(/\s+/g, ' ').trim() : '';
   if (nouveau.length < 3) { afficherToast('Nom trop court (3 caractères minimum)', 'error'); return; }
+
+  // --- MODIFICATION d'une FICHE DE LA BASE (surveillant ou enseignant) ---
+  if (typeof ficheBaseCourante !== 'undefined' && ficheBaseCourante) {
+    const fiche = ficheBaseCourante;
+    const saisi = document.getElementById('renommer-mdp');
+    if (saisi && String(saisi.value || '').trim()) {
+      const mdp = String(saisi.value).trim();
+      if (mdp.length < 6) { afficherToast('Mot de passe trop court (6 caractères minimum)', 'error'); return; }
+      if (fiche.email) { motsDePasse[fiche.email] = mdp; sauvegarderMotsDePasse(); }
+      if (typeof retenirMotDePasseEcole === 'function' && fiche.email) retenirMotDePasseEcole(fiche.email, mdp);
+    }
+    ficheBaseCourante = null;
+    fermerRenommageProf();
+    enregistrerNomFicheBase(fiche, nouveau);
+    return;
+  }
 
   // --- AJOUT d'un surveillant ---
   if (creationProfil) {

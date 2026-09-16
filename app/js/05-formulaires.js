@@ -242,6 +242,8 @@ function enregistrerAbsence(prefixe, idCompte, role) {
     portee: portee, motif: motif, par: nomApprobateur(), le: fmtDateISO(new Date()) + ' ' + heureMaintenant()
   });
   sauvegarderIndispo();
+  // la base est mise a jour tout de suite (si l'ecole est reliee)
+  if (typeof atEnvoyerAbsencePersonnel === 'function') atEnvoyerAbsencePersonnel(indispoProfs[indispoProfs.length - 1]);
   rafraichirListeAnnulations();
   afficherIndispos();
   afficherToast('Absence enregistrée', 'modif');
@@ -255,8 +257,10 @@ function supprimerIndispo(id) {
   confirmerSuppression("Supprimer l'absence de " + nomProfCode(cible.profCode) + ' ?', () => vraimentSupprimerIndispo(cible.id));
 }
 function vraimentSupprimerIndispo(id) {
+  const retiree = indispoProfs.find(i => i.id === id);
   indispoProfs = indispoProfs.filter(i => i.id !== id);
   sauvegarderIndispo();
+  if (retiree && typeof atRetirerAbsencePersonnel === 'function') atRetirerAbsencePersonnel(retiree);
   rafraichirListeAnnulations();
   afficherIndispos();
   afficherToast('Absence supprimée', 'suppression');
@@ -370,10 +374,29 @@ function afficherFichesDeLaBase(fiches) {
 
 // Renommer une fiche DU SERVEUR (le directeur en a le droit : c'est la seule colonne
 // qu'il peut modifier). Le telephone ne garde rien : tout se passe dans la base.
+// Modifier une fiche DU SERVEUR (surveillant ou enseignant) : on ouvre LA MEME FENETRE
+// que le prototype : nom + mot de passe (Generer / Reinitialiser) + fiche PDF + suppression.
+let ficheBaseCourante = null;
 async function ouvrirRenommageFicheBase(fiche) {
-  demanderTexte('Nouveau nom pour « ' + (fiche.nom || '') + ' »', fiche.nom || '', function (saisie) {
-    enregistrerNomFicheBase(fiche, saisie);
-  });
+  ficheBaseCourante = fiche;
+  creationProfil = false;
+  profARenommer = fiche.code || fiche.email || String(fiche.id);
+  dernierReset = null;
+  libelleActionMdp();
+  const bloc = document.getElementById('renommer-reset'); if (bloc) bloc.classList.add('hidden');
+  const suc = document.getElementById('renommer-success'); if (suc) suc.classList.add('hidden');
+  const suppr = document.getElementById('renommer-supprimer');
+  if (suppr) suppr.classList.toggle('hidden', String(fiche.role || '') !== 'surveillant');
+  const t = document.getElementById('renommer-titre');
+  if (t) t.textContent = String(fiche.role || '') === 'surveillant' ? 'Nom du surveillant' : "Nom de l'enseignant";
+  const n = document.getElementById('renommer-nom'); if (n) n.value = fiche.nom || '';
+  const info = document.getElementById('renommer-info');
+  if (info) info.textContent = (fiche.matiere ? fiche.matiere + ' · ' : '') +
+    (String(fiche.role || '') === 'surveillant' ? 'Surveillant' : (fiche.code || ''));
+  const mail = document.getElementById('renommer-email');
+  if (mail) mail.textContent = 'Email de connexion : ' + (fiche.email || '');
+  const mdp = document.getElementById('renommer-mdp'); if (mdp) mdp.value = '';
+  document.getElementById('modal-renommer').classList.remove('hidden');
 }
 
 async function enregistrerNomFicheBase(fiche, saisie) {

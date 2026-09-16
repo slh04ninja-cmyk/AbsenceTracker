@@ -699,7 +699,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.09 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.10 — Prototype</p>
     </div>
   </div>
 </div>
@@ -2738,6 +2738,8 @@ function confirmerAnnulationSeance() {
     le: dateISO + ' ' + heureMaintenant()
   });
   sauvegarderSeancesAnnulees();
+  // la base est mise a jour tout de suite (si l'ecole est reliee)
+  if (typeof atEnvoyerAnnulationSeance === 'function') atEnvoyerAnnulationSeance(seancesAnnulees[seancesAnnulees.length - 1]);
   afficherSeancesAnnulees();
   afficherAnnulationsEnregistrees();
   afficherToast('Séance annulée', 'modif');
@@ -2750,8 +2752,10 @@ function retablirSeance(id) {
     () => vraimentRetablirSeance(cible.id));
 }
 function vraimentRetablirSeance(id) {
+  const retiree = seancesAnnulees.find(sn => sn.id === id);
   seancesAnnulees = seancesAnnulees.filter(sn => sn.id !== id);
   sauvegarderSeancesAnnulees();
+  if (retiree && typeof atRetirerAnnulationSeance === 'function') atRetirerAnnulationSeance(retiree);
   rafraichirListeAnnulations();
   afficherAnnulationsEnregistrees();
   afficherToast('Séance rétablie', 'modif');
@@ -3006,6 +3010,8 @@ function enregistrerAbsence(prefixe, idCompte, role) {
     portee: portee, motif: motif, par: nomApprobateur(), le: fmtDateISO(new Date()) + ' ' + heureMaintenant()
   });
   sauvegarderIndispo();
+  // la base est mise a jour tout de suite (si l'ecole est reliee)
+  if (typeof atEnvoyerAbsencePersonnel === 'function') atEnvoyerAbsencePersonnel(indispoProfs[indispoProfs.length - 1]);
   rafraichirListeAnnulations();
   afficherIndispos();
   afficherToast('Absence enregistrée', 'modif');
@@ -3019,8 +3025,10 @@ function supprimerIndispo(id) {
   confirmerSuppression("Supprimer l'absence de " + nomProfCode(cible.profCode) + ' ?', () => vraimentSupprimerIndispo(cible.id));
 }
 function vraimentSupprimerIndispo(id) {
+  const retiree = indispoProfs.find(i => i.id === id);
   indispoProfs = indispoProfs.filter(i => i.id !== id);
   sauvegarderIndispo();
+  if (retiree && typeof atRetirerAbsencePersonnel === 'function') atRetirerAbsencePersonnel(retiree);
   rafraichirListeAnnulations();
   afficherIndispos();
   afficherToast('Absence supprimée', 'suppression');
@@ -3134,10 +3142,29 @@ function afficherFichesDeLaBase(fiches) {
 
 // Renommer une fiche DU SERVEUR (le directeur en a le droit : c'est la seule colonne
 // qu'il peut modifier). Le telephone ne garde rien : tout se passe dans la base.
+// Modifier une fiche DU SERVEUR (surveillant ou enseignant) : on ouvre LA MEME FENETRE
+// que le prototype : nom + mot de passe (Generer / Reinitialiser) + fiche PDF + suppression.
+let ficheBaseCourante = null;
 async function ouvrirRenommageFicheBase(fiche) {
-  demanderTexte('Nouveau nom pour « ' + (fiche.nom || '') + ' »', fiche.nom || '', function (saisie) {
-    enregistrerNomFicheBase(fiche, saisie);
-  });
+  ficheBaseCourante = fiche;
+  creationProfil = false;
+  profARenommer = fiche.code || fiche.email || String(fiche.id);
+  dernierReset = null;
+  libelleActionMdp();
+  const bloc = document.getElementById('renommer-reset'); if (bloc) bloc.classList.add('hidden');
+  const suc = document.getElementById('renommer-success'); if (suc) suc.classList.add('hidden');
+  const suppr = document.getElementById('renommer-supprimer');
+  if (suppr) suppr.classList.toggle('hidden', String(fiche.role || '') !== 'surveillant');
+  const t = document.getElementById('renommer-titre');
+  if (t) t.textContent = String(fiche.role || '') === 'surveillant' ? 'Nom du surveillant' : "Nom de l'enseignant";
+  const n = document.getElementById('renommer-nom'); if (n) n.value = fiche.nom || '';
+  const info = document.getElementById('renommer-info');
+  if (info) info.textContent = (fiche.matiere ? fiche.matiere + ' · ' : '') +
+    (String(fiche.role || '') === 'surveillant' ? 'Surveillant' : (fiche.code || ''));
+  const mail = document.getElementById('renommer-email');
+  if (mail) mail.textContent = 'Email de connexion : ' + (fiche.email || '');
+  const mdp = document.getElementById('renommer-mdp'); if (mdp) mdp.value = '';
+  document.getElementById('modal-renommer').classList.remove('hidden');
 }
 
 async function enregistrerNomFicheBase(fiche, saisie) {
@@ -3194,23 +3221,32 @@ function reinitialiserMotDePasse() {
   const cle = profARenommer;
   if (!cle) return;
   const prof = comptes.find(c => c.code === cle || c.email === cle);
-  if (!prof) return;
-  demanderConfirmation('Réinitialiser le mot de passe de « ' + (prof.nom || '') + ' » ? Le nouveau s\'affichera ici, à lui remettre.',
+  // Cas d'une fiche DE LA BASE : elle n'existe pas dans les comptes du telephone.
+  const fiche = (typeof ficheBaseCourante !== 'undefined' && ficheBaseCourante) ? ficheBaseCourante : null;
+  if (!prof && !fiche) return;
+  const nomFiche = fiche ? (fiche.nom || '') : (prof.nom || '');
+  demanderConfirmation('Réinitialiser le mot de passe de « ' + nomFiche + ' » ? Le nouveau s\'affichera ici, à lui remettre.',
     function () {
       const mdp = genererMotDePasse(8);
-      prof.password = mdp;
-      if (prof.email) { motsDePasse[prof.email] = mdp; sauvegarderMotsDePasse(); }
+      if (prof) prof.password = mdp;
+      const courriel = fiche ? (fiche.email || '') : (prof.email || '');
+      if (courriel) {
+        motsDePasse[courriel] = mdp; sauvegarderMotsDePasse();
+        // Le mot de passe que l'application remettra (fiche PDF / identifiants) est celui-ci.
+        if (typeof retenirMotDePasseEcole === 'function') retenirMotDePasseEcole(courriel, mdp);
+      }
       const dates = chargerDatesMdp();
-      dates[cle] = jourCourant();
+      const cleDates = prof ? cle : (courriel || cle);   // compte du telephone : par code
+      dates[cleDates] = jourCourant();
       sauvegarderDatesMdp(dates);
-      dernierReset = { cle: cle, nom: prof.nom, email: prof.email || '', mdp: mdp, role: prof.role };
+      dernierReset = { cle: cle, cleDates: cleDates, nom: nomFiche, email: courriel, mdp: mdp, role: fiche ? fiche.role : prof.role };
 
       // affichage en grand (la fenêtre de modification est restée ouverte)
       const champ = document.getElementById('reset-mdp'); if (champ) champ.value = mdp;
       const mail = document.getElementById('reset-email');
-      if (mail) mail.textContent = prof.email || '(compte non encore créé)';
+      if (mail) mail.textContent = courriel || '(compte non encore créé)';
       const dt = document.getElementById('reset-date');
-      if (dt) dt.textContent = 'Modifié le ' + dateAffichage(dates[cle]);
+      if (dt) dt.textContent = 'Modifié le ' + dateAffichage(dates[cleDates]);
       const mdpSaisi = document.getElementById('renommer-mdp'); if (mdpSaisi) mdpSaisi.value = '';
       const bloc = document.getElementById('renommer-reset'); if (bloc) bloc.classList.remove('hidden');
       afficherListeProfs();
@@ -3937,12 +3973,29 @@ function ouvrirRenommageProf(code) {
 }
 function fermerRenommageProf() {
   profARenommer = null;
+  if (typeof ficheBaseCourante !== 'undefined') ficheBaseCourante = null;
   document.getElementById('modal-renommer').classList.add('hidden');
 }
 function confirmerRenommageProf() {
   const champ = document.getElementById('renommer-nom');
   const nouveau = champ ? String(champ.value || '').replace(/\s+/g, ' ').trim() : '';
   if (nouveau.length < 3) { afficherToast('Nom trop court (3 caractères minimum)', 'error'); return; }
+
+  // --- MODIFICATION d'une FICHE DE LA BASE (surveillant ou enseignant) ---
+  if (typeof ficheBaseCourante !== 'undefined' && ficheBaseCourante) {
+    const fiche = ficheBaseCourante;
+    const saisi = document.getElementById('renommer-mdp');
+    if (saisi && String(saisi.value || '').trim()) {
+      const mdp = String(saisi.value).trim();
+      if (mdp.length < 6) { afficherToast('Mot de passe trop court (6 caractères minimum)', 'error'); return; }
+      if (fiche.email) { motsDePasse[fiche.email] = mdp; sauvegarderMotsDePasse(); }
+      if (typeof retenirMotDePasseEcole === 'function' && fiche.email) retenirMotDePasseEcole(fiche.email, mdp);
+    }
+    ficheBaseCourante = null;
+    fermerRenommageProf();
+    enregistrerNomFicheBase(fiche, nouveau);
+    return;
+  }
 
   // --- AJOUT d'un surveillant ---
   if (creationProfil) {
@@ -8011,6 +8064,108 @@ async function envoyerMesDonnees() {
     afficherToast('Envoi interrompu : ' + (e && e.message ? e.message : e), 'error');
     return null;
   }
+}
+
+// ============================================================
+// ECRIRE TOUT DE SUITE DANS LA BASE
+// Annuler une seance ou enregistrer une absence du personnel ne doit PAS attendre le
+// prochain « Envoyer mes donnees » : la ligne part immediatement (et disparait aussi de
+// la base si on la retire). Sur un telephone non relie, rien ne part : tout reste local.
+// ============================================================
+async function atPretPourEcriture() {
+  if (typeof estModeEcole !== 'function' || !estModeEcole()) return null;
+  const moi = await atQuiSuisJe();
+  if (!moi || !moi.fiche) return null;
+  return { moi: moi, jeton: await atJeton() };
+}
+
+async function atClasseIdParNom(nom, jeton) {
+  const ids = idsEcole();
+  ids.classes = ids.classes || {};
+  if (!ids.classes[String(nom)]) {
+    (await atLire('classes', jeton, 'id,nom')).forEach(function (c) { ids.classes[String(c.nom)] = c.id; });
+    sauverIdsEcole(ids);
+  }
+  return ids.classes[String(nom)] || null;
+}
+
+async function atProfilIdDe(code) {
+  const f = String(code || '').toLowerCase().trim();
+  if (!f) return null;
+  const fiches = await atFichesPersonnel();
+  const cle = function (v) { return String(v || '').toLowerCase().trim(); };
+  const trouve = fiches.find(function (x) {
+    return cle(x.code) === f || cle(x.email) === f || cle(String(x.email || '').split('@')[0]) === f;
+  });
+  return trouve ? trouve.id : null;
+}
+
+async function atSupprimer(table, id, jeton) {
+  if (!id) return;
+  const rep = await fetch(AT_BASE + '/rest/v1/' + table + '?id=eq.' + id, {
+    method: 'DELETE', headers: atEntetes(jeton, true)
+  });
+  return atReponse(rep);
+}
+
+// ---- une seance annulee ----
+async function atEnvoyerAnnulationSeance(sn) {
+  const pret = await atPretPourEcriture();
+  if (!pret || !sn) return null;
+  try {
+    const cid = await atClasseIdParNom(sn.classe, pret.jeton);
+    if (!cid) return null;                       // classe inconnue de la base : reste sur le telephone
+    const ids = idsEcole();
+    const cle = sn.dateISO + '|' + sn.classe + '|' + sn.debut;
+    await envoyerLigne(ids, 'annulations_seances', cle, {
+      etablissement_id: pret.moi.fiche.etablissement_id, date_seance: sn.dateISO, classe_id: cid,
+      debut: sn.debut, fin: sn.fin || sn.debut, motif: sn.motif || '', cree_par: pret.moi.fiche.id
+    }, pret.jeton);
+    sauverIdsEcole(ids);
+    return ids.annulations_seances[cle];
+  } catch (e) {
+    afficherToast('Annulation gardee sur le telephone (base injoignable)', 'warning');
+    return null;
+  }
+}
+async function atRetirerAnnulationSeance(sn) {
+  const pret = await atPretPourEcriture();
+  if (!pret || !sn) return;
+  const ids = idsEcole();
+  const cle = sn.dateISO + '|' + sn.classe + '|' + sn.debut;
+  const id = (ids.annulations_seances || {})[cle];
+  try { await atSupprimer('annulations_seances', id, pret.jeton); delete ids.annulations_seances[cle]; sauverIdsEcole(ids); } catch (e) {}
+}
+
+// ---- une absence du personnel (enseignant ou surveillant) ----
+async function atEnvoyerAbsencePersonnel(i) {
+  const pret = await atPretPourEcriture();
+  if (!pret || !i) return null;
+  try {
+    const pid = await atProfilIdDe(i.profCode);
+    if (!pid) return null;                       // personne inconnue de la base : reste sur le telephone
+    const ids = idsEcole();
+    const cle = i.profCode + '|' + i.debut + '|' + (i.fin || i.debut);
+    await envoyerLigne(ids, 'absences_personnel', cle, {
+      etablissement_id: pret.moi.fiche.etablissement_id, prof_id: pid,
+      role_absent: (roleAbsence(i) === 'enseignant' ? 'enseignant' : 'surveillant'),
+      debut: i.debut, fin: i.fin || i.debut, portee: i.portee || 'journee',
+      motif: i.motif || '', cree_par: pret.moi.fiche.id
+    }, pret.jeton);
+    sauverIdsEcole(ids);
+    return ids.absences_personnel[cle];
+  } catch (e) {
+    afficherToast('Absence gardee sur le telephone (base injoignable)', 'warning');
+    return null;
+  }
+}
+async function atRetirerAbsencePersonnel(i) {
+  const pret = await atPretPourEcriture();
+  if (!pret || !i) return;
+  const ids = idsEcole();
+  const cle = i.profCode + '|' + i.debut + '|' + (i.fin || i.debut);
+  const id = (ids.absences_personnel || {})[cle];
+  try { await atSupprimer('absences_personnel', id, pret.jeton); delete ids.absences_personnel[cle]; sauverIdsEcole(ids); } catch (e) {}
 }
 
 if (typeof window !== 'undefined') {

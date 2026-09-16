@@ -316,6 +316,108 @@ async function envoyerMesDonnees() {
   }
 }
 
+// ============================================================
+// ECRIRE TOUT DE SUITE DANS LA BASE
+// Annuler une seance ou enregistrer une absence du personnel ne doit PAS attendre le
+// prochain « Envoyer mes donnees » : la ligne part immediatement (et disparait aussi de
+// la base si on la retire). Sur un telephone non relie, rien ne part : tout reste local.
+// ============================================================
+async function atPretPourEcriture() {
+  if (typeof estModeEcole !== 'function' || !estModeEcole()) return null;
+  const moi = await atQuiSuisJe();
+  if (!moi || !moi.fiche) return null;
+  return { moi: moi, jeton: await atJeton() };
+}
+
+async function atClasseIdParNom(nom, jeton) {
+  const ids = idsEcole();
+  ids.classes = ids.classes || {};
+  if (!ids.classes[String(nom)]) {
+    (await atLire('classes', jeton, 'id,nom')).forEach(function (c) { ids.classes[String(c.nom)] = c.id; });
+    sauverIdsEcole(ids);
+  }
+  return ids.classes[String(nom)] || null;
+}
+
+async function atProfilIdDe(code) {
+  const f = String(code || '').toLowerCase().trim();
+  if (!f) return null;
+  const fiches = await atFichesPersonnel();
+  const cle = function (v) { return String(v || '').toLowerCase().trim(); };
+  const trouve = fiches.find(function (x) {
+    return cle(x.code) === f || cle(x.email) === f || cle(String(x.email || '').split('@')[0]) === f;
+  });
+  return trouve ? trouve.id : null;
+}
+
+async function atSupprimer(table, id, jeton) {
+  if (!id) return;
+  const rep = await fetch(AT_BASE + '/rest/v1/' + table + '?id=eq.' + id, {
+    method: 'DELETE', headers: atEntetes(jeton, true)
+  });
+  return atReponse(rep);
+}
+
+// ---- une seance annulee ----
+async function atEnvoyerAnnulationSeance(sn) {
+  const pret = await atPretPourEcriture();
+  if (!pret || !sn) return null;
+  try {
+    const cid = await atClasseIdParNom(sn.classe, pret.jeton);
+    if (!cid) return null;                       // classe inconnue de la base : reste sur le telephone
+    const ids = idsEcole();
+    const cle = sn.dateISO + '|' + sn.classe + '|' + sn.debut;
+    await envoyerLigne(ids, 'annulations_seances', cle, {
+      etablissement_id: pret.moi.fiche.etablissement_id, date_seance: sn.dateISO, classe_id: cid,
+      debut: sn.debut, fin: sn.fin || sn.debut, motif: sn.motif || '', cree_par: pret.moi.fiche.id
+    }, pret.jeton);
+    sauverIdsEcole(ids);
+    return ids.annulations_seances[cle];
+  } catch (e) {
+    afficherToast('Annulation gardee sur le telephone (base injoignable)', 'warning');
+    return null;
+  }
+}
+async function atRetirerAnnulationSeance(sn) {
+  const pret = await atPretPourEcriture();
+  if (!pret || !sn) return;
+  const ids = idsEcole();
+  const cle = sn.dateISO + '|' + sn.classe + '|' + sn.debut;
+  const id = (ids.annulations_seances || {})[cle];
+  try { await atSupprimer('annulations_seances', id, pret.jeton); delete ids.annulations_seances[cle]; sauverIdsEcole(ids); } catch (e) {}
+}
+
+// ---- une absence du personnel (enseignant ou surveillant) ----
+async function atEnvoyerAbsencePersonnel(i) {
+  const pret = await atPretPourEcriture();
+  if (!pret || !i) return null;
+  try {
+    const pid = await atProfilIdDe(i.profCode);
+    if (!pid) return null;                       // personne inconnue de la base : reste sur le telephone
+    const ids = idsEcole();
+    const cle = i.profCode + '|' + i.debut + '|' + (i.fin || i.debut);
+    await envoyerLigne(ids, 'absences_personnel', cle, {
+      etablissement_id: pret.moi.fiche.etablissement_id, prof_id: pid,
+      role_absent: (roleAbsence(i) === 'enseignant' ? 'enseignant' : 'surveillant'),
+      debut: i.debut, fin: i.fin || i.debut, portee: i.portee || 'journee',
+      motif: i.motif || '', cree_par: pret.moi.fiche.id
+    }, pret.jeton);
+    sauverIdsEcole(ids);
+    return ids.absences_personnel[cle];
+  } catch (e) {
+    afficherToast('Absence gardee sur le telephone (base injoignable)', 'warning');
+    return null;
+  }
+}
+async function atRetirerAbsencePersonnel(i) {
+  const pret = await atPretPourEcriture();
+  if (!pret || !i) return;
+  const ids = idsEcole();
+  const cle = i.profCode + '|' + i.debut + '|' + (i.fin || i.debut);
+  const id = (ids.absences_personnel || {})[cle];
+  try { await atSupprimer('absences_personnel', id, pret.jeton); delete ids.absences_personnel[cle]; sauverIdsEcole(ids); } catch (e) {}
+}
+
 if (typeof window !== 'undefined') {
   window.envoyerMesDonnees = envoyerMesDonnees;
   window.idsEcole = idsEcole;
