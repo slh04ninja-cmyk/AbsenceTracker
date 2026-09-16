@@ -244,6 +244,9 @@ function enregistrerAbsence(prefixe, idCompte, role) {
   sauvegarderIndispo();
   // la base est mise a jour tout de suite (si l'ecole est reliee)
   if (typeof atEnvoyerAbsencePersonnel === 'function') atEnvoyerAbsencePersonnel(indispoProfs[indispoProfs.length - 1]);
+  // Les seances de l'enseignant sur la periode sont annulees : on les ECRIT (elles partent
+  // dans la base) au lieu de les recalculer seulement a l'ecran.
+  if (typeof materialiserAnnulationsParAbsence === 'function') materialiserAnnulationsParAbsence();
   rafraichirListeAnnulations();
   afficherIndispos();
   afficherToast('Absence enregistrée', 'modif');

@@ -288,6 +288,39 @@ function seancesAnnuleesParAbsence() {
   return resultat;
 }
 
+// MATERIALISER : les seances annulees parce qu'un enseignant est absent ne doivent plus
+// rester un simple calcul d'ecran. On les ECRIT comme de vraies lignes d'annulation :
+// elles partent alors dans la base (synchro), elles y restent, et tous les comptes les
+// voient sans avoir a recalculer quoi que ce soit.
+//   - appelee quand on enregistre une absence de personnel ;
+//   - appelee apres une lecture de la base (un telephone neuf les pose une fois).
+function materialiserAnnulationsParAbsence() {
+  if (typeof estModeEcole === 'function' && estModeEcole() &&
+      !(utilisateurConnecte && utilisateurConnecte.role === 'directeur')) return 0;   // seul le directeur ecrit
+  const calculees = seancesAnnuleesParAbsence();
+  const cle = sn => String(sn.dateISO) + '|' + String(sn.classe) + '|' + String(sn.debut);
+  const connues = {};
+  seancesAnnulees.forEach(sn => { connues[cle(sn)] = true; });
+  const absencesEncore = {};
+  indispoProfs.forEach(i => { absencesEncore['' + i.id] = true; });
+  let ajoutees = 0, retirees = 0;
+  calculees.forEach(sn => {
+    if (connues[cle(sn)]) return;                       // deja la (saisie directe ou deja materialisee)
+    seancesAnnulees.push({
+      id: Date.now() + Math.random(), genere: true, origine: 'absence', idAbsence: sn.idAbsence,
+      dateISO: sn.dateISO, classe: sn.classe, debut: sn.debut, fin: sn.fin || '', motif: sn.motif,
+      par: sn.par || '', le: sn.dateISO + ' ' + String(sn.debut || '').slice(0, 5)
+    });
+    connues[cle(sn)] = true; ajoutees++;
+  });
+  // une absence supprimee emporte ses seances annulees
+  const avant = seancesAnnulees.length;
+  seancesAnnulees = seancesAnnulees.filter(sn => !(sn.origine === 'absence' && sn.idAbsence && !absencesEncore['' + sn.idAbsence]));
+  retirees = avant - seancesAnnulees.length;
+  if (ajoutees || retirees) Depot.ecrireJSON('seancesAnnulees', seancesAnnulees);   // -> part dans la base
+  return ajoutees;
+}
+
 // Les 2 sources fusionnees, sans doublon (une saisie directe prime sur l'absence du prof)
 function listeSeancesAnnulees() {
   const vues = {};

@@ -189,6 +189,8 @@ async function chargerDonneesDuServeur(silencieux) {
   // Ce qui vient de la base est deja dans la base : on note les empreintes (sinon la
   // synchronisation renverrait tout a chaque connexion).
   if (typeof window !== 'undefined') window.atDonneesPretes = true;     // la base a parle
+  // les seances annulees « deduites d'une absence » deviennent de vraies lignes (base)
+  try { if (typeof materialiserAnnulationsParAbsence === 'function') materialiserAnnulationsParAbsence(); } catch (e) {}
   if (typeof atSynchroNoterTout === 'function') atSynchroNoterTout();
   rafraichirEcransApresChargement();
   const totalAbs = absencesServeur.length;
