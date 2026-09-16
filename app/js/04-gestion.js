@@ -318,9 +318,16 @@ function materialiserAnnulationsParAbsence() {
     });
     connues[cle(sn)] = true; ajoutees++;
   });
-  // une absence supprimee emporte ses seances annulees
+  // REGLE SIMPLE ET SANS PIEGE : une seance « deduite d'une absence » ne reste que si
+  // une absence la produit ENCORE. Tout le reste (y compris les restes laisses par les
+  // versions precedentes, qui n'avaient pas garde le lien avec l'absence) est retire.
+  const attendues = {};
+  calculees.forEach(sn => { attendues[cle(sn)] = true; });
   const avant = seancesAnnulees.length;
-  seancesAnnulees = seancesAnnulees.filter(sn => !(sn.origine === 'absence' && sn.idAbsence && !absencesEncore['' + sn.idAbsence]));
+  seancesAnnulees = seancesAnnulees.filter(sn => {
+    if (sn.origine !== 'absence') return true;          // saisie directe : intouchable
+    return !!attendues[cle(sn)];
+  });
   retirees = avant - seancesAnnulees.length;
   if (ajoutees || retirees) Depot.ecrireJSON('seancesAnnulees', seancesAnnulees);   // -> part dans la base
   return ajoutees;

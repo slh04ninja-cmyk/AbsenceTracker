@@ -58,6 +58,7 @@ async function chargerDonneesDuServeur(silencieux) {
 
   // ---- emplois du temps (seances) ----
   const sc = await atLignes('seances', 'id,prof_id,classe_id,jour,debut,fin,salle,matiere', jeton);
+  const nomsProfs = {};
   const tableaux = {};
   sc.forEach(function (s) {
     const fiche = ficheParId['' + s.prof_id] || {};
@@ -65,8 +66,12 @@ async function chargerDonneesDuServeur(silencieux) {
     if (!tableaux[k]) tableaux[k] = [];
     tableaux[k].push({
       jour: s.jour, debut: heureCourte(s.debut), fin: heureCourte(s.fin || s.debut),
-      classe: nomClasse['' + s.classe_id] || '', matiere: s.matiere || '', prof: fiche.nom || '', salle: s.salle || ''
+      classe: nomClasse['' + s.classe_id] || '', matiere: s.matiere || '',
+      // « prof » porte le CODE de la fiche : c'est ce qui relie une seance a la personne,
+      // y compris pour retrouver les seances annulees par une absence de ce professeur.
+      prof: fiche.code || fiche.email || fiche.nom || '', salle: s.salle || ''
     });
+    if (fiche.nom && !nomsProfs[k]) { nomsProfs[k] = fiche.nom; }
   });
 
   // ---- absences et retards ----
@@ -188,6 +193,7 @@ async function chargerDonneesDuServeur(silencieux) {
 
   // Ce qui vient de la base est deja dans la base : on note les empreintes (sinon la
   // synchronisation renverrait tout a chaque connexion).
+  try { Depot.ecrireJSON('nomsProfs', nomsProfs); } catch (e) {}         // les noms des professeurs
   if (typeof window !== 'undefined') window.atDonneesPretes = true;     // la base a parle
   // les seances annulees « deduites d'une absence » deviennent de vraies lignes (base)
   try { if (typeof materialiserAnnulationsParAbsence === 'function') materialiserAnnulationsParAbsence(); } catch (e) {}
