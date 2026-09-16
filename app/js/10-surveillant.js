@@ -215,9 +215,13 @@ function afficherHistoriqueRegles(idConteneur) {
 function justifierAbsence(id, source) {
   const abs = absences.find(a => a.id === id);
   if (!abs) return;
-  // Un surveillant (ou un enseignant) declare absent ne justifie rien pendant son absence.
-  if (String((utilisateurConnecte || {}).role || '') !== 'directeur' && typeof refuserSiAbsent === 'function') {
-    try { if (refuserSiAbsent(abs.dateISO, abs.seance)) return; } catch (e) {}
+  // PRINCIPE : un surveillant declare absent ne justifie RIEN, quelle que soit la date de
+  // l'absence de l'eleve — parce qu'un eleve doit se presenter en personne a son bureau
+  // pour justifier. Le refus porte donc sur SA presence AUJOURD'HUI, pas sur la date de la
+  // ligne a traiter (erreur corrigee).
+  if (String((utilisateurConnecte || {}).role || '') !== 'directeur' &&
+      typeof refuserSiAbsent === 'function' && typeof momentDuMomentPresent === 'function') {
+    try { if (refuserSiAbsent(jourCourant(), momentDuMomentPresent())) return; } catch (e) {}
   }
   abs.statut = source === 'surv' ? 'justifie_s' : 'justifie_d';
   const sel = document.getElementById('select-motif');
