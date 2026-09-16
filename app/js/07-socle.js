@@ -357,7 +357,7 @@ let toastMinuterie = null, toastMinuterieSortie = null;
 // 3,2 s = 1 s de plus qu'avant (demande de l'utilisateur : laisser le temps de lire).
 const DUREE_NOTIFICATION = 3200;
 
-function afficherToast(message, type) {
+function afficherToast(message, type, duree) {
   const toast = document.getElementById('toast');
   if (!toast) return;
   const t = TONS_TOAST[type] || TONS_TOAST.info;
@@ -379,6 +379,6 @@ function afficherToast(message, type) {
   toastMinuterie = setTimeout(function () {
     toast.classList.remove('show');
     toastMinuterieSortie = setTimeout(function () { toast.className = 'toast hidden'; }, 600);
-  }, DUREE_NOTIFICATION);
+  }, (parseInt(duree, 10) || DUREE_NOTIFICATION));
 }
 

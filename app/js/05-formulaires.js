@@ -311,7 +311,7 @@ function verifierBlocageAbsence() {
   let abs = null;
   try { abs = (typeof monAbsencePersonnelle === 'function') ? monAbsencePersonnelle(jourCourant(), momentDuMomentPresent()) : null; } catch (e) { abs = null; }
   if (!abs) { retirerBlocageAbsence(); return false; }
-  afficherBlocageAbsence(abs);
+  retirerBlocageAbsence();          // plus de bandeau permanent : la notification suffit
   return true;
 }
 
@@ -319,7 +319,8 @@ function refuserSiAbsent(dateISO, moment) {
   const abs = monAbsencePersonnelle(dateISO, moment);
   if (!abs) return false;
   afficherToast('Vous etes declare(e) absent(e) ce jour-la (' + (abs.motif || 'absence') +
-    ') : cette action est reservee au directeur.', 'error');
+    ') : cette action est reservee au directeur.', 'error',
+    (typeof DUREE_NOTIFICATION === 'number' ? DUREE_NOTIFICATION : 3200) + 1000);
   return true;
 }
 function enregistrerAbsence(prefixe, idCompte, role) {

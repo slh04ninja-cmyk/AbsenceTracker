@@ -699,7 +699,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.31 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.32 — Prototype</p>
     </div>
   </div>
 </div>
@@ -3195,7 +3195,7 @@ function verifierBlocageAbsence() {
   let abs = null;
   try { abs = (typeof monAbsencePersonnelle === 'function') ? monAbsencePersonnelle(jourCourant(), momentDuMomentPresent()) : null; } catch (e) { abs = null; }
   if (!abs) { retirerBlocageAbsence(); return false; }
-  afficherBlocageAbsence(abs);
+  retirerBlocageAbsence();          // plus de bandeau permanent : la notification suffit
   return true;
 }
 
@@ -3203,7 +3203,8 @@ function refuserSiAbsent(dateISO, moment) {
   const abs = monAbsencePersonnelle(dateISO, moment);
   if (!abs) return false;
   afficherToast('Vous etes declare(e) absent(e) ce jour-la (' + (abs.motif || 'absence') +
-    ') : cette action est reservee au directeur.', 'error');
+    ') : cette action est reservee au directeur.', 'error',
+    (typeof DUREE_NOTIFICATION === 'number' ? DUREE_NOTIFICATION : 3200) + 1000);
   return true;
 }
 function enregistrerAbsence(prefixe, idCompte, role) {
@@ -4628,7 +4629,7 @@ let toastMinuterie = null, toastMinuterieSortie = null;
 // 3,2 s = 1 s de plus qu'avant (demande de l'utilisateur : laisser le temps de lire).
 const DUREE_NOTIFICATION = 3200;
 
-function afficherToast(message, type) {
+function afficherToast(message, type, duree) {
   const toast = document.getElementById('toast');
   if (!toast) return;
   const t = TONS_TOAST[type] || TONS_TOAST.info;
@@ -4650,7 +4651,7 @@ function afficherToast(message, type) {
   toastMinuterie = setTimeout(function () {
     toast.classList.remove('show');
     toastMinuterieSortie = setTimeout(function () { toast.className = 'toast hidden'; }, 600);
-  }, DUREE_NOTIFICATION);
+  }, (parseInt(duree, 10) || DUREE_NOTIFICATION));
 }
 
 // ========== ENSEIGNANT — CLASSE & ÉLÈVES ==========
