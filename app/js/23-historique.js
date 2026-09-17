@@ -74,8 +74,8 @@ function ouvrirHistoriquePersonnel(roleDemande) {
   // reprise par le remplissage automatique des listes : elle affichait les seances
   // annulees au lieu de l'historique). Hauteur : environ 5 cartes avant defilement.
   corps.innerHTML =
-    '<div id="histo-totaux" class="mb-3"></div>' +
-    '<div id="histo-liste" style="display:flex;flex-direction:column;gap:8px;max-height:430px;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>';
+    '<div id="histo-totaux"></div>' +
+    '<div id="histo-liste" class="js-histo-personnel" style="max-height:430px;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>';
   const place = function (ch) { corps.insertBefore(construireChamp(ch), corps.firstChild); };
   place({ id: 'histo-periode', label: 'Periode', type: 'select', onchange: 'afficherHistoriquePersonnel()',
           options: [['', 'Toute la periode'], ['mois', 'Ce mois'], ['semestre', 'Ce semestre']] });
@@ -198,12 +198,15 @@ function afficherHistoriquePersonnel() {
       par[n].seances += histoSeancesDeLAbsence(a.id).length;
     });
     const noms = Object.keys(par);
+    // Carte « Totaux » : MEME fond que le bloc « Motif de justification » (classe motif-carte).
+    // Contenu : Nom, nombre d'absences, nombre de jours. Rien d'autre.
     tot.innerHTML = noms.length
-      ? '<div class="bg-gray-50 rounded-lg p-3 text-sm text-gray-700"><b>Totaux</b> - ' + lignes.length +
-        ' absence(s)<br>' + noms.map(function (n) {
-          return n + ' : ' + par[n].absences + ' absence(s), ' + par[n].jours + ' jour(s)' +
-            (par[n].seances ? ', ' + par[n].seances + ' seance(s) annulee(s)' : '');
-        }).join('<br>') + '</div>'
+      ? '<div class="motif-carte" style="margin-bottom:10px;">' + noms.map(function (n) {
+          const nb = par[n].absences;
+          const j = par[n].jours;
+          return '<p style="margin:2px 0;"><b>' + n + '</b> : ' + nb + (nb > 1 ? ' absences' : ' absence') +
+            ' &middot; ' + j + (j > 1 ? ' jours' : ' jour') + '</p>';
+        }).join('') + '</div>'
       : '';
   }
 }

@@ -281,3 +281,16 @@
     .carte-action-lien { color: #1d4ed8; }
     .carte-action-principale { color: #1e3a8a; }   /* = var(--primary), ecrit en clair pour rester verifiable */
     .carte-action-danger { color: #dc2626; }
+
+
+    /* ===== Liste de l'historique des absences du personnel =====
+       Meme habillage que les autres listes de cartes de l'application. */
+    .js-histo-personnel {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 8px;
+    }
+    .js-histo-personnel > div { margin-bottom: 6px; }
+    .js-histo-personnel > div:last-child { margin-bottom: 0; }
+    body.theme-sombre .js-histo-personnel { background: #0f172a; border-color: #334155; }
