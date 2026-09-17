@@ -70,7 +70,9 @@ function ouvrirHistoriquePersonnel(roleDemande) {
   });
 
   // MEMES champs que « Declarer une absence » (constructeur de l'application)
-  corps.innerHTML = '<div id="histo-liste"></div><div id="histo-totaux" class="mt-3"></div>';
+  // MEME conteneur que les listes du Dashboard (la classe porte tout le style des cartes)
+  corps.innerHTML = '<div id="histo-liste" class="js-seances-annulees"></div>' +
+                    '<div id="histo-totaux" class="mt-3"></div>';
   const place = function (ch) { corps.insertBefore(construireChamp(ch), corps.firstChild); };
   place({ id: 'histo-periode', label: 'Periode', type: 'select', onchange: 'afficherHistoriquePersonnel()',
           options: [['', 'Toute la periode'], ['mois', 'Ce mois'], ['semestre', 'Ce semestre']] });
