@@ -81,6 +81,23 @@ function ouvrirHistoriquePersonnel(roleDemande) {
   place({ id: 'histo-personne', label: ov.dataset.role === 'surveillant' ? 'Surveillant' : 'Enseignant',
           type: 'select', onchange: 'afficherHistoriquePersonnel()', options: [] });
 
+  // LA DECORATION DES LISTES DEROULANTES (meme composant que « Declarer une absence ») :
+  // elle est posee au chargement sur les listes existantes — il faut la poser sur les
+  // notres, creees a l'instant, sinon elles restent des listes brutes.
+  try {
+    if (typeof initialiserListesDeroulantes === 'function') {
+      const avant = document.querySelectorAll('#form-corps .sd').length;
+      initialiserListesDeroulantes();
+      const apres = document.querySelectorAll('#form-corps .sd').length;
+      if (apres <= avant) {
+        // la fonction ne retraite que les nouvelles : on decore nous-memes les notres
+        ['histo-personne', 'histo-etat', 'histo-periode'].forEach(function (id) {
+          const sel = document.getElementById(id);
+          if (sel && !sel.closest('.sd') && typeof boxerListeDeroulante === 'function') boxerListeDeroulante(sel);
+        });
+      }
+    }
+  } catch (e) {}
   ov.classList.remove('hidden');
   ov.style.display = 'flex';
   remplirFiltrePersonnesHistorique();
