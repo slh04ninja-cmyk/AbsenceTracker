@@ -1,11 +1,10 @@
 // fichier: app/js/23-historique.js
 // ========== HISTORIQUE DES ABSENCES DU PERSONNEL (DIRECTEUR SEULEMENT) ==========
-// Deux boutons, un par categorie, portant le meme libelle « Historique des absences » :
-//   - dans la partie ENSEIGNANTS (apres la liste des absences des enseignants)
-//   - dans la partie SURVEILLANTS (apres la liste des absences des surveillants)
-// La fenetre qui s'ouvre reprend le STYLE des autres fenetres de l'application
-// (memes classes : modal-overlay, modal-content, btn-fermer) et les listes deroulantes
-// utilisees partout ailleurs.
+// Deux boutons « Historique des absences » : un dans la partie ENSEIGNANTS, un dans la
+// partie SURVEILLANTS. La fenetre est CELLE DE « Declarer une absence » (modal-form) :
+// meme titre, meme corps defilant, meme bouton Fermer. Les listes deroulantes sont
+// construites par le MEME constructeur de champs que les formulaires, et les lignes
+// utilisent la MEME carte que les « seances annulees » du Dashboard.
 //
 // Rien ne s'efface jamais tout seul : une absence terminee reste dans l'historique.
 
@@ -27,9 +26,9 @@ function histoEtat(a) {
   return 'en_cours';
 }
 function histoLibelleEtat(e) {
-  if (e === 'en_cours') return 'en cours';
-  if (e === 'a_venir') return 'à venir';
-  return 'terminée';
+  if (e === 'en_cours') return 'En cours';
+  if (e === 'a_venir') return 'A venir';
+  return 'Terminee';
 }
 function histoSeancesDeLAbsence(idAbsence) {
   try {
@@ -46,61 +45,66 @@ function histoJours(a) {
 }
 function histoPorteeLibelle(p) {
   if (p === 'matin') return 'matin';
-  if (p === 'apres-midi') return 'après-midi';
-  return 'journée';
+  if (p === 'apres-midi') return 'apres-midi';
+  return 'journee';
 }
 
-// ---- la fenetre (meme style que les autres fenetres de l'application) ----
+// ---- la fenetre : celle des formulaires ----
 function ouvrirHistoriquePersonnel(roleDemande) {
-  if (!histoEstDirecteur()) { afficherToast('Écran réservé au directeur', 'error'); return; }
-  // MEME FENETRE QUE « Declarer une absence » (modal-form) : titre, corps defilant,
-  // bouton Fermer — le style de l'application, rien d'autre.
+  if (!histoEstDirecteur()) { afficherToast('Ecran reserve au directeur', 'error'); return; }
   const ov = document.getElementById('modal-form');
-  const titreForm = document.getElementById('form-titre');
   const corps = document.getElementById('form-corps');
+  const titre = document.getElementById('form-titre');
   if (!ov || !corps) return;
+
+  ov.dataset.role = (roleDemande === 'surveillant') ? 'surveillant' : 'enseignant';
+  if (titre) titre.textContent = 'Historique des absences - ' +
+    (ov.dataset.role === 'surveillant' ? 'surveillants' : 'enseignants');
   const valider = ov.querySelector('.btn-primary');
   if (valider) valider.style.display = 'none';            // un historique ne se valide pas
-  if (titreForm) titreForm.textContent = 'Historique des absences — ' +
-    (roleDemande === 'surveillant' ? 'surveillants' : 'enseignants');
-  corps.innerHTML =
-    '<div id="histo-filtres" class="flex flex-wrap gap-2 mb-3"></div>' +
-    '<div id="histo-totaux" class="mb-3"></div>' +
-    '<div id="histo-liste"></div>';
-  ov.dataset.histo = '1';
-  const f = document.getElementById('histo-filtres');
-  f.innerHTML =
-    '<select id="histo-personne" class="w-full flex-1 min-w-[140px]" onchange="afficherHistoriquePersonnel()"></select>' +
-    '<select id="histo-etat" class="w-full flex-1 min-w-[140px]" onchange="afficherHistoriquePersonnel()">' +
-      '<option value="">Tous les états</option><option value="en_cours">En cours</option>' +
-      '<option value="terminee">Terminées</option><option value="a_venir">À venir</option></select>' +
-    '<select id="histo-periode" class="w-full flex-1 min-w-[140px]" onchange="afficherHistoriquePersonnel()">' +
-      '<option value="">Toute la période</option><option value="mois">Ce mois</option>' +
-      '<option value="semestre">Ce semestre</option></select>';
-  ov.dataset.role = (roleDemande === 'surveillant') ? 'surveillant' : 'enseignant';
+
+  // les deux boutons de fermeture de la fenetre passent par l'historique
+  ov.querySelectorAll('button[onclick*="fermerFormulaire"]').forEach(function (b) {
+    if (!b.dataset.onclickOrigine) b.dataset.onclickOrigine = b.getAttribute('onclick') || '';
+    b.setAttribute('onclick', 'fermerHistoriquePersonnel()');
+  });
+
+  // MEMES champs que « Declarer une absence » (constructeur de l'application)
+  corps.innerHTML = '<div id="histo-liste"></div><div id="histo-totaux" class="mt-3"></div>';
+  const place = function (ch) { corps.insertBefore(construireChamp(ch), corps.firstChild); };
+  place({ id: 'histo-periode', label: 'Periode', type: 'select', onchange: 'afficherHistoriquePersonnel()',
+          options: [['', 'Toute la periode'], ['mois', 'Ce mois'], ['semestre', 'Ce semestre']] });
+  place({ id: 'histo-etat', label: 'Etat', type: 'select', onchange: 'afficherHistoriquePersonnel()',
+          options: [['', 'Tous les etats'], ['en_cours', 'En cours'], ['terminee', 'Terminees'], ['a_venir', 'A venir']] });
+  place({ id: 'histo-personne', label: ov.dataset.role === 'surveillant' ? 'Surveillant' : 'Enseignant',
+          type: 'select', onchange: 'afficherHistoriquePersonnel()', options: [] });
+
   ov.classList.remove('hidden');
   ov.style.display = 'flex';
   remplirFiltrePersonnesHistorique();
   afficherHistoriquePersonnel();
 }
+
 function fermerHistoriquePersonnel() {
   const ov = document.getElementById('modal-form');
   if (!ov) return;
   const valider = ov.querySelector('.btn-primary');
   if (valider) valider.style.display = '';               // le bouton Valider revient
-  if (typeof fermerFormulaire === 'function') { fermerFormulaire(); return; }
-  ov.classList.add('hidden'); ov.style.display = 'none';
+  ov.querySelectorAll('button[data-onclick-origine]').forEach(function (b) {
+    b.setAttribute('onclick', b.dataset.onclickOrigine || 'fermerFormulaire()');
+  });
+  ov.classList.add('hidden');
+  ov.style.display = 'none';
+  if (typeof fermerFormulaire === 'function') { try { fermerFormulaire(); } catch (e) {} }
 }
+
 function remplirFiltrePersonnesHistorique() {
   const ov = document.getElementById('modal-form');
   const sel = document.getElementById('histo-personne');
   if (!ov || !sel) return;
   const role = ov.dataset.role;
   const codes = {};
-  (indispoProfs || []).forEach(function (i) {
-    if (roleAbsence(i) !== role) return;
-    codes[String(i.profCode)] = true;
-  });
+  (indispoProfs || []).forEach(function (i) { if (roleAbsence(i) === role) codes[String(i.profCode)] = true; });
   const garde = sel.value;
   sel.innerHTML = '<option value="">' + (role === 'surveillant' ? 'Tous les surveillants' : 'Tous les enseignants') + '</option>';
   Object.keys(codes).sort(function (a, b) { return histoNomPersonne(a).localeCompare(histoNomPersonne(b)); }).forEach(function (c) {
@@ -145,28 +149,20 @@ function afficherHistoriquePersonnel() {
   if (!cont) return;
 
   if (!lignes.length) {
-    cont.innerHTML = '<p class="text-gray-500 text-center py-6">Aucune absence pour cette période.</p>';
+    cont.innerHTML = '<p class="text-gray-500 text-center py-4">Aucune absence pour cette periode.</p>';
   } else {
     cont.innerHTML = '';
     lignes.forEach(function (a) {
       const sn = histoSeancesDeLAbsence(a.id);
       const et = histoEtat(a);
-      const carte = document.createElement('div');
-      carte.className = 'border border-gray-200 rounded-xl p-3 mb-2';
-      carte.innerHTML =
-        '<div class="flex items-center justify-between gap-2">' +
-          '<span class="font-bold">' + histoNomPersonne(a.profCode) + '</span>' +
-          '<span class="text-xs font-bold px-2 py-0.5 rounded-full" style="border:1px solid ' +
-            (et === 'en_cours' ? '#ef4444' : (et === 'a_venir' ? '#f59e0b' : '#64748b')) + ';color:' +
-            (et === 'en_cours' ? '#ef4444' : (et === 'a_venir' ? '#f59e0b' : '#64748b')) + ';">' +
-            histoLibelleEtat(et) + '</span>' +
-        '</div>' +
-        '<div class="text-sm text-gray-600 mt-1">' + dateAffichage(a.debut) + ' → ' + dateAffichage(a.fin || a.debut) +
-          ' · ' + histoJours(a) + ' jour(s) · ' + histoPorteeLibelle(a.portee) + '</div>' +
-        '<div class="text-sm text-gray-600">' + (a.motif || 'Absence') +
-          (a.par ? ' · déclaré par ' + a.par : '') + '</div>' +
-        (sn.length ? '<div class="text-xs text-gray-500 mt-1">Séances annulées : ' + sn.length + '</div>' : '');
-      cont.appendChild(carte);
+      // MEME carte que les seances annulees du Dashboard
+      const titre = histoNomPersonne(a.profCode) +
+        (et === 'en_cours' ? ' <span class="tag-avenir">' + histoLibelleEtat(et) + '</span>' : '');
+      const sousTitre = dateAffichage(a.debut) + ' - ' + dateAffichage(a.fin || a.debut) +
+        ' - ' + histoJours(a) + ' jour(s) - ' + histoPorteeLibelle(a.portee) +
+        ' - ' + (a.motif || 'Absence') + (a.par ? ' - par ' + a.par : '') +
+        (sn.length ? ' - ' + sn.length + ' seance(s) annulee(s)' : '');
+      cont.appendChild(carteLigne(titre, sousTitre));
     });
   }
 
@@ -181,16 +177,16 @@ function afficherHistoriquePersonnel() {
     });
     const noms = Object.keys(par);
     tot.innerHTML = noms.length
-      ? '<div class="bg-gray-100 rounded-xl p-3 text-sm text-gray-700"><b>Totaux</b> · ' + lignes.length +
+      ? '<div class="bg-gray-50 rounded-lg p-3 text-sm text-gray-700"><b>Totaux</b> - ' + lignes.length +
         ' absence(s)<br>' + noms.map(function (n) {
           return n + ' : ' + par[n].absences + ' absence(s), ' + par[n].jours + ' jour(s)' +
-            (par[n].seances ? ', ' + par[n].seances + ' séance(s) annulée(s)' : '');
+            (par[n].seances ? ', ' + par[n].seances + ' seance(s) annulee(s)' : '');
         }).join('<br>') + '</div>'
       : '';
   }
 }
 
-// ---- les DEUX boutons, dans l'espace du directeur uniquement ----
+// ---- les DEUX boutons (espace directeur uniquement) ----
 function histoPoserBouton(idAncre, role) {
   const ancre = document.getElementById(idAncre);
   if (!ancre || !ancre.parentNode) return;
@@ -205,9 +201,9 @@ function histoPoserBouton(idAncre, role) {
   ancre.parentNode.insertBefore(b, ancre.nextSibling);
 }
 function installerBoutonHistoriquePersonnel() {
-  if (!histoEstDirecteur()) return;           // jamais chez le surveillant / l'enseignant
-  histoPoserBouton('indispo-liste', 'enseignant');     // partie enseignants
-  histoPoserBouton('abs-surv-liste', 'surveillant');   // partie surveillants
+  if (!histoEstDirecteur()) return;
+  histoPoserBouton('indispo-liste', 'enseignant');
+  histoPoserBouton('abs-surv-liste', 'surveillant');
 }
 
 if (typeof window !== 'undefined') {
