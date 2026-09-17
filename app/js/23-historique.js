@@ -70,9 +70,12 @@ function ouvrirHistoriquePersonnel(roleDemande) {
   });
 
   // MEMES champs que « Declarer une absence » (constructeur de l'application)
-  // MEME conteneur que les listes du Dashboard (la classe porte tout le style des cartes)
-  corps.innerHTML = '<div id="histo-liste" class="js-seances-annulees"></div>' +
-                    '<div id="histo-totaux" class="mt-3"></div>';
+  // Les TOTAUX d'abord, puis la liste. Conteneur a NOUS (la classe du Dashboard est
+  // reprise par le remplissage automatique des listes : elle affichait les seances
+  // annulees au lieu de l'historique). Hauteur : environ 5 cartes avant defilement.
+  corps.innerHTML =
+    '<div id="histo-totaux" class="mb-3"></div>' +
+    '<div id="histo-liste" style="display:flex;flex-direction:column;gap:8px;max-height:430px;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>';
   const place = function (ch) { corps.insertBefore(construireChamp(ch), corps.firstChild); };
   place({ id: 'histo-periode', label: 'Periode', type: 'select', onchange: 'afficherHistoriquePersonnel()',
           options: [['', 'Toute la periode'], ['mois', 'Ce mois'], ['semestre', 'Ce semestre']] });
