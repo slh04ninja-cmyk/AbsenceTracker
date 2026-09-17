@@ -712,7 +712,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.41 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.42 — Prototype</p>
     </div>
   </div>
 </div>
@@ -9508,14 +9508,19 @@ function afficherHistoriquePersonnel() {
       par[n].seances += histoSeancesDeLAbsence(a.id).length;
     });
     const noms = Object.keys(par);
-    // Carte « Totaux » : MEME fond que le bloc « Motif de justification » (classe motif-carte).
-    // Contenu : Nom, nombre d'absences, nombre de jours. Rien d'autre.
+    // Carte « Totaux » : fond du bloc « Motif de justification » (motif-carte) et MEME
+    // police que les cartes de la liste ci-dessous (titre / sous-titre de carte).
+    // Le nom (arabe) est sur sa ligne, les nombres (latin) sur la suivante : le melange
+    // arabe / francais reste lisible, comme dans les listes de l'application.
     tot.innerHTML = noms.length
       ? '<div class="motif-carte" style="margin-bottom:10px;">' + noms.map(function (n) {
           const nb = par[n].absences;
           const j = par[n].jours;
-          return '<p style="margin:2px 0;"><b>' + n + '</b> : ' + nb + (nb > 1 ? ' absences' : ' absence') +
-            ' &middot; ' + j + (j > 1 ? ' jours' : ' jour') + '</p>';
+          return '<div style="margin-bottom:6px;">' +
+            '<p class="carte-ligne-titre" dir="auto">' + n + '</p>' +
+            '<p class="carte-ligne-sous" dir="auto">' + nb + (nb > 1 ? ' absences' : ' absence') +
+            ' &middot; ' + j + (j > 1 ? ' jours' : ' jour') + '</p>' +
+          '</div>';
         }).join('') + '</div>'
       : '';
   }
