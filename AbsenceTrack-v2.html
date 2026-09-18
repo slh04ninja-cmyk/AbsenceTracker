@@ -712,7 +712,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.58 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.59 — Prototype</p>
     </div>
   </div>
 </div>
@@ -2784,10 +2784,24 @@ function trierSeancesAnnulees(liste) {
   });
 }
 // Remplit TOUTES les cartes "Seances annulees" (Dashboard directeur + surveillant)
+//
+// AFFICHAGE SEULEMENT (demande de l'utilisateur, 18/09) : le Dashboard ne garde que les
+// seances annulees d'AUJOURD'HUI — tant que leur heure n'est pas passee — et celles des
+// jours a VENIR. Les jours passes disparaissent de l'ecran. RIEN n'est supprime : les
+// lignes restent dans la base et dans listeSeancesAnnulees() (donc dans le taux de
+// presence et les statistiques, qui doivent continuer de compter le passe).
+function seanceAnnuleeEncoreALafficher(sn, auj, minutesMaintenant) {
+  const jour = String(sn.dateISO || '');
+  if (jour > auj) return true;                          // a venir
+  if (jour < auj) return false;                         // jour passe
+  return minutesMaintenant <= hhmmEnMinutes(sn.fin || sn.debut);   // aujourd'hui : en cours ou a venir
+}
 function afficherSeancesAnnulees() {
   const conteneurs = document.querySelectorAll('.js-seances-annulees');
   const auj = fmtDateISO(new Date());
-  const liste = trierSeancesAnnulees(listeSeancesAnnulees());
+  const minutesMaintenant = hhmmEnMinutes(heureMaintenant());
+  const liste = trierSeancesAnnulees(listeSeancesAnnulees())
+    .filter(function (sn) { return seanceAnnuleeEncoreALafficher(sn, auj, minutesMaintenant); });
   for (let i = 0; i < conteneurs.length; i++) {
     const cont = conteneurs[i];
     cont.innerHTML = '';

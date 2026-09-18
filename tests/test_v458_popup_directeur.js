@@ -73,5 +73,6 @@ function visible(win) {
   t('3. la fenetre « Ajouter une fermeture » s ouvre aussi', visible(win), etat(win));
 
   console.log(ok ? '\nMESURE TERMINEE : tout s ouvre' : '\nMESURE TERMINEE : defaut reproduit');
+  console.log(ok ? 'TOUT OK' : 'ECHEC');
   process.exit(0);
 })();
