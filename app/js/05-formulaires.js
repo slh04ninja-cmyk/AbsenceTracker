@@ -127,14 +127,14 @@ function ouvrirFormulaire(cle) {
   const titre = document.getElementById('form-titre');
   if (titre) titre.textContent = f.titre;
   const m = document.getElementById('modal-form');
-  if (m) m.classList.remove('hidden');
+  if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
   bornerDatesAnnee();
   if (typeof f.prepare === 'function') f.prepare();
 }
 function fermerFormulaire() {
   formulaireActif = null;
   const m = document.getElementById('modal-form');
-  if (m) m.classList.add('hidden');
+  if (m) { m.classList.add('hidden'); m.style.display = ''; }
 }
 // Valide : la modale se ferme seulement si la saisie a modifie quelque chose (sinon un toast explique)
 function validerFormulaire() {

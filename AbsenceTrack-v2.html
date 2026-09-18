@@ -712,7 +712,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.57 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.58 — Prototype</p>
     </div>
   </div>
 </div>
@@ -3022,14 +3022,14 @@ function ouvrirFormulaire(cle) {
   const titre = document.getElementById('form-titre');
   if (titre) titre.textContent = f.titre;
   const m = document.getElementById('modal-form');
-  if (m) m.classList.remove('hidden');
+  if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
   bornerDatesAnnee();
   if (typeof f.prepare === 'function') f.prepare();
 }
 function fermerFormulaire() {
   formulaireActif = null;
   const m = document.getElementById('modal-form');
-  if (m) m.classList.add('hidden');
+  if (m) { m.classList.add('hidden'); m.style.display = ''; }
 }
 // Valide : la modale se ferme seulement si la saisie a modifie quelque chose (sinon un toast explique)
 function validerFormulaire() {
@@ -9636,7 +9636,7 @@ function fermerHistoriquePersonnel() {
     b.setAttribute('onclick', b.dataset.onclickOrigine || 'fermerFormulaire()');
   });
   ov.classList.add('hidden');
-  ov.style.display = 'none';
+  ov.style.display = '';
   if (typeof fermerFormulaire === 'function') { try { fermerFormulaire(); } catch (e) {} }
 }
 

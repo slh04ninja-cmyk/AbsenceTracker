@@ -124,7 +124,7 @@ function fermerHistoriquePersonnel() {
     b.setAttribute('onclick', b.dataset.onclickOrigine || 'fermerFormulaire()');
   });
   ov.classList.add('hidden');
-  ov.style.display = 'none';
+  ov.style.display = '';
   if (typeof fermerFormulaire === 'function') { try { fermerFormulaire(); } catch (e) {} }
 }
 
