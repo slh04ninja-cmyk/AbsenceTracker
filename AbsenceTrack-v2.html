@@ -712,7 +712,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.55 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.56 — Prototype</p>
     </div>
   </div>
 </div>
@@ -828,7 +828,6 @@
               <option value="jour">Aujourd'hui</option>
               <option value="semaine">Cette semaine</option>
               <option value="mois" selected>Ce mois</option>
-              <option value="trimestre">Ce trimestre</option>
               <option value="s1">Semestre 1</option>
               <option value="s2">Semestre 2</option>
               <option value="annee">Année scolaire</option>
@@ -1215,7 +1214,6 @@
               <option value="jour">Aujourd'hui</option>
               <option value="semaine">Cette semaine</option>
               <option value="mois" selected>Ce mois</option>
-              <option value="trimestre">Ce trimestre</option>
               <option value="s1">Semestre 1</option>
               <option value="s2">Semestre 2</option>
               <option value="annee">Année scolaire</option>
@@ -2279,10 +2277,10 @@ function majOptionsSemestres() {
     if (!sel) return;
     anneeScolaire.semestres.forEach((sem, i) => {
       const opt = sel.querySelector('option[value="s' + (i + 1) + '"]');
-      if (opt) opt.textContent = 'Semestre ' + (sem.nom || (i + 1)) + ' (' + dateAffichage(sem.debut) + ' → ' + dateAffichage(sem.fin) + ')';
+      if (opt) opt.textContent = 'Semestre ' + (sem.nom || (i + 1));
     });
     const optAn = sel.querySelector('option[value="annee"]');
-    if (optAn) optAn.textContent = 'Année scolaire ' + (anneeScolaire.libelle || '');
+    if (optAn) optAn.textContent = 'Année scolaire';
   };
   remplir(document.getElementById('stats-periode'));
   remplir(document.getElementById('dir-stats-periode'));

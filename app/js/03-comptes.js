@@ -122,10 +122,10 @@ function majOptionsSemestres() {
     if (!sel) return;
     anneeScolaire.semestres.forEach((sem, i) => {
       const opt = sel.querySelector('option[value="s' + (i + 1) + '"]');
-      if (opt) opt.textContent = 'Semestre ' + (sem.nom || (i + 1)) + ' (' + dateAffichage(sem.debut) + ' → ' + dateAffichage(sem.fin) + ')';
+      if (opt) opt.textContent = 'Semestre ' + (sem.nom || (i + 1));
     });
     const optAn = sel.querySelector('option[value="annee"]');
-    if (optAn) optAn.textContent = 'Année scolaire ' + (anneeScolaire.libelle || '');
+    if (optAn) optAn.textContent = 'Année scolaire';
   };
   remplir(document.getElementById('stats-periode'));
   remplir(document.getElementById('dir-stats-periode'));
