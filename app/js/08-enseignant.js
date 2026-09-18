@@ -346,10 +346,19 @@ function afficherHistorique() {
   if (!div) return;
   div.innerHTML = '';
   const moi = utilisateurConnecte ? utilisateurConnecte.nom : '';
+  // L'AUTEUR de la saisie : on compare par identifiant (nom, code ou adresse) — un nom
+  // reecrit ne doit plus faire disparaitre l'historique de ce professeur.
+  const u = utilisateurConnecte || {};
+  const net = function (v) { return String(v || '').toLowerCase().trim(); };
+  const mesIdentifiants = [net(moi), net(u.nom), net(u.code), net(u.email), net(String(u.email || '').split('@')[0])];
+  const estDeMoi = function (valeur) {
+    const v = net(valeur);
+    return mesIdentifiants.indexOf(v) >= 0 || mesIdentifiants.indexOf(v.split('@')[0]) >= 0;
+  };
   const map = {};
   absences.forEach(a => {
-    // Uniquement les Ab/Rd signales par CE prof, et justifies
-    if (a.enseignant !== moi) return;
+    // Uniquement les Ab/Rd signales par CE prof (il en est l'AUTEUR), et justifies
+    if (!estDeMoi(a.enseignant)) return;
     if (a.statut !== 'justifie_s' && a.statut !== 'justifie_d') return;
     const cle = a.eleveId + '|' + a.classe;
     if (!map[cle]) map[cle] = { nom: a.nom, classe: a.classe, count: 0, dernier: '' };
