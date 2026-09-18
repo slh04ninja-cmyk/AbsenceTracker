@@ -896,8 +896,20 @@ function rechercherEleves(idInput, idResultats) {
     cont.innerHTML = '<p class="text-xs text-gray-400 text-center">Aucun élève trouvé</p>';
     return;
   }
+  // SEUL AJOUT : pour un ENSEIGNANT, les absences des autres professeurs ne comptent pas
+  // (le directeur et le surveillant gardent la recherche complete de l'etablissement).
+  const uEns = utilisateurConnecte || {};
+  const netEns = function (v) { return String(v || '').toLowerCase().trim(); };
+  const miensEns = [netEns(uEns.nom), netEns(uEns.code), netEns(uEns.email), netEns(String(uEns.email || '').split('@')[0])];
+  const estMonAuteur = function (valeur) {
+    const v = netEns(valeur);
+    return miensEns.indexOf(v) >= 0 || miensEns.indexOf(v.split('@')[0]) >= 0;
+  };
+  const roleEnseignant = String(uEns.role || '') === 'enseignant';
   res.forEach(r => {
-    const nb = absences.filter(a => a.eleveId === r.eleve.id && a.classe === r.classe.nom).length;
+    const nb = absences.filter(a => a.eleveId === r.eleve.id && a.classe === r.classe.nom &&
+      (!roleEnseignant || estMonAuteur(a.enseignant))).length;
+    if (roleEnseignant && !nb) return;                 // rien de lui : l'eleve n'apparait pas
     const item = document.createElement('div');
     item.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
     item.style.cursor = 'pointer';
