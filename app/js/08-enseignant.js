@@ -151,7 +151,9 @@ function afficherListeEleves() {
     const item = document.createElement('div');
     item.className = 'flex items-center px-4 py-3 transition-all';
     const bordureBas = enSombre ? '#334155' : '#f1f5f9';
-    item.style = 'border-bottom: 1px solid ' + bordureBas + '; border-left: 5px solid ' + (estCoche ? couleurBordure : 'transparent') + ';' + (estCoche ? ' background: ' + fond + ';' : '');
+    // Une absence APPROUVEE garde sa teinte (verte) meme si la case est decochee.
+    const teinteActive = estCoche || approuveeIci;
+    item.style = 'border-bottom: 1px solid ' + bordureBas + '; border-left: 5px solid ' + (teinteActive ? couleurBordure : 'transparent') + ';' + (teinteActive ? ' background: ' + fond + ';' : '');
 
     const cbA = verrouille
       ? '<label class="check"><input type="checkbox" ' + (cocheAbsent ? 'checked' : '') + ' disabled class="checkbox-locked"><span class="box"></span></label>'
