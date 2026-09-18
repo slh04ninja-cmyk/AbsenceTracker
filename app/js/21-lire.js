@@ -245,6 +245,15 @@ async function chargerDonneesDuServeur(silencieux) {
 
 // Redessine les ecrans ouverts avec les donnees qui viennent d'arriver.
 function rafraichirEcransApresChargement() {
+  // La classe choisie SURVIT au rafraichissement : on la rattache aux classes qui
+  // viennent d'arriver (sinon les cartes se vidaient a chaque tour de 5 secondes).
+  try {
+    if (typeof classeSelectionnee !== 'undefined' && classeSelectionnee && classeSelectionnee.id) {
+      var idSel = classeSelectionnee.id, nomSel = classeSelectionnee.nom;
+      var retrouvee = (classes || []).find(function (c) { return String(c.id) === String(idSel) || String(c.nom) === String(nomSel); });
+      if (retrouvee) classeSelectionnee = retrouvee;
+    }
+  } catch (e) {}
   const essais = [
     'remplirListeClasses', 'mettreAJourDashboardDir', 'mettreAJourDashboardSurv',
     'afficherListeProfs', 'afficherIndispos', 'afficherSeancesAnnulees',

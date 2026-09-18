@@ -712,7 +712,7 @@
 
       <p class="text-center text-blue-100 text-xs mt-6" id="login-annee"></p>
 
-      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.53 — Prototype</p>
+      <p class="text-center text-blue-200 text-xs mt-8">AbsenceTrack v4.54 — Prototype</p>
     </div>
   </div>
 </div>
@@ -5251,7 +5251,7 @@ function afficherStatistiques() {
   lireFiltresStats();
   const b = statsBornes();
   const pal = couleursAbsRd();
-  const filtres = classeSelectionnee ? statsFiltre(false) : [];
+  const filtres = classeSelectionnee ? statsFiltre(false) : statsFiltre(true);
 
   // --- Taux de presence (classe + periode, toutes matieres) ---
   if (classeSelectionnee) {
@@ -5311,7 +5311,9 @@ function afficherStatistiques() {
 
   // --- Par classe (toutes classes, selon filtres) ---
   const filtresToutes = statsFiltre(true);
-  barresStats('chart-absences', classes.map(cl => ({
+  var mesCl = mesClassesDuProf();
+  var classesAffichees = mesCl ? classes.filter(function (cl) { return mesCl[String(cl.nom)]; }) : classes;
+  barresStats('chart-absences', classesAffichees.map(cl => ({
     label: cl.nom,
     valeur: filtresToutes.filter(a => a.classe === cl.nom).length
   })));
@@ -5349,6 +5351,27 @@ function afficherStatistiques() {
   }
 }
 
+
+// Les CLASSES DU PROFESSEUR connecte (deduites de son emploi du temps).
+// Pour un directeur ou un surveillant : null = toutes les classes.
+function mesClassesDuProf() {
+  var u = (typeof utilisateurConnecte !== 'undefined' && utilisateurConnecte) ? utilisateurConnecte : null;
+  if (!u || String(u.role || '') !== 'enseignant') return null;
+  var net = function (v) { return String(v || '').toLowerCase().trim(); };
+  var cle = net(u.email) || net(u.code) || net(u.nom);
+  var racine = cle.split('@')[0];
+  var t = {};
+  try {
+    Object.keys(tableauxService || {}).forEach(function (k) {
+      var kk = net(k);
+      var pourMoi = kk === cle || kk.split('@')[0] === racine ||
+                    (typeof nomsProfs !== 'undefined' && nomsProfs && net(nomsProfs[k]) === net(u.nom));
+      if (!pourMoi) return;
+      (tableauxService[k] || []).forEach(function (c) { if (c.classe) t[String(c.classe)] = true; });
+    });
+  } catch (e) {}
+  return Object.keys(t).length ? t : null;
+}
 // ========== SURVEILLANT — DASHBOARD ==========
 // Cartes des absences NON JUSTIFIEES.
 //   options.aujourdSeulement : true  -> uniquement aujourd'hui (surveillant)
@@ -8937,6 +8960,15 @@ async function chargerDonneesDuServeur(silencieux) {
 
 // Redessine les ecrans ouverts avec les donnees qui viennent d'arriver.
 function rafraichirEcransApresChargement() {
+  // La classe choisie SURVIT au rafraichissement : on la rattache aux classes qui
+  // viennent d'arriver (sinon les cartes se vidaient a chaque tour de 5 secondes).
+  try {
+    if (typeof classeSelectionnee !== 'undefined' && classeSelectionnee && classeSelectionnee.id) {
+      var idSel = classeSelectionnee.id, nomSel = classeSelectionnee.nom;
+      var retrouvee = (classes || []).find(function (c) { return String(c.id) === String(idSel) || String(c.nom) === String(nomSel); });
+      if (retrouvee) classeSelectionnee = retrouvee;
+    }
+  } catch (e) {}
   const essais = [
     'remplirListeClasses', 'mettreAJourDashboardDir', 'mettreAJourDashboardSurv',
     'afficherListeProfs', 'afficherIndispos', 'afficherSeancesAnnulees',

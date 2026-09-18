@@ -134,7 +134,7 @@ function afficherStatistiques() {
   lireFiltresStats();
   const b = statsBornes();
   const pal = couleursAbsRd();
-  const filtres = classeSelectionnee ? statsFiltre(false) : [];
+  const filtres = classeSelectionnee ? statsFiltre(false) : statsFiltre(true);
 
   // --- Taux de presence (classe + periode, toutes matieres) ---
   if (classeSelectionnee) {
@@ -194,7 +194,9 @@ function afficherStatistiques() {
 
   // --- Par classe (toutes classes, selon filtres) ---
   const filtresToutes = statsFiltre(true);
-  barresStats('chart-absences', classes.map(cl => ({
+  var mesCl = mesClassesDuProf();
+  var classesAffichees = mesCl ? classes.filter(function (cl) { return mesCl[String(cl.nom)]; }) : classes;
+  barresStats('chart-absences', classesAffichees.map(cl => ({
     label: cl.nom,
     valeur: filtresToutes.filter(a => a.classe === cl.nom).length
   })));
@@ -232,3 +234,24 @@ function afficherStatistiques() {
   }
 }
 
+
+// Les CLASSES DU PROFESSEUR connecte (deduites de son emploi du temps).
+// Pour un directeur ou un surveillant : null = toutes les classes.
+function mesClassesDuProf() {
+  var u = (typeof utilisateurConnecte !== 'undefined' && utilisateurConnecte) ? utilisateurConnecte : null;
+  if (!u || String(u.role || '') !== 'enseignant') return null;
+  var net = function (v) { return String(v || '').toLowerCase().trim(); };
+  var cle = net(u.email) || net(u.code) || net(u.nom);
+  var racine = cle.split('@')[0];
+  var t = {};
+  try {
+    Object.keys(tableauxService || {}).forEach(function (k) {
+      var kk = net(k);
+      var pourMoi = kk === cle || kk.split('@')[0] === racine ||
+                    (typeof nomsProfs !== 'undefined' && nomsProfs && net(nomsProfs[k]) === net(u.nom));
+      if (!pourMoi) return;
+      (tableauxService[k] || []).forEach(function (c) { if (c.classe) t[String(c.classe)] = true; });
+    });
+  } catch (e) {}
+  return Object.keys(t).length ? t : null;
+}
