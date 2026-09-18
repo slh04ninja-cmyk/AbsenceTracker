@@ -1,16 +1,39 @@
 // fichier: app/js/08-enseignant.js
 // ========== ENSEIGNANT — CLASSE & ÉLÈVES ==========
 function remplirListeClasses() {
+  const u = utilisateurConnecte || {};
+  const roleEnseignant = String(u.role || '') === 'enseignant';
+  // Les CLASSES DU PROFESSEUR (deduites de son emploi du temps) : un enseignant ne choisit
+  // que les classes ou il enseigne ; directeur et surveillant gardent toutes les classes.
+  let autorisees = null;
+  if (roleEnseignant) {
+    autorisees = {};
+    try {
+      const net = function (v) { return String(v || '').toLowerCase().trim(); };
+      const cle = net(u.email) || net(u.code) || net(u.nom);
+      const racine = cle.split('@')[0];
+      Object.keys(tableauxService || {}).forEach(function (k) {
+        const kk = net(k);
+        const pourMoi = kk === cle || kk.split('@')[0] === racine ||
+                        (typeof nomsProfs !== 'undefined' && nomsProfs && net(nomsProfs[k]) === net(u.nom));
+        if (!pourMoi) return;
+        (tableauxService[k] || []).forEach(function (c) { if (c.classe) autorisees[String(c.classe)] = true; });
+      });
+    } catch (e) {}
+  }
   ['select-classe', 'select-classe-stats'].forEach(idSelect => {
     const select = document.getElementById(idSelect);
     if (!select) return;
+    const garde = select.value;
     select.innerHTML = '<option value="">-- Choisir une classe --</option>';
     classes.forEach(classe => {
+      if (autorisees && Object.keys(autorisees).length && !autorisees[String(classe.nom)]) return;
       const opt = document.createElement('option');
       opt.value = classe.id;
       opt.textContent = classe.nom + ' (' + classe.eleves.length + ' élèves)';
       select.appendChild(opt);
     });
+    if (garde && Array.prototype.some.call(select.options, function (o) { return o.value === garde; })) select.value = garde;
   });
 }
 

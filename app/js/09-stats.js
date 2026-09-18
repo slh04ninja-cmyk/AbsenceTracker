@@ -129,6 +129,8 @@ function barresHorizontalesStats(idConteneur, donnees) {
 }
 
 function afficherStatistiques() {
+  const selP = document.getElementById('stats-periode');
+  if (selP && !selP.dataset.init) { selP.value = 'mois'; selP.dataset.init = '1'; }
   lireFiltresStats();
   const b = statsBornes();
   const pal = couleursAbsRd();
