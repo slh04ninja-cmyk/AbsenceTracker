@@ -157,7 +157,19 @@ async function chargerDonneesDuServeur(silencieux) {
   tableauxService = (Object.keys(tableaux).length) ? tableaux
     : (function () { try { return chargerTableauxService(); } catch (e) { return {}; } })();
   if (Object.keys(tableaux).length) Depot.ecrireJSON('tableauxService_v2', tableaux);
-  absences = prendre(absencesServeur, function () { return chargerListe('absences'); }, function (v) { Depot.ecrireJSON('absences', v); });
+  // Les absences : on FUSIONNE (les lignes saisies sur le telephone et pas encore
+  // envoyees ne doivent PAS etre effacees par une relecture de la base — defaut signale :
+  // un enseignant saisissait des absences et elles disparaissaient).
+  absences = (function () {
+    const parCle = {};
+    const cle = function (a) { return String(a.eleveId) + '|' + a.dateISO + '|' + MOMENT_DE(a.seance); };
+    (absencesServeur || []).forEach(function (a) { parCle[cle(a)] = a; });
+    let locales = [];
+    try { locales = chargerListe('absences') || []; } catch (e) { locales = []; }
+    locales.forEach(function (a) { const k = cle(a); if (!parCle[k]) parCle[k] = a; });
+    return Object.keys(parCle).map(function (k) { return parCle[k]; });
+  })();
+  Depot.ecrireJSON('absences', absences);
   seancesAnnulees = prendre(annulationsServeur, function () { return chargerListe('seancesAnnulees'); }, function (v) { Depot.ecrireJSON('seancesAnnulees', v); });
   fermeturesEtab = prendre(fermeturesServeur, function () { return chargerListe('fermeturesEtab'); }, function (v) { Depot.ecrireJSON('fermeturesEtab', v); });
   indispoProfs = prendre(absencesPersonnelServeur, function () { return chargerListe('indispoProfs'); }, function (v) { Depot.ecrireJSON('indispoProfs', v); });
