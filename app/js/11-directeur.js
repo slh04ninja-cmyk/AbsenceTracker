@@ -249,7 +249,8 @@ function tendanceDirStats(filtres, b) {
   for (let i = 0; i < nbJours; i++) {
     const d = new Date(debut);
     d.setDate(d.getDate() + i);
-    out.push({ label: String(d.getDate()) + '/' + String(d.getMonth() + 1), valeur: parJour[fmtDateISO(d)] || 0 });
+    // Sous les barres : le JOUR seul (1, 2, 3...) — le mois est rappele dans le titre de la carte.
+    out.push({ label: String(d.getDate()), valeur: parJour[fmtDateISO(d)] || 0 });
   }
   return out;
 }
@@ -289,7 +290,13 @@ function afficherStatistiquesDir() {
 
   // --- Tendance selon la periode ---
   const elTitreTendance = document.getElementById('dir-tendance-titre');
-  if (elTitreTendance) elTitreTendance.textContent = 'Tendance ' + libelleTendanceDir();
+  if (elTitreTendance) {
+    // Le nom du mois figure dans le TITRE (uniquement quand la periode est un mois).
+    const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
+                      'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    const avecMois = (dirStatsPeriode === 'mois') ? ' · ' + moisNoms[new Date().getMonth()] : '';
+    elTitreTendance.textContent = 'Tendance ' + libelleTendanceDir() + avecMois;
+  }
   barresStats('dir-chart-tendance', tendanceDirStats(filtres, b));
 
   // --- Compteurs Ab / Rd / Non justifiees (filtres periode + type) ---
