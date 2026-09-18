@@ -4,7 +4,11 @@ const fs = require('fs');
 const { JSDOM, VirtualConsole } = require('jsdom');
 const html = fs.readFileSync('AbsenceTrack-v2.html', 'utf8');
 
-const AUJ = '2026-09-12';
+// v4.59 : la séance annulée doit être AUJOURD'HUI et pas encore terminée pour rester
+// affichée sur le Dashboard -> la date est celle du jour, l'heure est tardive.
+const _d = new Date();
+const AUJ = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
+const AUJ_FR = AUJ.slice(8, 10) + '/' + AUJ.slice(5, 7) + '/' + AUJ.slice(0, 4);
 const classes = [{ id: 1, nom: 'TCSF-1', eleves: [{ id: 1, nom: 'El Amrani', prenom: 'Ahmed' }] }];
 const erreurs = [];
 const vc = new VirtualConsole();
@@ -19,7 +23,7 @@ const dom = new JSDOM(html, {
     win.localStorage.setItem('absences', '[]');
     // séance déjà annulée avant l'ouverture (test du bug d'affichage)
     win.localStorage.setItem('seancesAnnulees', JSON.stringify([
-      { id: 1, dateISO: AUJ, classe: 'TCSF-1', debut: '08:00', fin: '10:00', motif: 'Examen', par: 'Directeur', le: AUJ + ' 08:00' }
+      { id: 1, dateISO: AUJ, classe: 'TCSF-1', debut: '23:58', fin: '23:59', motif: 'Examen', par: 'Directeur', le: AUJ + ' 08:00' }
     ]));
   }
 });
@@ -36,7 +40,7 @@ setTimeout(() => {
   connecter(db.email, db.password);
   t('directeur : liste des séances annulées remplie dès la connexion',
     doc.querySelectorAll('#annul-liste > div').length === 1, doc.querySelectorAll('#annul-liste > div').length);
-  t('la carte affiche la séance avec sa date', txt('annul-liste').indexOf('12/09/2026') >= 0 && txt('annul-liste').indexOf('08:00–10:00') >= 0);
+  t('la carte affiche la séance avec sa date', txt('annul-liste').indexOf(AUJ_FR) >= 0 && txt('annul-liste').indexOf('23:58–23:59') >= 0);
   win.deconnexion();
   connecter(s1.email, s1.password);
   t('surveillant : idem sur son Dashboard', doc.querySelectorAll('#annul-liste-surv > div').length === 1);
@@ -111,7 +115,10 @@ setTimeout(() => {
     JSON.parse(win.localStorage.getItem('seancesAnnulees')).length === 2 && doc.getElementById('modal-form').classList.contains('hidden'));
   t('liste "Annulations enregistrées" mise à jour (Gestion)', doc.querySelectorAll('#annulations-liste > div').length === 2,
     doc.querySelectorAll('#annulations-liste > div').length);
-  t('et sur le Dashboard', doc.querySelectorAll('#annul-liste > div').length === 2);
+  // v4.59 : le créneau créé a une heure déjà passée -> il quitte le Dashboard ;
+  // seule la séance de 23:58 (celle du jour, pas encore terminée) reste affichée.
+  t('et sur le Dashboard (l annulation à heure passée n y est plus)',
+    doc.querySelectorAll('#annul-liste > div').length === 1, doc.querySelectorAll('#annul-liste > div').length);
 
   // ---------- 6. Saisie par le popup : absence d'un surveillant ----------
   win.switchProfil();

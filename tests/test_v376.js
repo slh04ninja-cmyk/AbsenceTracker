@@ -84,9 +84,16 @@ setTimeout(() => {
                          'dir-stat-presence-detail', 'dir-chart-tendance', 'dir-chart-absences', 'dir-top-absents'];
   const manquants = blocsAttendus.filter(id => !conteneurSurv.querySelector('#' + id));
   t('tous les blocs du directeur sont présents (' + blocsAttendus.length + ')', manquants.length === 0, manquants.join(' '));
-  t('les filtres proposent les mêmes périodes',
-    conteneurSurv.querySelectorAll('#dir-stats-periode option').length === 8 &&
-    conteneurSurv.querySelectorAll('#dir-stats-type option').length === 3);
+  // Contrat (et non un compte fige) : les périodes offertes au surveillant sont celles
+  // du directeur. « Ce trimestre » a ete retire en v4.56 (Semestre 1 / Semestre 2).
+  const periodesAttendues = ['Aujourd hui', 'Cette semaine', 'Ce mois', 'Semestre 1', 'Semestre 2', 'Année scolaire'];
+  const optionsPeriode = Array.prototype.map.call(conteneurSurv.querySelectorAll('#dir-stats-periode option'), function (o) { return o.textContent; });
+  const periodesManquantes = periodesAttendues.filter(function (v) {
+    return !optionsPeriode.some(function (o) { return o.replace(/[\u2019']/g, ' ').indexOf(v.replace(/[\u2019']/g, ' ')) === 0; });
+  });
+  t('les filtres proposent les mêmes périodes', periodesManquantes.length === 0 &&
+    conteneurSurv.querySelectorAll('#dir-stats-type option').length === 3,
+    optionsPeriode.join(' / '));
   t('les totaux affichent des chiffres NON nuls',
     /ABSENCES[1-9]/.test(txt('dir-stats-totaux').replace(/\s/g, '')) || /RETARDS[1-9]/.test(txt('dir-stats-totaux').replace(/\s/g, '')),
     txt('dir-stats-totaux').replace(/\s+/g, ' ').slice(0, 80));

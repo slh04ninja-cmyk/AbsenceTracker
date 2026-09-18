@@ -160,11 +160,14 @@ setTimeout(() => {
   t('titre de la carte = Séances annulées',
     doc.querySelector('#seances-annulees-card h3').textContent.indexOf('Séances annulées') >= 0);
   t('pastille « À venir » sur une annulation future', txt('annul-liste').indexOf('À venir') >= 0, txt('annul-liste').slice(0, 70));
-  // séance passée : pas de pastille "À venir", et la date figure sur la carte
+  // v4.59 : une séance annulée dont le JOUR est passé quitte le Dashboard —
+  // mais elle n'est PAS supprimée : elle reste dans la liste des calculs.
   win.eval("seancesAnnulees = [{ id: 'p1', dateISO: '2026-09-10', classe: 'TCSF-1', debut: '08:00', fin: '10:00', motif: 'Examen', par: 'Directeur', le: '2026-09-10 08:00' }]; sauvegarderSeancesAnnulees(); afficherSeancesAnnulees()");
-  const lignePassee = Array.from(doc.querySelectorAll('#annul-liste > div')).map(x => x.textContent).find(x => x.indexOf('10/09/2026') >= 0) || '';
-  t('séance passée : date affichée et pas de pastille "À venir" sur sa ligne',
-    lignePassee.indexOf('10/09/2026') >= 0 && lignePassee.indexOf('À venir') < 0, lignePassee);
+  const lignesPassees = Array.from(doc.querySelectorAll('#annul-liste > div')).map(x => x.textContent).filter(x => x.indexOf('10/09/2026') >= 0);
+  t('séance passée : plus affichée sur le Dashboard', lignesPassees.length === 0, lignesPassees.join(' | '));
+  t('séance passée : conservée dans la liste des calculs (taux de présence)',
+    win.eval("listeSeancesAnnulees().some(function(s){return s.dateISO==='2026-09-10';})") === true,
+    win.eval("listeSeancesAnnulees().length") + ' annulations au total dans les calculs');
 
   // ══════════ 4. Fermeture du jour : règles listées + stats + prochain cours ══════════
   doc.getElementById('ferm-type').value = 'Réunion';

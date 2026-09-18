@@ -192,7 +192,8 @@ setTimeout(() => {
   doc.getElementById('dir-stats-periode').value = 'mois';
   win.changerFiltreStatsDir();
   const nbJoursMois = now.getDate();                        // du 1er du mois a aujourd'hui
-  t('mois -> Tendance Mensuel : 1 barre par jour', titre() === 'Tendance Mensuel' && barsT().length === nbJoursMois,
+  // v4.57 : le titre porte en plus le nom du mois -> comparaison par préfixe
+  t('mois -> Tendance Mensuel : 1 barre par jour', titre().indexOf('Tendance Mensuel') === 0 && barsT().length === nbJoursMois,
     titre() + ' — ' + barsT().length + ' barres / ' + nbJoursMois + ' jours');
   t('mois -> total = 5 signaux', somme() === 5, String(somme()));
 
@@ -210,11 +211,10 @@ setTimeout(() => {
   t('semaine -> le total est sur le jour courant (' + jourSem + ')', barsT().includes(jourSem + '=5'), barsT().join('|'));
   t('semaine -> total = 5', somme() === 5, String(somme()));
 
-  doc.getElementById('dir-stats-periode').value = 'trimestre';
+  // v4.56 : « Ce trimestre » a été remplacé par « Semestre 1 » / « Semestre 2 ».
+  doc.getElementById('dir-stats-periode').value = 's1';
   win.changerFiltreStatsDir();
-  t('trimestre -> Tendance Trimestriel : barres S1, S2...',
-    titre() === 'Tendance Trimestriel' && barsT().length > 0 && barsT()[0].indexOf('S1=') === 0, titre() + ' — ' + barsT().join('|'));
-  t('trimestre -> total = 6 (5 aujourd hui + 1 le mois dernier, dans le trimestre)', somme() === 6, String(somme()));
+  t('Semestre 1 -> la tendance est calculée (des barres sont produites)', barsT().length > 0, titre() + ' — ' + barsT().join('|'));
 
   doc.getElementById('dir-stats-periode').value = 'perso';
   win.changerFiltreStatsDir();

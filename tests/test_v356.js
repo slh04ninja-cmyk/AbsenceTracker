@@ -75,7 +75,7 @@ setTimeout(() => {
   t('période S2 = 2027-02-01 → 2027-05-15', b2.debut === '2027-02-01' && b2.fin === '2027-05-15', JSON.stringify(b2));
   t('période année = 2026-09-01 → 2027-05-15', ba.debut === '2026-09-01' && ba.fin === '2027-05-15', JSON.stringify(ba));
   const optSem = doc.getElementById('stats-periode').querySelector('option[value="s1"]');
-  t('option Semestre 1 étiquetée avec ses dates', optSem && optSem.textContent.indexOf('01/09/2026') > 0 && optSem.textContent.indexOf('15/01/2027') > 0,
+  t('option Semestre 1 sans dates (v4.56 : les périodes ne portent plus leurs dates)', optSem && optSem.textContent.indexOf('Semestre 1') >= 0 && optSem.textContent.indexOf('/2026') < 0 && optSem.textContent.indexOf('/2027') < 0,
     optSem ? optSem.textContent : 'absente');
 
   // ══════════ 2. Renommage d'un professeur (directeur) ══════════
@@ -171,8 +171,11 @@ setTimeout(() => {
   t('annulation persistée (classe + séance + motif + auteur)',
     annul.length === 1 && annul[0].classe === 'TCSF-1' && annul[0].debut === '08:00' && annul[0].motif === 'Absence du professeur' && annul[0].par === 'Directeur',
     JSON.stringify(annul[0]));
-  t('la liste du jour affiche la séance annulée + Rétablir',
-    txt('annul-liste').indexOf('TCSF-1') >= 0 && txt('annul-liste').indexOf('Rétablir') >= 0, txt('annul-liste').slice(0, 70));
+  // v4.59 : cette annulation est à 08:00-10:00 alors que l'horloge du banc est à 16:30 :
+  // son heure est passée -> elle quitte le Dashboard, mais RESTE dans les calculs.
+  t('séance annulée dont l heure est passée : hors du Dashboard, gardée pour les calculs',
+    txt('annul-liste').indexOf('TCSF-1') < 0 && win.eval("listeSeancesAnnulees().length") === 1,
+    txt('annul-liste').slice(0, 60) + ' | calculs : ' + win.eval("listeSeancesAnnulees().length"));
   // v3.59 : modale compacte + liste des annulations dans un div a defilement
   const cssMod = Array.from(doc.querySelectorAll('style')).map(x => x.textContent).join('\n');
   t('formulaire d annulation compact (carte Fermeture en .carte-settings)',
@@ -185,15 +188,17 @@ setTimeout(() => {
     doc.getElementById('annul-liste').parentElement.id === 'seances-annulees-card',
     doc.getElementById('annul-liste').parentElement.id);
   // plusieurs annulations : elles restent toutes dans le meme div (qui defile)
-  win.eval("seancesAnnulees.push({id: 'x1', dateISO: '" + AUJ + "', classe: 'TCSF-2', debut: '09:00', fin: '10:00', motif: 'Examen', par: 'Directeur', le: '" + AUJ + " 09:00'})");
-  win.eval("seancesAnnulees.push({id: 'x2', dateISO: '" + AUJ + "', classe: 'TCSF-3', debut: '14:00', fin: '16:00', motif: 'Réunion', par: 'Surveillant 1', le: '" + AUJ + " 09:00'})");
+  // v4.59 : on les place APRÈS 16:30 (l'heure du banc), sans quoi elles quitteraient l'écran
+  win.eval("seancesAnnulees.push({id: 'x1', dateISO: '" + AUJ + "', classe: 'TCSF-2', debut: '17:00', fin: '18:00', motif: 'Examen', par: 'Directeur', le: '" + AUJ + " 09:00'})");
+  win.eval("seancesAnnulees.push({id: 'x2', dateISO: '" + AUJ + "', classe: 'TCSF-3', debut: '18:00', fin: '19:00', motif: 'Réunion', par: 'Surveillant 1', le: '" + AUJ + " 09:00'})");
   win.afficherSeancesAnnulees();
-  t('3 séances annulées listées dans le div', doc.getElementById('annul-liste').children.length === 3,
+  t('2 séances annulées encore à venir listées dans le div', doc.getElementById('annul-liste').children.length === 2,
     doc.getElementById('annul-liste').children.length);
   win.eval("seancesAnnulees = seancesAnnulees.filter(function(x){return x.id !== 'x1' && x.id !== 'x2';}); sauvegarderSeancesAnnulees()");
   win.afficherSeancesAnnulees();
-  t('retour a une seule annulation', doc.getElementById('annul-liste').children.length === 1,
-    doc.getElementById('annul-liste').children.length);
+  const restants = Array.from(doc.querySelectorAll('#annul-liste > div')).map(x => x.textContent);
+  t('l annulation TCSF-1 (08:00-10:00, heure passee) n est plus affichee',
+    restants.filter(x => x.indexOf('TCSF-1') >= 0).length === 0, restants.join(' | '));
 
   t('absence de cette séance = séance annulée', win.eval("absenceEnSeanceAnnulee(absences.find(function(a){return a.id===1;}))") === true);
   t('absence d une autre séance : non concernée', win.eval("absenceEnSeanceAnnulee(absences.find(function(a){return a.id===2;}))") === false);
