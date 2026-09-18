@@ -44,7 +44,15 @@ function ouvrirFicheEleve(eleveId, classeId) {
   let lignes = absences.filter(a => a.eleveId === eleveId && a.classe === cl.nom);
   // Un enseignant ne voit que les Ab/Rd qu'il a lui-meme signales
   if (utilisateurConnecte && utilisateurConnecte.role === 'enseignant') {
-    lignes = lignes.filter(a => a.enseignant === utilisateurConnecte.nom);
+    // L'auteur se compare par IDENTIFIANT (nom, code ou adresse) : sinon le detail d'un
+    // eleve restait vide (« Aucun incident enregistre ») quand le nom avait ete reecrit.
+    const u = utilisateurConnecte || {};
+    const net = function (v) { return String(v || '').toLowerCase().trim(); };
+    const lesMiens = [net(u.nom), net(u.code), net(u.email), net(String(u.email || '').split('@')[0])];
+    lignes = lignes.filter(function (a) {
+      const v = net(a.enseignant);
+      return lesMiens.indexOf(v) >= 0 || lesMiens.indexOf(v.split('@')[0]) >= 0;
+    });
   }
   const nbAbs = lignes.filter(a => typeEffectif(a) !== 'retard').length;
   const nbRet = lignes.filter(a => typeEffectif(a) === 'retard').length;

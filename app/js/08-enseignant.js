@@ -359,7 +359,8 @@ function afficherHistorique() {
   absences.forEach(a => {
     // Uniquement les Ab/Rd signales par CE prof (il en est l'AUTEUR), et justifies
     if (!estDeMoi(a.enseignant)) return;
-    if (a.statut !== 'justifie_s' && a.statut !== 'justifie_d') return;
+    // Toutes ses saisies figurent dans l'historique — approuvees comme non approuvees
+    // (meme logique que l'historique du directeur et du surveillant).
     const cle = a.eleveId + '|' + a.classe;
     if (!map[cle]) map[cle] = { nom: a.nom, classe: a.classe, count: 0, dernier: '' };
     map[cle].count++;
