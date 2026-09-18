@@ -392,3 +392,36 @@ function afficherHistorique() {
 }
 
 
+
+// ========== RECHERCHE DE LA PAGE HISTORIQUE ==========
+// Directeur / surveillant : on cherche dans les ELEVES de l'etablissement (comportement
+// habituel). Enseignant : on cherche dans SES PROPRES absences (celles dont il est
+// l'auteur) et on montre leur etat (a justifier / approuvee).
+function rechercherHistorique(idChamp, idResultats) {
+  const role = String((utilisateurConnecte || {}).role || '');
+  if (role === 'directeur' || role === 'surveillant') { rechercherEleves(idChamp, idResultats); return; }
+  const champ = document.getElementById(idChamp);
+  const cont = document.getElementById(idResultats);
+  if (!champ || !cont) return;
+  const q = String(champ.value || '').toLowerCase().trim();
+  cont.innerHTML = '';
+  if (q.length < 2) return;
+  const u = utilisateurConnecte || {};
+  const net = function (v) { return String(v || '').toLowerCase().trim(); };
+  const miens = [net(u.nom), net(u.code), net(u.email), net(String(u.email || '').split('@')[0])];
+  const estDeMoi = function (v) { const x = net(v); return miens.indexOf(x) >= 0 || miens.indexOf(x.split('@')[0]) >= 0; };
+  const trouvees = (absences || []).filter(function (a) {
+    if (!estDeMoi(a.enseignant)) return false;
+    return net(a.nom).indexOf(q) >= 0 || net(a.classe).indexOf(q) >= 0;
+  }).sort(function (x, y) { return String(y.dateISO).localeCompare(String(x.dateISO)); });
+  if (!trouvees.length) {
+    cont.innerHTML = '<p class="text-gray-500 text-center py-3">Aucune de vos absences ne correspond.</p>';
+    return;
+  }
+  trouvees.slice(0, 40).forEach(function (a) {
+    const etat = (a.statut === 'justifie_s') ? 'approuvée (surveillant)'
+      : (a.statut === 'justifie_d' ? 'approuvée (directeur)' : 'à justifier');
+    cont.appendChild(carteLigne((a.nom || '') + ' · ' + (a.classe || ''),
+      dateAffichage(a.dateISO) + ' · ' + (a.seance || 'matin') + ' · ' + etat));
+  });
+}
