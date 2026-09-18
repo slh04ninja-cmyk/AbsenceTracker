@@ -70,13 +70,21 @@ function ouvrirHistoriquePersonnel(roleDemande) {
   });
 
   // MEMES champs que « Declarer une absence » (constructeur de l'application)
-  // Les TOTAUX d'abord, puis la liste. Conteneur a NOUS (la classe du Dashboard est
-  // reprise par le remplissage automatique des listes : elle affichait les seances
-  // annulees au lieu de l'historique). Hauteur : environ 5 cartes avant defilement.
-  corps.innerHTML =
-    '<div id="histo-totaux"></div>' +
-    '<div id="histo-liste" class="js-histo-personnel" style="max-height:430px;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>';
-  const place = function (ch) { corps.insertBefore(construireChamp(ch), corps.firstChild); };
+  // On AJOUTE notre bloc SANS toucher aux formulaires de l'application : vider ce
+  // conteneur detruisait tous les autres formulaires (defaut signale : plus aucune
+  // fenetre de saisie ne s'ouvrait apres avoir vu l'historique).
+  let bloc = document.getElementById('bloc-form-historique');
+  if (!bloc) {
+    bloc = document.createElement('div');
+    bloc.id = 'bloc-form-historique';
+    bloc.innerHTML = '<div id="histo-totaux"></div>' +
+      '<div id="histo-liste" class="js-histo-personnel" style="max-height:430px;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>';
+    corps.appendChild(bloc);
+  }
+  Array.prototype.forEach.call(corps.children, function (el) { el.style.display = (el === bloc) ? 'block' : 'none'; });
+  formulaireActif = 'historique';
+  // MEMES champs que « Declarer une absence » (constructeur de l'application)
+  const place = function (ch) { bloc.insertBefore(construireChamp(ch), bloc.firstChild); };
   place({ id: 'histo-periode', label: 'Periode', type: 'select', onchange: 'afficherHistoriquePersonnel()',
           options: [['', 'Toute la periode'], ['mois', 'Ce mois'], ['semestre', 'Ce semestre']] });
   place({ id: 'histo-etat', label: 'Etat', type: 'select', onchange: 'afficherHistoriquePersonnel()',
