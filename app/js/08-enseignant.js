@@ -85,7 +85,16 @@ function afficherListeEleves() {
   const typeAutre = {};
   const quiAutre = {};
   incidentsJour.forEach(a => {
-    if (a.enseignant === moi) {
+    // L'auteur se compare par IDENTIFIANT (nom, code ou adresse) : un nom reecrit ne doit
+    // plus faire croire que l'absence vient « d'un autre enseignant » (defaut signale).
+    const memeAuteur = (function (valeur) {
+      const net = function (v) { return String(v || '').toLowerCase().trim(); };
+      const u = utilisateurConnecte || {};
+      const possibles = [net(moi), net(u.nom), net(u.code), net(u.email), net(String(u.email || '').split('@')[0])];
+      const v = net(valeur);
+      return possibles.indexOf(v) >= 0 || possibles.indexOf(v.split('@')[0]) >= 0;
+    })(a.enseignant);
+    if (memeAuteur) {
       if (!typeMoi[a.eleveId]) typeMoi[a.eleveId] = typeEffectif(a);
     } else if (!typeAutre[a.eleveId]) {
       typeAutre[a.eleveId] = typeEffectif(a);
@@ -119,6 +128,15 @@ function afficherListeEleves() {
     else if (elevesCoches.has(id)) marque = elevesCoches.get(id);
     else if (Object.prototype.hasOwnProperty.call(typeMoi, id) && !decochesManuellement.has(id)) marque = typeMoi[id];
 
+    // Approuvee (justifiee) pour CETTE seance : l'absence est DECOCHEE et la carte passe
+    // en VERT — l'enseignant voit d'un coup d'oeil que l'eleve a justifie et que c'est acte.
+    const approuveeIci = absences.some(function (a) {
+      return a.classe === classeSelectionnee.nom && '' + a.eleveId === '' + id &&
+        a.dateISO === jour && (a.seance || 'matin') === seance &&
+        (a.statut === 'justifie_s' || a.statut === 'justifie_d');
+    });
+    if (approuveeIci) marque = null;
+
     const cocheRetard = marque === 'retard';
     const cocheAbsent = marque !== null && marque !== 'retard';
     const estCoche = cocheAbsent || cocheRetard;
@@ -127,8 +145,9 @@ function afficherListeEleves() {
     const palAbsRd = couleursAbsRd();
     const couleur = cocheRetard ? palAbsRd.rd : palAbsRd.abs;
     const enSombre = document.body.classList.contains('theme-sombre');
-    const couleurBordure = enSombre ? eclaircir(couleur, 0.35) : couleur;
-    const fond = teinte(couleur, enSombre ? 0.20 : 0.10);
+    let couleurBordure = enSombre ? eclaircir(couleur, 0.35) : couleur;
+    let fond = teinte(couleur, enSombre ? 0.20 : 0.10);
+    if (approuveeIci) { couleurBordure = '#22c55e'; fond = teinte('#22c55e', enSombre ? 0.22 : 0.14); }
     const item = document.createElement('div');
     item.className = 'flex items-center px-4 py-3 transition-all';
     const bordureBas = enSombre ? '#334155' : '#f1f5f9';

@@ -197,6 +197,7 @@ async function envoyerMesDonnees() {
           continue;
         }
         const cl = eleve + '|' + a.dateISO + '|' + MOMENT_DE(a.seance);
+        void cl;
         const statut = STATUT_DE(a);
         const corps = {
           etablissement_id: etab, eleve_id: eleve, classe_id: cid, prof_id: pid,
@@ -208,8 +209,11 @@ async function envoyerMesDonnees() {
           // (regle d'integrite : on ne signale pas a la place d'un collegue). Ici, c'est le
           // directeur qui fait la montee : c'est donc lui qui signe ; le professeur concerne
           // reste porte par « prof_id ».
-          signale_par: moi.fiche.id
+          // L'auteur n'est ecrit qu'a la CREATION de la ligne : un directeur qui envoie les
+          // donnees ne doit pas se substituer a l'enseignant qui a signale (defaut signale).
+          signale_par: ((ids.signalements || {})[cl] ? undefined : moi.fiche.id)
         };
+        if (corps.signale_par === undefined) delete corps.signale_par;
         if (statut !== 'absent') {
           corps.decide_par = profId(a.justifiePar) || moi.fiche.id;
           corps.decide_le = HORODATAGE(a.justifieLe);
