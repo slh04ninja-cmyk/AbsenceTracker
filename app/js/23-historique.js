@@ -80,17 +80,26 @@ function ouvrirHistoriquePersonnel(roleDemande) {
     bloc.innerHTML = '<div id="histo-totaux"></div>' +
       '<div id="histo-liste" class="js-histo-personnel" style="max-height:430px;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>';
     corps.appendChild(bloc);
+    // MEMES champs que « Declarer une absence » (constructeur de l'application)
+    // Ces 3 filtres se construisent UNE SEULE FOIS, avec le bloc : construits a chaque
+    // ouverture, ils s'empilaient (3, 6, 9 listes — defaut signale par l'utilisateur :
+    // « 3 nouvelles listes deroulantes s'ajoutent dans le popup »).
+    const place = function (ch) { bloc.insertBefore(construireChamp(ch), bloc.firstChild); };
+    place({ id: 'histo-periode', label: 'Periode', type: 'select', onchange: 'afficherHistoriquePersonnel()',
+            options: [['', 'Toute la periode'], ['mois', 'Ce mois'], ['semestre', 'Ce semestre']] });
+    place({ id: 'histo-etat', label: 'Etat', type: 'select', onchange: 'afficherHistoriquePersonnel()',
+            options: [['', 'Tous les etats'], ['en_cours', 'En cours'], ['terminee', 'Terminees'], ['a_venir', 'A venir']] });
+    place({ id: 'histo-personne', label: (ov.dataset.role === 'surveillant') ? 'Surveillant' : 'Enseignant',
+            type: 'select', onchange: 'afficherHistoriquePersonnel()', options: [] });
+  } else {
+    // Reouverture : le libelle de la personne peut changer si l'historique est passe des
+    // enseignants aux surveillants (deux boutons distincts) — on met a jour le libelle,
+    // on ne reconstruit rien.
+    const lab = bloc.querySelector('label[for="histo-personne"]') || bloc.querySelector('#histo-personne').previousElementSibling;
+    if (lab) lab.textContent = (ov.dataset.role === 'surveillant') ? 'Surveillant' : 'Enseignant';
   }
   Array.prototype.forEach.call(corps.children, function (el) { el.style.display = (el === bloc) ? 'block' : 'none'; });
   formulaireActif = 'historique';
-  // MEMES champs que « Declarer une absence » (constructeur de l'application)
-  const place = function (ch) { bloc.insertBefore(construireChamp(ch), bloc.firstChild); };
-  place({ id: 'histo-periode', label: 'Periode', type: 'select', onchange: 'afficherHistoriquePersonnel()',
-          options: [['', 'Toute la periode'], ['mois', 'Ce mois'], ['semestre', 'Ce semestre']] });
-  place({ id: 'histo-etat', label: 'Etat', type: 'select', onchange: 'afficherHistoriquePersonnel()',
-          options: [['', 'Tous les etats'], ['en_cours', 'En cours'], ['terminee', 'Terminees'], ['a_venir', 'A venir']] });
-  place({ id: 'histo-personne', label: ov.dataset.role === 'surveillant' ? 'Surveillant' : 'Enseignant',
-          type: 'select', onchange: 'afficherHistoriquePersonnel()', options: [] });
 
   // LA DECORATION DES LISTES DEROULANTES (meme composant que « Declarer une absence ») :
   // elle est posee au chargement sur les listes existantes — il faut la poser sur les

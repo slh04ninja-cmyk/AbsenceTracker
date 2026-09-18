@@ -195,6 +195,12 @@ function libelleTendanceDir() {
   if (dirStatsPeriode === 'semaine') return 'Hebdomadaire';
   if (dirStatsPeriode === 'mois') return 'Mensuel';
   if (dirStatsPeriode === 'trimestre') return 'Trimestriel';
+  // v4.56 a remplace « Ce trimestre » par « Semestre 1 » / « Semestre 2 » et « Annee
+  // scolaire » : sans ces deux lignes, ces deux periodes retombaient sur le libelle
+  // « Personnalisee » (defaut signale : la carte annoncait « Tendance Personnalisee »
+  // alors que le filtre « Semestre 1 » etait choisi).
+  if (dirStatsPeriode === 's1' || dirStatsPeriode === 's2') return 'Semestriel';
+  if (dirStatsPeriode === 'annee') return 'Annuel';
   return 'Personnalisée';
 }
 
