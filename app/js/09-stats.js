@@ -131,6 +131,17 @@ function barresHorizontalesStats(idConteneur, donnees) {
 function afficherStatistiques() {
   const selP = document.getElementById('stats-periode');
   if (selP && !selP.dataset.init) { selP.value = 'mois'; selP.dataset.init = '1'; }
+  // En revenant sur la page (apres Dashboard, Historique, Profil...), la classe choisie
+  // etait perdue : on la RETABLIT depuis la liste deroulante. Le taux de presence et les
+  // cartes retrouvent donc leur valeur au lieu de retomber sur « - ».
+  if (!classeSelectionnee) {
+    const selC = document.getElementById('select-classe-stats');
+    const idChoisi = selC ? selC.value : '';
+    if (idChoisi) {
+      const c = (classes || []).find(function (x) { return String(x.id) === String(idChoisi); });
+      if (c) classeSelectionnee = c;
+    }
+  }
   lireFiltresStats();
   const b = statsBornes();
   const pal = couleursAbsRd();
