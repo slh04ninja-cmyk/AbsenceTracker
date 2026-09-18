@@ -46,13 +46,42 @@ function statsBornes() { return bornesPeriode(statsPeriode, 'stats-debut', 'stat
 
 function statsFiltre(sansClasse) {
   const b = statsBornes();
-  const moi = utilisateurConnecte ? utilisateurConnecte.nom : '';
+  const u = utilisateurConnecte || {};
+  const net = function (v) { return String(v || '').toLowerCase().trim(); };
+  const moi = net(u.nom);
+  // L'AUTEUR se compare par identifiant (nom, code ou adresse) : un nom reecrit ne doit
+  // plus fausser les statistiques d'un professeur.
+  const miens = [moi, net(u.code), net(u.email), net(String(u.email || '').split('@')[0])];
+  const estMonAuteur = function (valeur) {
+    const x = net(valeur);
+    return miens.indexOf(x) >= 0 || miens.indexOf(x.split('@')[0]) >= 0;
+  };
+  // Les CLASSES OU CE PROFESSEUR ENSEIGNE (deduites de son emploi du temps) : les classes
+  // qui ne lui ont pas donne ne doivent pas peser dans ses statistiques.
+  const roleEnseignant = String(u.role || '') === 'enseignant';
+  const mesClasses = (function () {
+    const t = {};
+    try {
+      const cle = net(u.email) || net(u.code) || moi;
+      const racine = cle.split('@')[0];
+      Object.keys(tableauxService || {}).forEach(function (k) {
+        const kk = net(k);
+        const pourMoi = kk === cle || kk.split('@')[0] === racine ||
+                        (typeof nomsProfs !== 'undefined' && nomsProfs && net(nomsProfs[k]) === moi);
+        if (!pourMoi) return;
+        (tableauxService[k] || []).forEach(function (c) { if (c.classe) t[String(c.classe)] = true; });
+      });
+    } catch (e) {}
+    return t;
+  })();
+  const aDesClasses = Object.keys(mesClasses).length > 0;
   return absences.filter(a => {
     const d = String(a.dateISO || '');
     if (d < b.debut || d > b.fin) return false;
     if (statsType !== 'tous' && (a.type || 'absence') !== statsType) return false;
     if (absenceEnSeanceAnnulee(a)) return false;   // seance annulee : ne compte pas
-    if (a.enseignant !== moi) return false;
+    if (!estMonAuteur(a.enseignant)) return false;                             // ses propres saisies
+    if (roleEnseignant && aDesClasses && !mesClasses[String(a.classe)]) return false;   // ses classes
     if (!sansClasse && classeSelectionnee && a.classe !== classeSelectionnee.nom) return false;
     return true;
   });
