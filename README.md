@@ -1,6 +1,6 @@
 # AbsenceTrack
 
-> **Avant toute modification, lire [`CONTEXTE-AGENT.md`](CONTEXTE-AGENT.md)** : méthode de travail
+> **Avant toute modification, lire [`AGENTS.md`](AGENTS.md)** : méthode de travail
 > exigée par le propriétaire, commandes de construction et de vérification, accès à la base de
 > données, règles métier à ne pas régresser et pièges déjà payés.
 
