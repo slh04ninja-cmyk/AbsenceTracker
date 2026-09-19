@@ -35,6 +35,11 @@ _jobid.txt
 _ci.log
 _msg_commit.txt
 
+# ---- telechargements d'APK et dossiers de comparaison locaux ----
+# (crees a chaque recuperation d'artefact CI : bruit pur, jamais utiles au projet)
+apk-dl*/
+_cmp/
+
 # ---- application Android (coquille Capacitor) ----
 www/
 android/release-keystore.jks

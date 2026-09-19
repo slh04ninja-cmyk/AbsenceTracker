@@ -1,12 +1,16 @@
 # AbsenceTrack
 
+> **Avant toute modification, lire [`CONTEXTE-AGENT.md`](CONTEXTE-AGENT.md)** : méthode de travail
+> exigée par le propriétaire, commandes de construction et de vérification, accès à la base de
+> données, règles métier à ne pas régresser et pièges déjà payés.
+
 Application de gestion des absences et des annulations de séances pour un établissement
 scolaire marocain (import des listes **MASSAR**, tableaux de service, emplois du temps **FET**).
 
 **Le source est modulaire, le livrable reste un fichier unique.** Le code vit dans `app/`
-(`index.html` + 8 feuilles CSS + 18 modules JS) ; `outils/build.py` l'assemble dans
-`AbsenceTrack-v2.html`, le fichier qu'on ouvre sur le téléphone (aucune installation) — c'est
-aussi celui que lisent les 37 suites de tests.
+(`index.html`, les feuilles de `app/styles/` et les **24 modules** de `app/js/`) ;
+`outils/build.py` l'assemble dans `AbsenceTrack-v2.html`, le fichier qu'on ouvre sur le téléphone
+(aucune installation) — c'est aussi celui que lisent les **49 suites de tests**.
 
 > ⚠️ **`AbsenceTrack-v2.html` est un fichier produit : ne jamais l'éditer à la main.**
 > On modifie `app/`, puis `python3 outils/build.py`. La CI vérifie à chaque push que les deux

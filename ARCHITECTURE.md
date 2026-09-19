@@ -42,7 +42,7 @@ AbsenceTrack/
 │   └─ .streamlit/secrets.toml   IGNORÉ (service_role ici uniquement)
 ├─ backend/supabase/         migrations/*.sql · tests RLS · README
 ├─ outils/                   build.py · verif.py
-├─ tests/                    37 suites jsdom (inchangées)
+├─ tests/                    49 suites jsdom
 └─ dist/                     AbsenceTrack-vX.Y.html  (artefact, publié en Release)
 ```
 
@@ -67,7 +67,7 @@ Pour que l'app **et** le bureau Streamlit ne divergent jamais, les règles viven
 « retard > 30 min → absence », totaux et taux de présence (**vues SQL**), cloisonnement des rôles
 (**21 politiques RLS**, déjà écrites et testées). Les deux interfaces restent **minces**.
 
-## Feuille de route (chaque étape doit laisser les 37 suites vertes)
+## Feuille de route (chaque étape doit laisser les 49 suites vertes)
 
 | Phase | Contenu | Effort |
 |---|---|---|
