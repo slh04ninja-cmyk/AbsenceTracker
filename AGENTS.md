@@ -177,3 +177,36 @@ d'une seule ligne sont aussi refusées : préférer plusieurs commandes courtes.
 
 Commentaires **en français**, pas de `console.log` oublié, pas de bibliothèque nouvelle : tout tient
 dans `app/` + le CDN déjà déclaré (Tailwind, Font Awesome, xlsx).
+
+## 9. Ordre de lecture conseillé (pour arriver vite au bon endroit)
+
+**1. Les trois documents** — `AGENTS.md` (ce fichier) → `README.md` → `ARCHITECTURE.md`.
+
+**2. Le squelette de l'application** — `app/index.html` (l'écran, les modales, et surtout **l'ordre
+des `<script>`** = l'ordre de chargement des modules) → `app/js/00-noyau.js` → `07-socle.js` (le flux
+général, la bascule de rôle) → `18-connexion.js` (la base, la clé publique, la session).
+
+**3. Le pont avec la base — le cœur du projet** — `19-donnees.js` (montée des données) →
+`20-ecole.js` (cloisonnement par école) → `21-lire.js` (lecture de la base) → `22-sync.js` (écriture à
+chaque geste + rafraîchissement 5 s).
+
+**4. Les écrans des trois rôles** — `08-enseignant.js` → `10-surveillant.js` → `11-directeur.js` →
+`09-stats.js`.
+
+**5. Les écrans partagés et les sujets précis** — `05-formulaires.js` (les 5 fenêtres de saisie,
+piège `#form-corps`) → `23-historique.js` (piège des filtres reconstruits à chaque ouverture) →
+`13-fiches.js` → `12-imports.js` (import MASSAR, 47 Ko) → `04-gestion.js` → `02-tableaux-service.js`
+→ `03-comptes.js` + `17-listes-deroulantes.js` → `06-rh.js` (**195 Ko : anormalement gros**, sept fois
+le module suivant — il contient des données en bloc ; à découper un jour) → les petits modules `01`,
+`14`, `15`, `16`.
+
+**6. Comment le travail est prouvé** — `outils/build.py` (avec `--verifier`), `outils/verif.py`
+(49 suites), deux bancs récents à copier comme modèle (`tests/test_v460_historique_doublons.js` pour
+l'empilement de champs, `tests/test_v459_dashboard_seances.js` pour une règle d'affichage),
+`supabase/migrations/0001…0005` + `supabase/README.md`, `.github/workflows/release.yml`.
+
+**À ne pas lire en premier** : `AbsenceTrack-v2.html` (656 Ko de code concaténé = le **produit**) et
+`dist/` — lire `app/` à la place.
+
+**Si tu n'as que 15 minutes** : `AGENTS.md` → `README.md` → `app/index.html` → `21-lire.js` +
+`22-sync.js` — cela donne la méthode de travail ET le flux de données complet.
