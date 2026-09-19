@@ -81,6 +81,10 @@ gh run download <ID> --repo slh04ninja-cmyk/AbsenceTracker -D ~/apk-new
 cp ~/apk-new/absencetrack-apk/app-release.apk /storage/emulated/0/Download/AbsenceTrack-vX.YY.apk
 # vérifier la version À L'INTÉRIEUR de l'APK avant de l'annoncer :
 unzip -p /storage/emulated/0/Download/AbsenceTrack-vX.YY.apk assets/public/index.html | grep -o "AbsenceTrack v[0-9.]*"
+
+# 5) le PROTOTYPE (le fichier HTML que le propriétaire ouvre sur son téléphone) :
+python3 outils/build.py --verifier     # doit dire : « identité : OK — le livrable correspond exactement à app/ »
+cp AbsenceTrack-v2.html /storage/emulated/0/Download/AbsenceTrack-v2.html
 ```
 
 **Étiquette de version** : `app/index.html` (`AbsenceTrack vX.YY — Prototype`) — la changer,
