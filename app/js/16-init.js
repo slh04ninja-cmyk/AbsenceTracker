@@ -8,8 +8,12 @@ function init() {
   if (typeof purgerAnnulationsDeduitesEnregistrees === 'function') purgerAnnulationsDeduitesEnregistrees();
   // Un personnel declare absent ne travaille pas : l'application se bloque pour lui.
   if (typeof verifierBlocageAbsence === 'function') verifierBlocageAbsence();
-  // Rafraichissement automatique : telephone et base restent d'accord (toutes les 5 s).
+  // Rafraichissement automatique : telephone et base restent d'accord. Ce tour est le
+  // filet de securite : il part a 5 s (comme avant) et passe a 30 s quand le temps reel
+  // (24-realtime.js) est abonne — la base previent alors le telephone elle-meme.
   if (typeof demarrerRafraichissementAuto === 'function') demarrerRafraichissementAuto(5);
+  // Temps reel : la base previent le telephone des qu'une ligne bouge (ecole + session).
+  if (typeof atRealtimeDemarrer === 'function') atRealtimeDemarrer();
   // relecture de la liste des surveillants AVANT de la reinjecter dans les comptes
   // (sans cette ligne, un surveillant ajoute disparaissait au redemarrage)
   surveillantsRH = chargerSurveillantsRH();

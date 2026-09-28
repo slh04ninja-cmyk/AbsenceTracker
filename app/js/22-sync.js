@@ -465,11 +465,15 @@ async function atLignesServeur(table, champs, jeton) {
 }
 
 // ============================================================
-// RAFRAICHISSEMENT AUTOMATIQUE (toutes les 5 secondes)
+// RAFRAICHISSEMENT AUTOMATIQUE (filet de securite)
 // ============================================================
 // But : que le telephone et la base ne se separent JAMAIS. A chaque tour :
 //   1. ce qui a change sur le telephone part dans la base (ajout, modification, suppression)
 //   2. la base est relue et l'ecran est redessine
+// Depuis le temps reel (24-realtime.js), la base PREVIENT le telephone des qu'elle
+// bouge et la relecture est immediate : ce tour n'est plus le moyen de decouvrir les
+// changements, c'est le FILET DE SECURITE. Il tourne a 5 s (comme avant) et passe a
+// 30 s quand le temps reel fonctionne ; il reprend 5 s des que la connexion manque.
 // Le tour ne se lance QUE si l'application est ouverte et connectee, et jamais deux tours
 // en meme temps. Rien n'est envoye s'il n'y a rien de nouveau (les empreintes evitent
 // les ecritures inutiles).
