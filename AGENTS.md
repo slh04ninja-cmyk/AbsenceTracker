@@ -91,6 +91,16 @@ cp AbsenceTrack-v2.html /storage/emulated/0/Download/AbsenceTrack-v2.html
 puis `build.py`, puis **vérifier que le changement a bien mordu** (`grep -o 'AbsenceTrack vX.YY' AbsenceTrack-v2.html`).
 Un `sed` d'étiquette qui rate en silence a déjà fait livrer une étiquette neuve avec l'ancien code.
 
+**Avant de pousser, TOUJOURS récupérer le travail des autres** — le distant avance souvent, et un
+push sans pull est **REFUSÉ** (non-fast-forward) :
+```bash
+git fetch origin
+git pull --rebase origin android-v4
+```
+C'est déjà arrivé : le worktree était en retard sur le commit `f4d6030` du 29/09 (« v4.61 temps
+réel Supabase ») et le push a été refusé. Le jeton GitHub est **déjà installé dans l'adresse du
+dépôt** : rien à configurer, `git push origin android-v4` suffit.
+
 **Piège du terminal** : toute commande contenant `&` est refusée (donc pas de `2>&1` dans une
 longue chaîne `&&` : écrire `> /dev/null` ou enchaîner avec `|`). Les très longues commandes
 d'une seule ligne sont aussi refusées : préférer plusieurs commandes courtes.
